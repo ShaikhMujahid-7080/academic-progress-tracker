@@ -25,3 +25,7 @@ A beautiful, modern web application to track your academic progress throughout s
 ```bash
 npm install
 npm run dev
+
+## 🤝 Contributing
+
+Feel free to fork this project and submit pull requests!
