@@ -12,7 +12,7 @@ A beautiful, modern web application to track your academic progress throughout s
 
 ## 🚀 Live Demo
 
-[View Live Application](YOUR_DEPLOYED_URL_HERE)
+[View Live Application](https://shaikhmujahid-7080.github.io/academic-progress-tracker/)
 
 ## 🛠️ Built With
 
