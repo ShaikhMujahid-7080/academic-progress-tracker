@@ -65,7 +65,7 @@ export default function App() {
     loadStudentData();
   }, [selectedStudent, isOnline]);
 
-  // Handle data changes with automatic Firebase sync
+  // Handle data changes with automatic  Firebase sync
   const handleDataChange = async (subject, data, type = 'theory') => {
     if (!selectedStudent) return;
 
