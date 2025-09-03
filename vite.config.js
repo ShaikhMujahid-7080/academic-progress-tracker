@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/academic-progress-tracker/', // <-- ADD THIS LINE
+  base: '/academic-progress-tracker/',
 });
