@@ -1,5 +1,5 @@
 {
-  "homepage":"https://shaikhmujahid-7080.github.io/academic-progress-tracker/",
+  "homepage": "https://shaikhmujahid-7080.github.io/academic-progress-tracker/",
   "name": "academic-progress-tracker",
   "private": true,
   "version": "0.0.0",
@@ -20,7 +20,8 @@
     "firebase": "^12.1.0",
     "lucide-react": "^0.540.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.8.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
