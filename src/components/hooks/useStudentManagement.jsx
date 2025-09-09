@@ -11,11 +11,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { ADMIN_STUDENT } from '../../data/subjects';
+import bcrypt from 'bcryptjs';
 
 export function useStudentManagement() {
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [isLoading, setIsLoading] = useState(true);
   const [hasInitialized, setHasInitialized] = useState(false);
 
   // Check if current student is admin
@@ -36,30 +37,47 @@ export function useStudentManagement() {
       // Add admin student if not exists
       const adminExists = studentsList.some(s => s.rollNo === ADMIN_STUDENT.rollNo);
       if (!adminExists) {
-        studentsList.push(ADMIN_STUDENT);
+        // Create admin with default password hash
+        const adminWithPassword = {
+          ...ADMIN_STUDENT,
+          password: bcrypt.hashSync('admin123', 10), // Default admin password
+          isProtected: true,
+          role: 'admin'
+        };
+        studentsList.push(adminWithPassword);
         // Save admin to Firestore
-        await setDoc(doc(db, 'students', ADMIN_STUDENT.rollNo), ADMIN_STUDENT);
+        await setDoc(doc(db, 'students', ADMIN_STUDENT.rollNo), adminWithPassword);
       }
 
       setStudents(studentsList);
       setHasInitialized(true);
       
-      // Remove any persistent admin authentication since we now ask for password each time
-
     } catch (error) {
       console.error('Error loading students:', error);
       // Fallback to admin
-      setStudents([ADMIN_STUDENT]);
+      const adminWithPassword = {
+        ...ADMIN_STUDENT,
+        password: bcrypt.hashSync('admin123', 10),
+        isProtected: true,
+        role: 'admin'
+      };
+      setStudents([adminWithPassword]);
       setHasInitialized(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Create new student
-  const createStudent = async (rollNo, name) => {
+  // Create new student with optional password and role
+  const createStudent = async (rollNo, name, password = '', role = 'student') => {
     try {
-      const newStudent = { rollNo, name };
+      const newStudent = { 
+        rollNo, 
+        name,
+        isProtected: !!password,
+        password: password ? bcrypt.hashSync(password, 10) : null,
+        role: role
+      };
       
       // Check if student already exists
       const exists = students.some(s => s.rollNo === rollNo);
@@ -76,6 +94,39 @@ export function useStudentManagement() {
       return true;
     } catch (error) {
       console.error('Error creating student:', error);
+      throw error;
+    }
+  };
+
+  // Update student role
+  const updateStudentRole = async (rollNo, newRole) => {
+    try {
+      if (rollNo === ADMIN_STUDENT.rollNo) {
+        throw new Error('Cannot change admin role');
+      }
+
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const updatedStudent = { ...student, role: newRole };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+      
+      // Update local state
+      setStudents(students.map(s => 
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating role:', error);
       throw error;
     }
   };
@@ -103,6 +154,10 @@ export function useStudentManagement() {
         batch.delete(doc.ref);
       });
       
+      // Delete user notes
+      const notesDoc = doc(db, 'userNotes', rollNo);
+      batch.delete(notesDoc);
+      
       await batch.commit();
       
       // Update local state
@@ -121,18 +176,69 @@ export function useStudentManagement() {
     }
   };
 
+  // Authenticate student with password
+  const authenticateStudent = async (student, password) => {
+    try {
+      if (!student.isProtected) {
+        return true; // No password required
+      }
+
+      if (!password) {
+        return false; // Password required but not provided
+      }
+
+      const isValid = await bcrypt.compare(password, student.password);
+      return isValid;
+    } catch (error) {
+      console.error('Error authenticating student:', error);
+      return false;
+    }
+  };
+
+  // Update student password
+  const updateStudentPassword = async (rollNo, newPassword, removePassword = false) => {
+    try {
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const updatedStudent = {
+        ...student,
+        password: removePassword ? null : bcrypt.hashSync(newPassword, 10),
+        isProtected: !removePassword
+      };
+
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+      
+      // Update local state
+      setStudents(students.map(s => 
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      return true;
+    } catch (error) {
+      console.error('Error updating password:', error);
+      throw error;
+    }
+  };
+
   // Select student - now clears previous student's local data
   const selectStudent = (student) => {
     // Clear any existing local data when switching students
     const previousStudent = selectedStudent;
-    if (previousStudent && previousStudent.rollNo !== student.rollNo) {
+    if (previousStudent && previousStudent.rollNo !== student?.rollNo) {
       // Clear the previous student's local storage
       const previousKey = `academic-data-${previousStudent.rollNo}`;
       localStorage.removeItem(previousKey);
     }
     
     setSelectedStudent(student);
-    localStorage.setItem('selected-student', JSON.stringify(student));
+    if (student) {
+      localStorage.setItem('selected-student', JSON.stringify(student));
+    } else {
+      localStorage.removeItem('selected-student');
+    }
   };
 
   // Initialize on mount
@@ -149,6 +255,9 @@ export function useStudentManagement() {
     createStudent,
     deleteStudent,
     selectStudent,
+    authenticateStudent,
+    updateStudentPassword,
+    updateStudentRole,
     loadStudents
   };
 }

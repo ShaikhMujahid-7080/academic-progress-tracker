@@ -1,14 +1,14 @@
 import { useState, useMemo } from "react";
-import { GraduationCap, Users, Crown, User, Loader2, Search, X, Lock } from "lucide-react";
+import { GraduationCap, Users, Crown, User, Loader2, Search, X, Lock, Shield } from "lucide-react";
 import { ADMIN_STUDENT } from "../../data/subjects";
 
-export function StudentSelectionScreen({ students, onStudentSelect, isLoading }) {
+export function StudentSelectionScreen({ students, onStudentSelect, isLoading, studentManagement }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAdminAuth, setShowAdminAuth] = useState(false);
-  const [adminPassword, setAdminPassword] = useState("");
+  const [showPasswordAuth, setShowPasswordAuth] = useState(false);
+  const [selectedStudentForAuth, setSelectedStudentForAuth] = useState(null);
+  const [password, setPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-
-  const ADMIN_PASSWORD = "admin123"; // Change this to your preferred admin password
+  const [authError, setAuthError] = useState("");
 
   // Filter students based on search query
   const filteredStudents = useMemo(() => {
@@ -21,44 +21,52 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading })
     );
   }, [students, searchQuery]);
 
-  const handleStudentClick = (student) => {
-    // Check if it's admin student
-    if (student.rollNo === ADMIN_STUDENT.rollNo) {
-      setShowAdminAuth(true);
-      return;
+  const handleStudentClick = async (student) => {
+    if (student.isProtected) {
+      // Show password prompt
+      setSelectedStudentForAuth(student);
+      setShowPasswordAuth(true);
+      setPassword("");
+      setAuthError("");
+    } else {
+      // No password required
+      onStudentSelect(student);
     }
-    
-    // Regular student - proceed directly
-    onStudentSelect(student);
   };
 
-  const handleAdminAuth = (e) => {
+  const handlePasswordAuth = async (e) => {
     e.preventDefault();
     
-    if (!adminPassword.trim()) {
-      alert('Please enter admin password');
+    if (!password.trim()) {
+      setAuthError('Please enter password');
       return;
     }
 
     setIsAuthenticating(true);
-    
-    // Simulate auth delay for better UX
-    setTimeout(() => {
-      if (adminPassword === ADMIN_PASSWORD) {
-        // Correct password - proceed with admin login
-        const adminStudent = students.find(s => s.rollNo === ADMIN_STUDENT.rollNo);
-        onStudentSelect(adminStudent);
+    setAuthError("");
+
+    try {
+      const isValid = await studentManagement.authenticateStudent(selectedStudentForAuth, password);
+      
+      if (isValid) {
+        onStudentSelect(selectedStudentForAuth);
+        setShowPasswordAuth(false);
       } else {
-        alert('❌ Incorrect admin password. Please try again.');
-        setAdminPassword("");
+        setAuthError('Incorrect password. Please try again.');
+        setPassword("");
       }
+    } catch (error) {
+      setAuthError('Authentication failed. Please try again.');
+    } finally {
       setIsAuthenticating(false);
-    }, 800);
+    }
   };
 
-  const cancelAdminAuth = () => {
-    setShowAdminAuth(false);
-    setAdminPassword("");
+  const cancelPasswordAuth = () => {
+    setShowPasswordAuth(false);
+    setSelectedStudentForAuth(null);
+    setPassword("");
+    setAuthError("");
   };
 
   const clearSearch = () => {
@@ -80,43 +88,84 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading })
     );
   }
 
-  // Admin Authentication Modal
-  if (showAdminAuth) {
+  // Password Authentication Modal
+  if (showPasswordAuth && selectedStudentForAuth) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-6">
         <div className="max-w-md w-full">
           <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
             {/* Header */}
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Crown className="w-8 h-8 text-white" />
+              <div className={`
+                w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4
+                ${selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo 
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500' 
+                  : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                }
+              `}>
+                {selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo ? (
+                  <Crown className="w-8 h-8 text-white" />
+                ) : (
+                  <Lock className="w-8 h-8 text-white" />
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin Authentication</h2>
-              <p className="text-gray-600">Enter admin password to continue as {ADMIN_STUDENT.name}</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo 
+                  ? 'Admin Authentication' 
+                  : 'Student Authentication'
+                }
+              </h2>
+              <p className="text-gray-600">
+                Enter password to access {selectedStudentForAuth.name}'s account
+              </p>
+            </div>
+
+            {/* Student Info */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <User className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium text-gray-900">{selectedStudentForAuth.name}</p>
+                  <p className="text-sm text-gray-600">Roll No: {selectedStudentForAuth.rollNo}</p>
+                </div>
+              </div>
             </div>
 
             {/* Password Form */}
-            <form onSubmit={handleAdminAuth} className="space-y-4">
+            <form onSubmit={handlePasswordAuth} className="space-y-4">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                   <Lock className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
                   type="password"
-                  placeholder="Admin password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                   disabled={isAuthenticating}
+                  autoFocus
                 />
               </div>
+
+              {authError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                  {authError}
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={isAuthenticating || !adminPassword.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  disabled={isAuthenticating || !password.trim()}
+                  className={`
+                    flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed
+                    ${selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo 
+                      ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                    }
+                  `}
                 >
                   {isAuthenticating ? (
                     <>
@@ -125,15 +174,19 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading })
                     </>
                   ) : (
                     <>
-                      <Crown className="w-4 h-4" />
-                      <span>Login as Admin</span>
+                      {selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo ? (
+                        <Crown className="w-4 h-4" />
+                      ) : (
+                        <Shield className="w-4 h-4" />
+                      )}
+                      <span>Access Account</span>
                     </>
                   )}
                 </button>
                 
                 <button
                   type="button"
-                  onClick={cancelAdminAuth}
+                  onClick={cancelPasswordAuth}
                   disabled={isAuthenticating}
                   className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all disabled:opacity-50"
                 >
@@ -143,10 +196,12 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading })
             </form>
 
             {/* Info */}
-            <div className="mt-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-              <p className="text-sm text-yellow-700 text-center">
-                <strong>Admin privileges include:</strong><br />
-                Creating and deleting student accounts, managing all student data
+            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <p className="text-sm text-blue-700 text-center">
+                This account is password protected for security.
+                {selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo && 
+                  " Admin accounts have full system privileges."
+                }
               </p>
             </div>
           </div>
@@ -208,7 +263,9 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading })
                     w-full flex items-center p-4 rounded-2xl border-2 transition-all text-left
                     ${student.rollNo === ADMIN_STUDENT.rollNo
                       ? 'border-yellow-200 bg-yellow-50 hover:border-yellow-300 hover:bg-yellow-100'
-                      : 'border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50'
+                      : student.isProtected
+                        ? 'border-blue-200 bg-blue-50 hover:border-blue-300 hover:bg-blue-100'
+                        : 'border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50'
                     }
                   `}
                 >
@@ -217,13 +274,17 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading })
                       w-12 h-12 rounded-2xl flex items-center justify-center
                       ${student.rollNo === ADMIN_STUDENT.rollNo 
                         ? 'bg-yellow-200' 
-                        : 'bg-blue-100'
+                        : student.isProtected
+                          ? 'bg-blue-200'
+                          : 'bg-gray-200'
                       }
                     `}>
                       {student.rollNo === ADMIN_STUDENT.rollNo ? (
                         <Crown className="w-6 h-6 text-yellow-600" />
+                      ) : student.isProtected ? (
+                        <Lock className="w-6 h-6 text-blue-600" />
                       ) : (
-                        <User className="w-6 h-6 text-blue-600" />
+                        <User className="w-6 h-6 text-gray-600" />
                       )}
                     </div>
                     
@@ -232,14 +293,20 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading })
                         <h3 className="font-bold text-gray-900">{student.name}</h3>
                         {student.rollNo === ADMIN_STUDENT.rollNo && (
                           <div className="flex items-center gap-1">
-                            <Lock className="w-3 h-3 text-yellow-600" />
-                            <span className="text-xs text-yellow-600 font-medium">Protected</span>
+                            <Crown className="w-4 h-4 text-yellow-600" />
+                            <span className="text-xs text-yellow-600 font-medium">Admin</span>
+                          </div>
+                        )}
+                        {student.isProtected && student.rollNo !== ADMIN_STUDENT.rollNo && (
+                          <div className="flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-blue-600" />
+                            <span className="text-xs text-blue-600 font-medium">Protected</span>
                           </div>
                         )}
                       </div>
                       <p className="text-sm text-gray-600">Roll No: {student.rollNo}</p>
-                      {student.rollNo === ADMIN_STUDENT.rollNo && (
-                        <p className="text-xs text-yellow-600 font-medium">Administrator Account</p>
+                      {student.isProtected && (
+                        <p className="text-xs text-gray-500">Password required</p>
                       )}
                     </div>
                   </div>
@@ -256,8 +323,8 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading })
           {/* Footer Note */}
           <div className="mt-6 p-4 bg-gray-50 rounded-2xl border border-gray-200">
             <p className="text-sm text-gray-600 text-center">
-              <strong>Note:</strong> Regular students can access immediately. 
-              Admin account requires password for security.
+              <strong>Note:</strong> Students with <Lock className="w-3 h-3 inline mx-1" /> require password authentication.
+              Click on any student to access their profile.
             </p>
           </div>
         </div>

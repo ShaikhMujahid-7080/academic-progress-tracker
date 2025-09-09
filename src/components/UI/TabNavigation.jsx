@@ -1,9 +1,11 @@
-import { BookOpen, FlaskConical, Settings, ChevronRight } from "lucide-react";
+import { BookOpen, FlaskConical, Settings, ChevronRight, Megaphone, StickyNote } from "lucide-react";
 
 const tabs = [
   { id: 0, label: "Theory Subjects", icon: BookOpen },
   { id: 1, label: "Practicals", icon: FlaskConical },
-  { id: 2, label: "Student & Settings", icon: Settings } // Renamed
+  { id: 2, label: "Notice Board", icon: Megaphone },
+  { id: 3, label: "Personal Notes", icon: StickyNote },
+  { id: 4, label: "Student & Settings", icon: Settings }
 ];
 
 export function TabNavigation({ activeTab, onTabChange }) {

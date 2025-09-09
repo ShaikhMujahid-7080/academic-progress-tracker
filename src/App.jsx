@@ -5,6 +5,8 @@ import { TabNavigation } from "./components/UI/TabNavigation";
 import { TabPanel } from "./components/UI/TabPanel";
 import { TheoryTab } from "./components/Tabs/TheoryTab";
 import { PracticalTab } from "./components/Tabs/PracticalTab";
+import { NoticeBoardTab } from "./components/Tabs/NoticeBoardTab";
+import { PersonalNotesTab } from "./components/Tabs/PersonalNotesTab";
 import { StudentManagementTab } from "./components/Tabs/StudentManagementTab";
 import { useLocalStorage } from "./components/hooks/useLocalStorage";
 import { useFirestore } from "./components/hooks/useFirestore";
@@ -13,6 +15,7 @@ import { useStudentManagement } from "./components/hooks/useStudentManagement";
 export default function App() {
   const [tab, setTab] = useState(0);
   const [semester, setSemester] = useState(5);
+  const [resettingData, setResettingData] = useState(false);
 
   // Student management
   const studentManagement = useStudentManagement();
@@ -24,7 +27,7 @@ export default function App() {
     selectStudent
   } = studentManagement;
 
-  // Local storage for offline support (now student-specific)
+  // This key ensures local storage is always per selected student
   const studentKey = selectedStudent ? `academic-data-${selectedStudent.rollNo}` : 'academic-data-temp';
   const [allData, setAllData] = useLocalStorage(studentKey, {});
 
@@ -32,40 +35,47 @@ export default function App() {
   const studentId = selectedStudent?.rollNo;
   const { isOnline, isSyncing, lastSynced, saveToFirestore, loadAllData } = useFirestore(studentId);
 
-  // Load data when student changes
+  // Handle student switch: always clear first, then (only afterwards) load from Firestore if needed.
   useEffect(() => {
+    let didCancel = false;
+
+    // If no student: clear all data and stop
     if (!selectedStudent) {
       setAllData({});
       return;
     }
 
-    const loadStudentData = async () => {
-      try {
-        // Clear local data first to ensure clean start
-        setAllData({});
+    // Step 1: Reset local state, ensure it's empty before load
+    setResettingData(true);
+    setAllData({});
 
-        if (isOnline) {
-          console.log(`Loading data for student: ${selectedStudent.name} (${selectedStudent.rollNo})`);
+    // Step 2: After a tiny delay (to guarantee React renders cleared state), load new data if online
+    setTimeout(async () => {
+      if (didCancel) return;
+      if (isOnline && selectedStudent) {
+        try {
           const firestoreData = await loadAllData();
-
-          if (Object.keys(firestoreData).length > 0) {
-            setAllData(firestoreData);
-            console.log('✅ Student data loaded from Firestore');
-          } else {
-            console.log('No data found in Firestore for this student - starting with clean slate');
+          if (!didCancel) {
+            if (firestoreData && Object.keys(firestoreData).length > 0) {
+              setAllData(firestoreData);
+            } // else remains empty
+          }
+        } catch (error) {
+          if (!didCancel) {
             setAllData({});
           }
         }
-      } catch (error) {
-        console.error('Error loading student data:', error);
-        setAllData({});
       }
-    };
+      if (!didCancel) setResettingData(false);
+    }, 50);
 
-    loadStudentData();
+    // Cleanup to avoid setState on unmounted component
+    return () => { didCancel = true; };
+
+    // eslint-disable-next-line
   }, [selectedStudent, isOnline]);
 
-  // Handle data changes with automatic  Firebase sync
+  // Handle data changes with automatic Firebase sync
   const handleDataChange = async (subject, data, type = 'theory') => {
     if (!selectedStudent) return;
 
@@ -80,39 +90,38 @@ export default function App() {
 
     if (isOnline) {
       try {
-        const success = await saveToFirestore(semester, subject, data, type);
-        if (!success) {
-          console.warn('Failed to sync to Firestore, data saved locally');
-        }
+        await saveToFirestore(semester, subject, data, type);
       } catch (error) {
         console.error('Error syncing to Firestore:', error);
       }
     }
   };
 
-  // Handle student selection from selection screen
+  // On student selection from selection screen, clear data immediately and set student
   const handleStudentSelection = (student) => {
     setAllData({});
     selectStudent(student);
   };
 
-  // Show loading or student selection screen if no student selected
-  if (!selectedStudent || studentsLoading || !hasInitialized) {
+  // Show loading or student selection screen if no student selected OR resettingData is in progress
+  if (!selectedStudent || studentsLoading || !hasInitialized || resettingData) {
     return (
       <StudentSelectionScreen
         students={students}
         onStudentSelect={handleStudentSelection}
-        isLoading={studentsLoading || !hasInitialized}
+        isLoading={studentsLoading || !hasInitialized || resettingData}
+        studentManagement={studentManagement}
       />
     );
   }
 
   const syncStatus = { isOnline, isSyncing, lastSynced };
 
-  // Handle student switching
+  // handle student switching (for header)
   const handleStudentSwitch = () => {
     selectStudent(null);
     localStorage.removeItem('selected-student');
+    setAllData({});
   };
 
   return (
@@ -143,6 +152,18 @@ export default function App() {
         </TabPanel>
 
         <TabPanel value={tab} index={2}>
+          <NoticeBoardTab
+            selectedStudent={selectedStudent}
+          />
+        </TabPanel>
+
+        <TabPanel value={tab} index={3}>
+          <PersonalNotesTab
+            selectedStudent={selectedStudent}
+          />
+        </TabPanel>
+
+        <TabPanel value={tab} index={4}>
           <StudentManagementTab
             semester={semester}
             setSemester={setSemester}
@@ -153,4 +174,3 @@ export default function App() {
     </div>
   );
 }
-

@@ -16,8 +16,8 @@ export const subjects = {
     practical: ["DBMS Lab", "Networks Lab"]
   },
   5: {
-    theory: ["Artificial Intelligence", "Design & Analysis of Algorithms", "Database Management", "Embedded Systems", "Machine Learning", "Mobile Development", "Open Elective-4"],
-    practical: ["AI Lab", "Algorithms Lab", "Database Lab", "ML Lab"]
+    theory: ["AIA", "DAA", "DBMS", "ES", "MLA", "MDM", "OE-4"],
+    practical: ["DAA Lab", "DBMS Lab", "MLA Lab", "ES Lab"]
   },
   6: {
     theory: ["Advanced AI", "Compiler Design", "Internet of Things", "Cloud Computing"],
@@ -35,12 +35,12 @@ export const subjects = {
 
 export const caOptions = [
   "Assignment",
-  "Certificate",
-  "Quiz",
-  "Presentation",
   "Test",
+  "Presentation",
+  "Quiz",
+  "Certificate",
   "Project",
-  "Custom"
+  "Other"
 ];
 
 // Admin configuration
