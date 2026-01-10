@@ -20,8 +20,8 @@ export const subjects = {
     practical: ["DAA Lab", "DBMS Lab", "MLA Lab", "ES Lab"]
   },
   6: {
-    theory: ["Advanced AI", "Compiler Design", "Internet of Things", "Cloud Computing"],
-    practical: ["Compiler Lab", "IoT Lab"]
+    theory: ["CNN", "CVPR", "DV", "K.ENG", "MDM", "SR"],
+    practical: ["CNN Lab", "DV Lab", "K.ENG Lab", "MAD Lab", "SR Lab"]
   },
   7: {
     theory: ["Deep Learning", "Big Data Analytics", "Cybersecurity", "Project Management"],
