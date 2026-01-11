@@ -20,7 +20,22 @@ export function useNoticeBoard(currentUser) {
 
   const isAdmin = currentUser?.rollNo === ADMIN_STUDENT.rollNo;
   const isCoLeader = currentUser?.role === 'co-leader';
-  const canManageNotices = isAdmin || isCoLeader;
+  
+  // For co-leaders, check specific permissions; for admin, allow all
+  const hasPermission = (permissionKey) => {
+    if (isAdmin) return true;
+    if (isCoLeader) {
+      // If permissions object is not set, assume co-leaders have default permissions enabled.
+      if (!currentUser?.permissions) return true;
+      // Otherwise, respect explicit permission flags (only explicit `false` denies)
+      return currentUser.permissions[permissionKey] !== false;
+    }
+    return false;
+  };
+
+  const canManageNotices = isAdmin || (isCoLeader && hasPermission('canPostNotices'));
+  const canCreateUsers = isAdmin || (isCoLeader && hasPermission('canCreateUsers'));
+  const canManagePasswords = isAdmin || (isCoLeader && hasPermission('canManagePasswords'));
 
   // Load notices based on user permissions
   useEffect(() => {
@@ -339,6 +354,9 @@ export function useNoticeBoard(currentUser) {
     isAdmin,
     isCoLeader,
     canManageNotices,
+    canCreateUsers,
+    canManagePasswords,
+    hasPermission,
     createNotice,
     updateNotice,
     editNotice,

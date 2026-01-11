@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   StickyNote, 
   Eye, 
@@ -34,6 +34,22 @@ export function PersonalNotesTab({ selectedStudent }) {
 
   const [viewMode, setViewMode] = useState('split'); // 'edit', 'preview', 'split'
   const [showHelp, setShowHelp] = useState(false);
+  const _viewInitialized = useRef(false);
+
+  // Make preview the active view by default when notes exist (but avoid overriding user's manual changes)
+  useEffect(() => {
+    if (!_viewInitialized.current && !isLoading) {
+      if (notes && notes.trim().length > 0) {
+        setViewMode('preview');
+      }
+      _viewInitialized.current = true;
+    }
+  }, [notes, isLoading]);
+
+  // Reset initialization when student changes so default logic runs for new student
+  useEffect(() => {
+    _viewInitialized.current = false;
+  }, [selectedStudent]);
 
   const handleClearNotes = async () => {
     const confirmed = window.confirm(

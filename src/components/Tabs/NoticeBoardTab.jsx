@@ -187,7 +187,6 @@ export function NoticeBoardTab({ selectedStudent }) {
 
   const renderNoticeItem = (notice) => {
     const commonProps = {
-      key: notice.id,
       notice,
       currentUser: selectedStudent?.rollNo,
       students, // Pass students list for name resolution
@@ -203,6 +202,7 @@ export function NoticeBoardTab({ selectedStudent }) {
       case 'checklist':
         return (
           <ChecklistItem 
+            key={notice.id}
             {...commonProps}
             onToggleItem={(itemIndex) => toggleChecklistItem(notice.id, itemIndex, selectedStudent?.rollNo)}
           />
@@ -210,21 +210,23 @@ export function NoticeBoardTab({ selectedStudent }) {
       case 'poll':
         return (
           <PollItem 
+            key={notice.id}
             {...commonProps}
             onVote={(selectedIndices, voterId) => voteInPoll(notice.id, selectedIndices, voterId)}
           />
         );
       case 'reminder':
-        return <ReminderItem {...commonProps} />;
+        return <ReminderItem key={notice.id} {...commonProps} />;
       case 'todo':
         return (
           <TodoItem 
+            key={notice.id}
             {...commonProps}
             onToggle={() => toggleTodo(notice.id, selectedStudent?.rollNo)}
           />
         );
       default:
-        return <NoticeItem {...commonProps} />;
+        return <NoticeItem key={notice.id} {...commonProps} />;
     }
   };
 

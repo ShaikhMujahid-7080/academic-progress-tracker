@@ -1,6 +1,6 @@
-import { BookOpen, FlaskConical, Settings, ChevronRight, Megaphone, StickyNote } from "lucide-react";
+import { BookOpen, FlaskConical, Settings, ChevronRight, Megaphone, StickyNote, CheckCircle } from "lucide-react";
 
-const tabs = [
+const baseTabs = [
   { id: 0, label: "Theory Subjects", icon: BookOpen },
   { id: 1, label: "Practicals", icon: FlaskConical },
   { id: 2, label: "Notice Board", icon: Megaphone },
@@ -8,7 +8,9 @@ const tabs = [
   { id: 4, label: "Student & Settings", icon: Settings }
 ];
 
-export function TabNavigation({ activeTab, onTabChange }) {
+export function TabNavigation({ activeTab, onTabChange, showDegreeTab = false }) {
+  const tabs = showDegreeTab ? [...baseTabs, { id: 5, label: "Degree Completion", icon: CheckCircle }] : baseTabs;
+
   return (
     <div className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-6">

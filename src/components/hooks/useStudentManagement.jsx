@@ -37,12 +37,14 @@ export function useStudentManagement() {
       // Add admin student if not exists
       const adminExists = studentsList.some(s => s.rollNo === ADMIN_STUDENT.rollNo);
       if (!adminExists) {
-        // Create admin with default password hash
+        // Create admin with default password hash and admission info
         const adminWithPassword = {
           ...ADMIN_STUDENT,
           password: bcrypt.hashSync('admin123', 10), // Default admin password
           isProtected: true,
-          role: 'admin'
+          role: 'admin',
+          admissionYear: ADMIN_STUDENT.admissionYear || new Date().getFullYear(),
+          isDSY: ADMIN_STUDENT.isDSY || false
         };
         studentsList.push(adminWithPassword);
         // Save admin to Firestore
@@ -50,6 +52,25 @@ export function useStudentManagement() {
       }
 
       setStudents(studentsList);
+
+      // Restore selected student from localStorage when available
+      try {
+        const stored = localStorage.getItem('selected-student');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const found = studentsList.find(s => s.rollNo === parsed.rollNo);
+          if (found) {
+            setSelectedStudent(found);
+          } else {
+            // Stored student no longer exists; clear it
+            localStorage.removeItem('selected-student');
+          }
+        }
+      } catch (e) {
+        // ignore malformed storage
+        localStorage.removeItem('selected-student');
+      }
+
       setHasInitialized(true);
       
     } catch (error) {
@@ -59,7 +80,9 @@ export function useStudentManagement() {
         ...ADMIN_STUDENT,
         password: bcrypt.hashSync('admin123', 10),
         isProtected: true,
-        role: 'admin'
+        role: 'admin',
+        admissionYear: ADMIN_STUDENT.admissionYear || new Date().getFullYear(),
+        isDSY: ADMIN_STUDENT.isDSY || false
       };
       setStudents([adminWithPassword]);
       setHasInitialized(true);
@@ -68,12 +91,22 @@ export function useStudentManagement() {
     }
   };
 
-  // Create new student with optional password and role
-  const createStudent = async (rollNo, name, password = '', role = 'student') => {
+  // Create new student with optional password and role + admission data
+  const createStudent = async (rollNo, name, password = '', role = 'student', admissionYear = (new Date()).getFullYear(), isDSY = false) => {
     try {
+      const yearNum = Number(admissionYear);
+      if (!Number.isInteger(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
+        throw new Error('Invalid admission year');
+      }
+      if (typeof isDSY !== 'boolean') {
+        throw new Error('Invalid DSY flag');
+      }
+
       const newStudent = { 
         rollNo, 
         name,
+        admissionYear: yearNum,
+        isDSY,
         isProtected: !!password,
         password: password ? bcrypt.hashSync(password, 10) : null,
         role: role

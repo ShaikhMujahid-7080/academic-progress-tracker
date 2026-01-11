@@ -46,5 +46,8 @@ export const caOptions = [
 // Admin configuration
 export const ADMIN_STUDENT = {
   rollNo: "2405225",
-  name: "Shaikh Mujahid"
+  name: "Shaikh Mujahid",
+  // Defaults used when admin is bootstrapped
+  admissionYear: 2024,
+  isDSY: false
 };

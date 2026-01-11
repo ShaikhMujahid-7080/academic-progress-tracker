@@ -8,6 +8,7 @@ import { PracticalTab } from "./components/Tabs/PracticalTab";
 import { NoticeBoardTab } from "./components/Tabs/NoticeBoardTab";
 import { PersonalNotesTab } from "./components/Tabs/PersonalNotesTab";
 import { StudentManagementTab } from "./components/Tabs/StudentManagementTab";
+import { DegreeCompletionTab } from "./components/Tabs/DegreeCompletionTab";
 import { useLocalStorage } from "./components/hooks/useLocalStorage";
 import { useFirestore } from "./components/hooks/useFirestore";
 import { useStudentManagement } from "./components/hooks/useStudentManagement";
@@ -75,6 +76,40 @@ export default function App() {
     // eslint-disable-next-line
   }, [selectedStudent, isOnline]);
 
+  // When a selected student is restored/changed, set the semester based on admission info (if available)
+  // Helper to determine if student has completed 4 or more academic years since admission
+  const hasCompletedFourYears = (student) => {
+    if (!student || !student.admissionYear) return false;
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+    const yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
+    return yearsPassed >= 4;
+  };
+
+  useEffect(() => {
+    if (selectedStudent) {
+      const defaultSem = computeDefaultSemester(selectedStudent);
+      if (defaultSem) {
+        setSemester(defaultSem);
+      } else if (selectedStudent.isDSY) {
+        // If we don't have a computable default (missing admissionYear), ensure DSY students cannot be below semester 3
+        setSemester((s) => (s < 3 ? 3 : s));
+      }
+
+      // If the student has passed 4 academic years, switch to Degree Completion tab by default
+      if (hasCompletedFourYears(selectedStudent)) {
+        setTab(5);
+      }
+
+      // If degree tab is not applicable, ensure we are not on tab 5
+      if (!hasCompletedFourYears(selectedStudent) && tab === 5) {
+        setTab(0);
+      }
+    }
+    // eslint-disable-next-line
+  }, [selectedStudent]);
+
   // Handle data changes with automatic Firebase sync
   const handleDataChange = async (subject, data, type = 'theory') => {
     if (!selectedStudent) return;
@@ -97,9 +132,37 @@ export default function App() {
     }
   };
 
+  // Compute default semester from admission info (returns null if not enough info)
+  // Uses academic-year boundaries: each academic year (e.g., 2024-25) has two semesters.
+  // Academic year is considered to start in July (months July-Dec are the first semester, Jan-Jun the second).
+  const computeDefaultSemester = (student) => {
+    if (!student || !student.admissionYear) return null;
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1-12
+
+    // Determine the start year of the current academic year
+    const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+    const admissionAcademicYearStart = Number(student.admissionYear);
+
+    // Number of full academic years passed since admission
+    let yearsPassed = currentAcademicYearStart - admissionAcademicYearStart;
+    if (yearsPassed < 0) yearsPassed = 0;
+
+    const startSem = student.isDSY ? 3 : 1;
+    // semesterIndex: 0 for first semester of academic year (July-Dec), 1 for second (Jan-Jun)
+    const semesterIndex = month >= 7 ? 0 : 1;
+
+    let sem = startSem + yearsPassed * 2 + semesterIndex;
+    if (sem < startSem) sem = startSem;
+    if (sem > 8) sem = 8;
+    return sem;
+  };
+
   // On student selection from selection screen, clear data immediately and set student
   const handleStudentSelection = (student) => {
     setAllData({});
+    const defaultSem = computeDefaultSemester(student);
+    if (defaultSem) setSemester(defaultSem);
     selectStudent(student);
   };
 
@@ -132,7 +195,7 @@ export default function App() {
         selectedStudent={selectedStudent}
         onStudentSwitch={handleStudentSwitch}
       />
-      <TabNavigation activeTab={tab} onTabChange={setTab} />
+      <TabNavigation activeTab={tab} onTabChange={setTab} showDegreeTab={hasCompletedFourYears(selectedStudent)} />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <TabPanel value={tab} index={0}>
@@ -169,6 +232,10 @@ export default function App() {
             setSemester={setSemester}
             studentManagement={studentManagement}
           />
+        </TabPanel>
+
+        <TabPanel value={tab} index={5}>
+          <DegreeCompletionTab selectedStudent={selectedStudent} />
         </TabPanel>
       </div>
     </div>

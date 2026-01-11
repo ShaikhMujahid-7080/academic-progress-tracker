@@ -23,7 +23,7 @@ export function StudentManagementTab({
   } = studentManagement;
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newStudent, setNewStudent] = useState({ rollNo: '', name: '', password: '', role: 'student' });
+  const [newStudent, setNewStudent] = useState({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false });
   const [passwordProtected, setPasswordProtected] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -36,6 +36,13 @@ export function StudentManagementTab({
   const [adminPassword, setAdminPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState("");
+
+  // Student authentication modal states for protected students
+  const [showStudentAuth, setShowStudentAuth] = useState(false);
+  const [studentAuthPassword, setStudentAuthPassword] = useState("");
+  const [studentAuthError, setStudentAuthError] = useState("");
+  const [studentToAuthenticate, setStudentToAuthenticate] = useState(null);
+  const [isStudentAuthenticating, setIsStudentAuthenticating] = useState(false);
 
   // Password change states
   const [showPasswordChange, setShowPasswordChange] = useState(false);
@@ -89,16 +96,14 @@ export function StudentManagementTab({
       return;
     }
     
-    // Check if student is password protected
+    // Check if student is password protected (non-admin)
     if (student.isProtected && student.rollNo !== selectedStudent?.rollNo) {
-      const password = prompt(`Enter password for ${student.name}:`);
-      if (password === null) return; // User cancelled
-      
-      const isValid = await authenticateStudent(student, password);
-      if (!isValid) {
-        toast.error('❌ Incorrect password');
-        return;
-      }
+      // Open password modal for this student
+      setStudentToAuthenticate(student);
+      setStudentAuthPassword("");
+      setStudentAuthError("");
+      setShowStudentAuth(true);
+      return;
     }
     
     // Proceed with selection
@@ -133,6 +138,43 @@ export function StudentManagementTab({
     }, 800);
   };
 
+  // Student authentication (for password-protected non-admin students)
+  const handleStudentAuth = async (e) => {
+    e.preventDefault();
+
+    if (!studentAuthPassword.trim()) {
+      setStudentAuthError('Please enter password');
+      return;
+    }
+
+    setIsStudentAuthenticating(true);
+    setStudentAuthError("");
+
+    try {
+      const isValid = await authenticateStudent(studentToAuthenticate, studentAuthPassword);
+      if (isValid) {
+        selectStudent(studentToAuthenticate);
+        setShowStudentAuth(false);
+        setStudentToAuthenticate(null);
+        setStudentAuthPassword("");
+      } else {
+        setStudentAuthError('Incorrect password. Please try again.');
+        setStudentAuthPassword("");
+      }
+    } catch (err) {
+      setStudentAuthError('Authentication failed. Please try again.');
+    } finally {
+      setIsStudentAuthenticating(false);
+    }
+  };
+
+  const cancelStudentAuth = () => {
+    setShowStudentAuth(false);
+    setStudentToAuthenticate(null);
+    setStudentAuthPassword("");
+    setStudentAuthError("");
+  };
+
   const cancelAdminAuth = () => {
     setShowAdminAuth(false);
     setAdminPassword("");
@@ -154,13 +196,25 @@ export function StudentManagementTab({
 
     try {
       setIsCreating(true);
+
+      const admissionYearNum = Number(newStudent.admissionYear);
+      const currentYear = new Date().getFullYear();
+      if (!Number.isInteger(admissionYearNum) || admissionYearNum < 2000 || admissionYearNum > currentYear) {
+        toast.error('Please enter a valid admission year');
+        setIsCreating(false);
+        return;
+      }
+
       await createStudent(
-        newStudent.rollNo.trim(), 
-        newStudent.name.trim(), 
+        newStudent.rollNo.trim(),
+        newStudent.name.trim(),
         passwordProtected ? newStudent.password.trim() : '',
-        newStudent.role
+        newStudent.role,
+        admissionYearNum,
+        newStudent.isDSY
       );
-      setNewStudent({ rollNo: '', name: '', password: '', role: 'student' });
+
+      setNewStudent({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false });
       setPasswordProtected(false);
       setShowCreateForm(false);
       toast.success('✅ Student created successfully!');
@@ -250,10 +304,15 @@ export function StudentManagementTab({
     }
 
     try {
+      const wasProtected = passwordChangeStudent?.isProtected;
       await updateStudentPassword(passwordChangeStudent.rollNo, newPasswordData.password);
       setShowPasswordChange(false);
       setPasswordChangeStudent(null);
-      toast.success('✅ Password updated successfully!');
+      if (wasProtected) {
+        toast.success('✅ Password updated successfully!');
+      } else {
+        toast.success('✅ Password added successfully!');
+      }
     } catch (error) {
       toast.error(`❌ Error updating password: ${error.message}`);
     }
@@ -384,6 +443,73 @@ export function StudentManagementTab({
         </div>
       )}
 
+      {/* Student Authentication Modal */}
+      {showStudentAuth && studentToAuthenticate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Student Authentication</h2>
+              <p className="text-gray-600">Enter password to access {studentToAuthenticate.name}'s account</p>
+            </div>
+
+            <form onSubmit={handleStudentAuth} className="space-y-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                  <Lock className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  type="password"
+                  placeholder="Enter password"
+                  value={studentAuthPassword}
+                  onChange={(e) => setStudentAuthPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                  disabled={isStudentAuthenticating}
+                  autoFocus
+                />
+              </div>
+
+              {studentAuthError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                  {studentAuthError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={isStudentAuthenticating || !studentAuthPassword.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {isStudentAuthenticating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      <span>Access Account</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={cancelStudentAuth}
+                  disabled={isStudentAuthenticating}
+                  className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Password Change Modal */}
       {showPasswordChange && passwordChangeStudent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
@@ -392,7 +518,7 @@ export function StudentManagementTab({
               <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Key className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Change Password</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{passwordChangeStudent?.isProtected ? 'Change Password' : 'Add Password'}</h2>
               <p className="text-gray-600">Set new password for {passwordChangeStudent.name}</p>
             </div>
 
@@ -432,7 +558,7 @@ export function StudentManagementTab({
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all font-medium"
                 >
                   <Key className="w-4 h-4" />
-                  <span>Update Password</span>
+                  <span>{passwordChangeStudent?.isProtected ? 'Update Password' : 'Set Password'}</span>
                 </button>
                 
                 <button
@@ -496,7 +622,15 @@ export function StudentManagementTab({
                   }`}>
                     Roll No: {selectedStudent.rollNo}
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
+
+                  {/* Admission Info */}
+                  { selectedStudent.admissionYear && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Admission: {selectedStudent.admissionYear || 'N/A'} {selectedStudent.isDSY ? '(DSY)' : ''}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-2 mt-2">
                     <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
                       getRoleDisplay(selectedStudent.role || 'student').bgColor
                     }`}>
@@ -517,7 +651,7 @@ export function StudentManagementTab({
                 </div>
               </div>
             </div>
-          )}
+          )} 
         </div>
 
         {/* Current Semester */}
@@ -529,11 +663,14 @@ export function StudentManagementTab({
             value={semester}
             onChange={(e) => setSemester(Number(e.target.value))}
           >
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-              <option key={sem} value={sem}>
+            { (selectedStudent?.isDSY ? [3,4,5,6,7,8] : [1,2,3,4,5,6,7,8]).map((sem) => (
+              <option
+                key={sem}
+                value={sem}
+              >
                 Semester {sem} ({subjects[sem].theory.length} theory + {subjects[sem].practical.length} practical)
               </option>
-            ))}
+            )) }
           </select>
 
           <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
@@ -547,6 +684,12 @@ export function StudentManagementTab({
               </div>
             </div>
           </div>
+
+          {selectedStudent?.isDSY && (
+            <div className="mt-4 p-3 bg-yellow-50 rounded-xl border border-yellow-200 text-sm text-yellow-700">
+              Note: DSY students start from Semester 3 — Semesters 1 & 2 are hidden for DSY students.
+            </div>
+          )}
         </div>
       </div>
 
@@ -626,6 +769,35 @@ export function StudentManagementTab({
                 <option value="student">Student</option>
                 <option value="co-leader">Co-Leader</option>
               </select>
+            </div>
+
+            {/* Admission Info */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-sm font-medium text-green-900 mb-2">Admission Year</label>
+                <input
+                  type="number"
+                  min="2000"
+                  max={new Date().getFullYear()}
+                  value={newStudent.admissionYear}
+                  onChange={(e) => setNewStudent({...newStudent, admissionYear: e.target.value})}
+                  className="w-full p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-green-900 mb-2">Direct Second Year (DSY)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="is-dsy"
+                    type="checkbox"
+                    checked={newStudent.isDSY}
+                    onChange={(e) => setNewStudent({...newStudent, isDSY: e.target.checked})}
+                    className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <label htmlFor="is-dsy" className="text-sm text-gray-700">Is DSY (Direct Second Year)</label>
+                </div>
+              </div>
             </div>
 
             {/* Password Protection Toggle */}
@@ -784,7 +956,7 @@ export function StudentManagementTab({
                         </div>
                         
                         {/* Password Management */}
-                        {student.isProtected && (
+                        {student.isProtected ? (
                           <div className="flex gap-1">
                             <button
                               onClick={(e) => {
@@ -805,6 +977,19 @@ export function StudentManagementTab({
                               title="Remove Password"
                             >
                               <Shield className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePasswordChange(student);
+                              }}
+                              className="p-1 text-green-500 hover:bg-green-100 rounded transition-all"
+                              title="Add Password"
+                            >
+                              <Key className="w-3 h-3" />
                             </button>
                           </div>
                         )}
