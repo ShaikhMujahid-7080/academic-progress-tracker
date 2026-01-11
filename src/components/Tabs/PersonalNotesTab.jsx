@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { 
-  StickyNote, 
-  Eye, 
-  Edit3, 
-  Save, 
-  Trash2, 
-  Clock, 
+import {
+  StickyNote,
+  Eye,
+  Edit3,
+  Save,
+  Trash2,
+  Clock,
   Loader2,
   AlertCircle,
   FileText,
@@ -15,7 +15,9 @@ import {
   List,
   Hash,
   Quote,
-  Code
+  Code,
+  Check,
+  Copy
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -55,7 +57,7 @@ export function PersonalNotesTab({ selectedStudent }) {
     const confirmed = window.confirm(
       '⚠️ Are you sure you want to clear all your notes? This action cannot be undone.'
     );
-    
+
     if (confirmed) {
       await clearNotes();
       alert('✅ Notes cleared successfully!');
@@ -68,10 +70,10 @@ export function PersonalNotesTab({ selectedStudent }) {
     const end = textarea.selectionEnd;
     const selectedText = notes.substring(start, end);
     const replacement = before + (selectedText || placeholder) + after;
-    
+
     const newNotes = notes.substring(0, start) + replacement + notes.substring(end);
     updateNotes(newNotes);
-    
+
     // Set cursor position
     setTimeout(() => {
       textarea.focus();
@@ -86,20 +88,21 @@ export function PersonalNotesTab({ selectedStudent }) {
     { icon: Hash, title: 'Heading', action: () => insertMarkdown('# ', '', 'Heading') },
     { icon: List, title: 'List', action: () => insertMarkdown('- ', '', 'List item') },
     { icon: Quote, title: 'Quote', action: () => insertMarkdown('> ', '', 'Quote') },
-    { icon: Code, title: 'Code', action: () => insertMarkdown('`', '`', 'code') },
+    { icon: Code, title: 'Inline Code', action: () => insertMarkdown('`', '`', 'code') },
+    { icon: FileText, title: 'Code Block', action: () => insertMarkdown('\n```\n', '\n```\n', 'code block') },
     { icon: Link, title: 'Link', action: () => insertMarkdown('[', '](url)', 'link text') }
   ];
 
   const formatLastSaved = (date) => {
     if (!date) return 'Never saved';
-    
+
     const now = new Date();
     const diff = now - date;
-    
+
     if (diff < 60000) return 'Saved just now';
     if (diff < 3600000) return `Saved ${Math.floor(diff / 60000)} minutes ago`;
     if (diff < 86400000) return `Saved ${Math.floor(diff / 3600000)} hours ago`;
-    
+
     return `Saved on ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
   };
 
@@ -139,7 +142,7 @@ export function PersonalNotesTab({ selectedStudent }) {
             Private notes for <strong>{selectedStudent.name}</strong> ({selectedStudent.rollNo})
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowHelp(!showHelp)}
@@ -147,7 +150,7 @@ export function PersonalNotesTab({ selectedStudent }) {
           >
             Markdown Help
           </button>
-          
+
           <button
             onClick={handleClearNotes}
             disabled={isSaving || !notes.trim()}
@@ -181,29 +184,27 @@ export function PersonalNotesTab({ selectedStudent }) {
                 </>
               )}
             </div>
-            
+
             <div className="flex items-center gap-1 text-sm text-gray-500">
               <FileText className="w-4 h-4" />
               <span>{notes.length} characters</span>
             </div>
           </div>
-          
+
           {/* View Mode Toggle */}
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
             <button
               onClick={() => setViewMode('edit')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${
-                viewMode === 'edit' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-              }`}
+              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'edit' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+                }`}
             >
               <Edit3 className="w-4 h-4" />
               Edit
             </button>
             <button
               onClick={() => setViewMode('split')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${
-                viewMode === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-              }`}
+              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+                }`}
             >
               <div className="w-4 h-4 border border-current rounded-sm flex">
                 <div className="w-1/2 border-r border-current"></div>
@@ -213,16 +214,15 @@ export function PersonalNotesTab({ selectedStudent }) {
             </button>
             <button
               onClick={() => setViewMode('preview')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${
-                viewMode === 'preview' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-              }`}
+              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'preview' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+                }`}
             >
               <Eye className="w-4 h-4" />
               Preview
             </button>
           </div>
         </div>
-        
+
         {error && (
           <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
             {error}
@@ -272,7 +272,7 @@ export function PersonalNotesTab({ selectedStudent }) {
             </div>
           </div>
         )}
-        
+
         {/* Content Area */}
         <div className="flex h-96">
           {/* Editor */}
@@ -297,7 +297,7 @@ Your notes are automatically saved as you type.`}
               />
             </div>
           )}
-          
+
           {/* Preview */}
           {(viewMode === 'preview' || viewMode === 'split') && (
             <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} overflow-y-auto`}>
@@ -315,7 +315,54 @@ Your notes are automatically saved as you type.`}
                         >
                           {children}
                         </a>
-                      )
+                      ),
+                      code: ({ node, inline, className, children, ...props }) => {
+                        const [isCopied, setIsCopied] = useState(false);
+                        const match = /language-(\w+)/.exec(className || '');
+
+                        if (inline) {
+                          return (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+
+                        const handleCopy = () => {
+                          navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+                          setIsCopied(true);
+                          setTimeout(() => setIsCopied(false), 2000);
+                        };
+
+                        return (
+                          <div className="relative group my-4">
+                            <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={handleCopy}
+                                className="p-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 hover:text-white transition-all shadow-lg"
+                                title="Copy code"
+                              >
+                                {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                              </button>
+                            </div>
+                            <pre className="!mt-0 !mb-0 rounded-xl overflow-hidden bg-gray-900 !p-0">
+                              <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+                                <div className="flex gap-1.5">
+                                  <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                                  <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                                  <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                                </div>
+                                <span className="text-xs text-gray-400 font-mono">
+                                  {match ? match[1] : 'text'}
+                                </span>
+                              </div>
+                              <code className={`${className} block p-4 text-sm font-mono text-gray-300 overflow-x-auto`} {...props}>
+                                {children}
+                              </code>
+                            </pre>
+                          </div>
+                        );
+                      }
                     }}
                   >
                     {notes}

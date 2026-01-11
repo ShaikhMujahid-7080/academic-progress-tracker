@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  onSnapshot, 
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
   serverTimestamp,
   orderBy,
   query
@@ -20,7 +20,7 @@ export function useNoticeBoard(currentUser) {
 
   const isAdmin = currentUser?.rollNo === ADMIN_STUDENT.rollNo;
   const isCoLeader = currentUser?.role === 'co-leader';
-  
+
   // For co-leaders, check specific permissions; for admin, allow all
   const hasPermission = (permissionKey) => {
     if (isAdmin) return true;
@@ -50,27 +50,35 @@ export function useNoticeBoard(currentUser) {
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, 
+    const unsubscribe = onSnapshot(q,
       (querySnapshot) => {
         const noticesList = [];
         querySnapshot.forEach((doc) => {
           const noticeData = { id: doc.id, ...doc.data() };
-          
-          // Filter notices based on user permissions
-          if (canManageNotices) {
-            // Admin and co-leaders can see all notices
+
+          const allowedUsers = noticeData.allowedUsers || [];
+          const isPublic = noticeData.isPublic || false;
+          const isCreator = noticeData.createdByRoll === currentUser.rollNo;
+          const isAllowedUser = allowedUsers.includes(currentUser.rollNo);
+
+          // Admin can see all notices
+          if (isAdmin) {
             noticesList.push(noticeData);
-          } else {
-            // Check if user is in allowed list or if it's a public notice
-            const allowedUsers = noticeData.allowedUsers || [];
-            const isPublic = noticeData.isPublic || false;
-            
-            if (isPublic || allowedUsers.includes(currentUser.rollNo)) {
+          }
+          // Co-leaders can see: public notices, notices they created, or notices they're allowed to view
+          else if (isCoLeader) {
+            if (isPublic || isCreator || isAllowedUser) {
+              noticesList.push(noticeData);
+            }
+          }
+          // Regular users can see: public notices or notices they're explicitly allowed to view
+          else {
+            if (isPublic || isAllowedUser) {
               noticesList.push(noticeData);
             }
           }
         });
-        
+
         setNotices(noticesList);
         setIsLoading(false);
       },
@@ -115,12 +123,12 @@ export function useNoticeBoard(currentUser) {
   const updateNotice = async (noticeId, updates, updateType = 'admin') => {
     try {
       const noticeRef = doc(db, 'noticeBoard', noticeId);
-      
+
       // Check permissions based on update type
       if (updateType === 'admin' && !canManageNotices) {
         throw new Error('Only admin and co-leaders can manage notices');
       }
-      
+
       // For user interactions (voting, checking items), allow all users
       await updateDoc(noticeRef, {
         ...updates,
@@ -189,7 +197,7 @@ export function useNoticeBoard(currentUser) {
 
       const updatedOptions = [...notice.meta.options];
       const isAnonymous = notice.meta.isAnonymous || false;
-      
+
       if (isAnonymous) {
         // Anonymous voting - just increment vote counts
         selectedIndices.forEach(index => {
@@ -201,19 +209,19 @@ export function useNoticeBoard(currentUser) {
         // Store user's vote separately to prevent multiple votes
         const userVotes = notice.meta.userVotes || {};
         const previousVotes = userVotes[voterId] || [];
-        
+
         // Remove previous votes from counts
         previousVotes.forEach(prevIndex => {
           if (updatedOptions[prevIndex].anonymousVotes > 0) {
             updatedOptions[prevIndex].anonymousVotes--;
           }
         });
-        
+
         // Add new votes to counts
         selectedIndices.forEach(index => {
           updatedOptions[index].anonymousVotes++;
         });
-        
+
         // Update user's vote record
         userVotes[voterId] = selectedIndices;
 
@@ -230,7 +238,7 @@ export function useNoticeBoard(currentUser) {
         updatedOptions.forEach(option => {
           option.votes = option.votes?.filter(v => v !== voterId) || [];
         });
-        
+
         // Add votes for selected options
         selectedIndices.forEach(index => {
           if (!updatedOptions[index].votes) {
@@ -246,7 +254,7 @@ export function useNoticeBoard(currentUser) {
           }
         }, 'user');
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error voting:', error);
@@ -262,17 +270,17 @@ export function useNoticeBoard(currentUser) {
 
       const updatedItems = [...notice.meta.items];
       const isAnonymous = notice.meta.isAnonymous || false;
-      
+
       if (isAnonymous) {
         // Anonymous completion - just increment/decrement counts
         if (!updatedItems[itemIndex].anonymousCompletions) {
           updatedItems[itemIndex].anonymousCompletions = 0;
         }
-        
+
         // Track user's completion status separately
         const userCompletions = notice.meta.userCompletions || {};
         const userCompletedItems = userCompletions[userId] || [];
-        
+
         if (userCompletedItems.includes(itemIndex)) {
           // Remove completion
           userCompletions[userId] = userCompletedItems.filter(i => i !== itemIndex);
@@ -295,7 +303,7 @@ export function useNoticeBoard(currentUser) {
         if (!updatedItems[itemIndex].completedBy) {
           updatedItems[itemIndex].completedBy = [];
         }
-        
+
         const userIndex = updatedItems[itemIndex].completedBy.indexOf(userId);
         if (userIndex > -1) {
           updatedItems[itemIndex].completedBy.splice(userIndex, 1);
@@ -310,7 +318,7 @@ export function useNoticeBoard(currentUser) {
           }
         }, 'user');
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error toggling checklist:', error);
@@ -326,7 +334,7 @@ export function useNoticeBoard(currentUser) {
 
       const completedBy = notice.meta.completedBy || [];
       const userIndex = completedBy.indexOf(userId);
-      
+
       let updatedCompletedBy;
       if (userIndex > -1) {
         updatedCompletedBy = completedBy.filter(id => id !== userId);

@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from "react";
-import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX } from "lucide-react";
+import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check } from "lucide-react";
 import { subjects, ADMIN_STUDENT } from "../../data/subjects";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
 
-export function StudentManagementTab({ 
-  semester, 
-  setSemester, 
-  studentManagement 
+export function StudentManagementTab({
+  semester,
+  setSemester,
+  studentManagement
 }) {
   const {
     students,
@@ -19,8 +19,18 @@ export function StudentManagementTab({
     selectStudent,
     authenticateStudent,
     updateStudentPassword,
-    updateStudentRole
+    updateStudentRole,
+    updateStudentName
   } = studentManagement;
+
+  // Check if current user is a co-leader with permissions
+  const isCoLeader = selectedStudent?.role === 'co-leader' &&
+    selectedStudent?.rollNo !== ADMIN_STUDENT.rollNo;
+  const coLeaderPermissions = selectedStudent?.permissions || {};
+
+  // Permission checks
+  const canCreateUsers = isAdmin || (isCoLeader && coLeaderPermissions.canCreateUsers);
+  const canAppointCoLeaders = isAdmin || (isCoLeader && coLeaderPermissions.canAppointCoLeaders);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newStudent, setNewStudent] = useState({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false });
@@ -30,7 +40,12 @@ export function StudentManagementTab({
   const [isDeleting, setIsDeleting] = useState(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
+  // Name edit states
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+
   // Admin authentication states
   const [showAdminAuth, setShowAdminAuth] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
@@ -58,7 +73,7 @@ export function StudentManagementTab({
     cancelText: 'Cancel',
     confirmColor: 'red',
     icon: 'warning',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   const ADMIN_PASSWORD = "admin123"; // Should match the one in StudentSelectionScreen
@@ -66,13 +81,41 @@ export function StudentManagementTab({
   // Filter students based on search query
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return students;
-    
+
     const query = searchQuery.toLowerCase();
-    return students.filter(student => 
+    return students.filter(student =>
       student.name.toLowerCase().includes(query) ||
       student.rollNo.toLowerCase().includes(query)
     );
   }, [students, searchQuery]);
+
+  const handleStartEditName = () => {
+    setTempName(selectedStudent.name);
+    setIsEditingName(true);
+  };
+
+  const handleCancelEditName = () => {
+    setIsEditingName(false);
+    setTempName("");
+  };
+
+  const handleSaveName = async () => {
+    if (!tempName.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+
+    try {
+      setIsSavingName(true);
+      await updateStudentName(selectedStudent.rollNo, tempName);
+      toast.success("✅ Name updated successfully!");
+      setIsEditingName(false);
+    } catch (error) {
+      toast.error(`❌ Error updating name: ${error.message}`);
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const showConfirm = (config) => {
     setConfirmConfig(config);
@@ -95,7 +138,7 @@ export function StudentManagementTab({
       setAuthError("");
       return;
     }
-    
+
     // Check if student is password protected (non-admin)
     if (student.isProtected && student.rollNo !== selectedStudent?.rollNo) {
       // Open password modal for this student
@@ -105,14 +148,14 @@ export function StudentManagementTab({
       setShowStudentAuth(true);
       return;
     }
-    
+
     // Proceed with selection
     selectStudent(student);
   };
 
   const handleAdminAuth = async (e) => {
     e.preventDefault();
-    
+
     if (!adminPassword.trim()) {
       setAuthError('Please enter admin password');
       return;
@@ -120,12 +163,12 @@ export function StudentManagementTab({
 
     setIsAuthenticating(true);
     setAuthError("");
-    
+
     // Simulate auth delay for better UX
     setTimeout(async () => {
       const adminStudent = students.find(s => s.rollNo === ADMIN_STUDENT.rollNo);
       const isValid = await authenticateStudent(adminStudent, adminPassword);
-      
+
       if (isValid) {
         selectStudent(adminStudent);
         setShowAdminAuth(false);
@@ -183,7 +226,7 @@ export function StudentManagementTab({
 
   const handleCreateStudent = async (e) => {
     e.preventDefault();
-    
+
     if (!newStudent.rollNo.trim() || !newStudent.name.trim()) {
       toast.error('Please fill in both roll number and name');
       return;
@@ -292,7 +335,7 @@ export function StudentManagementTab({
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
-    
+
     if (newPasswordData.password !== newPasswordData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -342,7 +385,7 @@ export function StudentManagementTab({
   };
 
   const getRoleDisplay = (role) => {
-    switch(role) {
+    switch (role) {
       case 'admin': return { name: 'Admin', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Crown };
       case 'co-leader': return { name: 'Co-Leader', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Star };
       default: return { name: 'Student', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: User };
@@ -428,7 +471,7 @@ export function StudentManagementTab({
                     </>
                   )}
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={cancelAdminAuth}
@@ -531,7 +574,7 @@ export function StudentManagementTab({
                   type="password"
                   placeholder="New password"
                   value={newPasswordData.password}
-                  onChange={(e) => setNewPasswordData({...newPasswordData, password: e.target.value})}
+                  onChange={(e) => setNewPasswordData({ ...newPasswordData, password: e.target.value })}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                   autoFocus
@@ -546,7 +589,7 @@ export function StudentManagementTab({
                   type="password"
                   placeholder="Confirm password"
                   value={newPasswordData.confirmPassword}
-                  onChange={(e) => setNewPasswordData({...newPasswordData, confirmPassword: e.target.value})}
+                  onChange={(e) => setNewPasswordData({ ...newPasswordData, confirmPassword: e.target.value })}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -560,7 +603,7 @@ export function StudentManagementTab({
                   <Key className="w-4 h-4" />
                   <span>{passwordChangeStudent?.isProtected ? 'Update Password' : 'Set Password'}</span>
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={() => setShowPasswordChange(false)}
@@ -591,86 +634,131 @@ export function StudentManagementTab({
               <Crown className="w-4 h-4 text-yellow-500" />
             )}
           </h3>
-          
+
           {selectedStudent && (
-            <div className={`rounded-2xl p-4 border ${
-              selectedStudent.rollNo === ADMIN_STUDENT.rollNo 
-                ? 'bg-yellow-50 border-yellow-200' 
+            <div className={`relative overflow-hidden rounded-2xl p-0.5 shadow-lg transition-all hover:shadow-xl ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
+              ? 'bg-gradient-to-br from-amber-200 via-yellow-100 to-orange-100'
+              : selectedStudent.role === 'co-leader'
+                ? 'bg-gradient-to-br from-purple-200 via-fuchsia-100 to-pink-100'
+                : 'bg-gradient-to-br from-blue-200 via-sky-100 to-indigo-100'
+              }`}>
+              <div className={`relative rounded-[14px] p-4 backdrop-blur-sm ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
+                ? 'bg-white/60'
                 : selectedStudent.role === 'co-leader'
-                  ? 'bg-purple-50 border-purple-200'
-                  : selectedStudent.isProtected
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-blue-50 border-blue-200'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className={`font-bold ${
-                    selectedStudent.rollNo === ADMIN_STUDENT.rollNo 
-                      ? 'text-yellow-900' 
-                      : selectedStudent.role === 'co-leader'
-                        ? 'text-purple-900'
-                        : 'text-blue-900'
-                  }`}>
-                    {selectedStudent.name}
-                  </p>
-                  <p className={`text-sm ${
-                    selectedStudent.rollNo === ADMIN_STUDENT.rollNo 
-                      ? 'text-yellow-700' 
+                  ? 'bg-white/60'
+                  : 'bg-white/80'
+                }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+
+                    <div className="flex items-center gap-2">
+                      {isEditingName ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-900"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveName();
+                              if (e.key === 'Escape') handleCancelEditName();
+                            }}
+                          />
+                          <button
+                            onClick={handleSaveName}
+                            disabled={isSavingName}
+                            className="p-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-all"
+                            title="Save Name"
+                          >
+                            {isSavingName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={handleCancelEditName}
+                            disabled={isSavingName}
+                            className="p-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all"
+                            title="Cancel"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 group">
+                          <p className={`font-bold ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
+                            ? 'text-yellow-900'
+                            : selectedStudent.role === 'co-leader'
+                              ? 'text-purple-900'
+                              : 'text-blue-900'
+                            }`}>
+                            {selectedStudent.name}
+                          </p>
+                          <button
+                            onClick={handleStartEditName}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-600 transition-all"
+                            title="Edit Name"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p className={`text-sm ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
+                      ? 'text-yellow-700'
                       : selectedStudent.role === 'co-leader'
                         ? 'text-purple-700'
                         : 'text-blue-700'
-                  }`}>
-                    Roll No: {selectedStudent.rollNo}
-                  </p>
-
-                  {/* Admission Info */}
-                  { selectedStudent.admissionYear && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Admission: {selectedStudent.admissionYear || 'N/A'} {selectedStudent.isDSY ? '(DSY)' : ''}
+                      }`}>
+                      Roll No: {selectedStudent.rollNo}
                     </p>
-                  )}
 
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-                      getRoleDisplay(selectedStudent.role || 'student').bgColor
-                    }`}>
-                      {React.createElement(getRoleDisplay(selectedStudent.role || 'student').icon, { 
-                        className: `w-3 h-3 ${getRoleDisplay(selectedStudent.role || 'student').color}` 
-                      })}
-                      <span className={getRoleDisplay(selectedStudent.role || 'student').color}>
-                        {getRoleDisplay(selectedStudent.role || 'student').name}
-                      </span>
-                    </div>
-                    {selectedStudent.isProtected && (
-                      <div className="flex items-center gap-1">
-                        <Lock className="w-3 h-3 text-blue-600" />
-                        <span className="text-xs text-blue-600 font-medium">Protected</span>
-                      </div>
+                    {/* Admission Info */}
+                    {selectedStudent.admissionYear && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Admission: {selectedStudent.admissionYear || 'N/A'} {selectedStudent.isDSY ? '(DSY)' : ''}
+                      </p>
                     )}
+
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${getRoleDisplay(selectedStudent.role || 'student').bgColor
+                        }`}>
+                        {React.createElement(getRoleDisplay(selectedStudent.role || 'student').icon, {
+                          className: `w-3 h-3 ${getRoleDisplay(selectedStudent.role || 'student').color}`
+                        })}
+                        <span className={getRoleDisplay(selectedStudent.role || 'student').color}>
+                          {getRoleDisplay(selectedStudent.role || 'student').name}
+                        </span>
+                      </div>
+                      {selectedStudent.isProtected && (
+                        <div className="flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-blue-600" />
+                          <span className="text-xs text-blue-600 font-medium">Protected</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          )} 
+          )}
         </div>
 
         {/* Current Semester */}
         <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Current Semester</h3>
-          
+
           <select
             className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-lg font-medium bg-white"
             value={semester}
             onChange={(e) => setSemester(Number(e.target.value))}
           >
-            { (selectedStudent?.isDSY ? [3,4,5,6,7,8] : [1,2,3,4,5,6,7,8]).map((sem) => (
+            {(selectedStudent?.isDSY ? [3, 4, 5, 6, 7, 8] : [1, 2, 3, 4, 5, 6, 7, 8]).map((sem) => (
               <option
                 key={sem}
                 value={sem}
               >
                 Semester {sem} ({subjects[sem].theory.length} theory + {subjects[sem].practical.length} practical)
               </option>
-            )) }
+            ))}
           </select>
 
           <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
@@ -700,8 +788,8 @@ export function StudentManagementTab({
             <Users className="w-5 h-5" />
             Select Student ({students.length} total)
           </h3>
-          
-          {isAdmin && (
+
+          {canCreateUsers && (
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
@@ -735,16 +823,16 @@ export function StudentManagementTab({
         </div>
 
         {/* Create Student Form */}
-        {showCreateForm && isAdmin && (
+        {showCreateForm && canCreateUsers && (
           <form onSubmit={handleCreateStudent} className="mb-6 p-4 bg-green-50 rounded-2xl border border-green-200">
             <h4 className="font-medium text-green-900 mb-3">Create New Student</h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <input
                 type="text"
                 placeholder="Roll Number (e.g., 2405226)"
                 value={newStudent.rollNo}
-                onChange={(e) => setNewStudent({...newStudent, rollNo: e.target.value})}
+                onChange={(e) => setNewStudent({ ...newStudent, rollNo: e.target.value })}
                 className="p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
               />
@@ -752,7 +840,7 @@ export function StudentManagementTab({
                 type="text"
                 placeholder="Full Name"
                 value={newStudent.name}
-                onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
+                onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
                 className="p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
               />
@@ -763,7 +851,7 @@ export function StudentManagementTab({
               <label className="block text-sm font-medium text-green-900 mb-2">Role</label>
               <select
                 value={newStudent.role}
-                onChange={(e) => setNewStudent({...newStudent, role: e.target.value})}
+                onChange={(e) => setNewStudent({ ...newStudent, role: e.target.value })}
                 className="w-full p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 <option value="student">Student</option>
@@ -780,7 +868,7 @@ export function StudentManagementTab({
                   min="2000"
                   max={new Date().getFullYear()}
                   value={newStudent.admissionYear}
-                  onChange={(e) => setNewStudent({...newStudent, admissionYear: e.target.value})}
+                  onChange={(e) => setNewStudent({ ...newStudent, admissionYear: e.target.value })}
                   className="w-full p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                   required
                 />
@@ -792,7 +880,7 @@ export function StudentManagementTab({
                     id="is-dsy"
                     type="checkbox"
                     checked={newStudent.isDSY}
-                    onChange={(e) => setNewStudent({...newStudent, isDSY: e.target.checked})}
+                    onChange={(e) => setNewStudent({ ...newStudent, isDSY: e.target.checked })}
                     className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
                   />
                   <label htmlFor="is-dsy" className="text-sm text-gray-700">Is DSY (Direct Second Year)</label>
@@ -826,7 +914,7 @@ export function StudentManagementTab({
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={newStudent.password}
-                  onChange={(e) => setNewStudent({...newStudent, password: e.target.value})}
+                  onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
                   className="w-full pl-10 pr-10 p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                   required={passwordProtected}
                 />
@@ -864,12 +952,22 @@ export function StudentManagementTab({
           </form>
         )}
 
+        {/* Co-Leader note about limited creation permissions */}
+        {isCoLeader && canCreateUsers && !isAdmin && (
+          <div className="mb-4 p-3 bg-purple-50 rounded-xl border border-purple-200">
+            <p className="text-sm text-purple-700">
+              <Star className="w-4 h-4 inline mr-1" />
+              As a co-leader, you can create new student accounts with your granted permissions.
+            </p>
+          </div>
+        )}
+
         {/* Student List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
           {filteredStudents.length > 0 ? (
             filteredStudents.map((student) => {
               const roleDisplay = getRoleDisplay(student.role || 'student');
-              
+
               return (
                 <div
                   key={student.rollNo}
@@ -898,22 +996,22 @@ export function StudentManagementTab({
                       <Lock className="w-4 h-4 text-blue-600" />
                     </div>
                   )}
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-bold text-gray-900">{student.name}</h4>
-                        {React.createElement(roleDisplay.icon, { 
-                          className: `w-4 h-4 ${roleDisplay.color}` 
+                        {React.createElement(roleDisplay.icon, {
+                          className: `w-4 h-4 ${roleDisplay.color}`
                         })}
                       </div>
                       <p className="text-sm text-gray-600 mb-2">Roll: {student.rollNo}</p>
-                      
+
                       {/* Role Badge */}
                       <div className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${roleDisplay.bgColor}`}>
                         <span className={roleDisplay.color}>{roleDisplay.name}</span>
                       </div>
-                      
+
                       <div className="mt-2">
                         {selectedStudent?.rollNo === student.rollNo ? (
                           <p className="text-xs text-blue-600 font-medium">Currently Selected</p>
@@ -922,8 +1020,9 @@ export function StudentManagementTab({
                         ) : null}
                       </div>
                     </div>
-                    
-                    {isAdmin && student.rollNo !== ADMIN_STUDENT.rollNo && (
+
+                    {/* Role Management - Admin or Co-Leaders with canAppointCoLeaders */}
+                    {(isAdmin || canAppointCoLeaders) && student.rollNo !== ADMIN_STUDENT.rollNo && (
                       <div className="flex flex-col gap-1">
                         {/* Role Management */}
                         <div className="flex gap-1">
@@ -954,7 +1053,12 @@ export function StudentManagementTab({
                             </button>
                           )}
                         </div>
-                        
+                      </div>
+                    )}
+
+                    {/* Password Management & Delete - Admin Only */}
+                    {isAdmin && student.rollNo !== ADMIN_STUDENT.rollNo && (
+                      <div className="flex flex-col gap-1">
                         {/* Password Management */}
                         {student.isProtected ? (
                           <div className="flex gap-1">
@@ -993,7 +1097,7 @@ export function StudentManagementTab({
                             </button>
                           </div>
                         )}
-                        
+
                         {/* Delete Button */}
                         <button
                           onClick={(e) => {

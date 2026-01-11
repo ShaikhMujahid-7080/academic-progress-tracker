@@ -9,7 +9,9 @@ import { NoticeBoardTab } from "./components/Tabs/NoticeBoardTab";
 import { PersonalNotesTab } from "./components/Tabs/PersonalNotesTab";
 import { StudentManagementTab } from "./components/Tabs/StudentManagementTab";
 import { DegreeCompletionTab } from "./components/Tabs/DegreeCompletionTab";
+import { AdminPrivilegesTab } from "./components/Tabs/AdminPrivilegesTab";
 import { useLocalStorage } from "./components/hooks/useLocalStorage";
+import { ADMIN_STUDENT } from "./data/subjects";
 import { useFirestore } from "./components/hooks/useFirestore";
 import { useStudentManagement } from "./components/hooks/useStudentManagement";
 
@@ -195,7 +197,12 @@ export default function App() {
         selectedStudent={selectedStudent}
         onStudentSwitch={handleStudentSwitch}
       />
-      <TabNavigation activeTab={tab} onTabChange={setTab} showDegreeTab={hasCompletedFourYears(selectedStudent)} />
+      <TabNavigation
+        activeTab={tab}
+        onTabChange={setTab}
+        showDegreeTab={hasCompletedFourYears(selectedStudent)}
+        showAdminTab={selectedStudent?.rollNo === ADMIN_STUDENT.rollNo || selectedStudent?.role === 'co-leader'}
+      />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <TabPanel value={tab} index={0}>
@@ -236,6 +243,17 @@ export default function App() {
 
         <TabPanel value={tab} index={5}>
           <DegreeCompletionTab selectedStudent={selectedStudent} />
+        </TabPanel>
+
+        <TabPanel value={tab} index={6}>
+          <AdminPrivilegesTab
+            selectedStudent={selectedStudent}
+            studentManagement={studentManagement}
+            onNavigateToTab={(tabIndex, options) => {
+              setTab(tabIndex);
+              // Handle options if needed (e.g., showCreateForm)
+            }}
+          />
         </TabPanel>
       </div>
     </div>

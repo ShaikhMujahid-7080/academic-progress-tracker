@@ -1,14 +1,26 @@
 (remember to give the complete code of any file that needs to be edited along with its name & dont give a portion to replace or add in the file)
 
 > Pending
-1) add an explicit “Admin Privileges” panel/tab (one place that lists quick admin actions and links like Create User, Manage Notices, Appoint Co-Leader and managing the permissions/privillages of the co-leaders such as which co-leader can create new users, post notices, appoint another/new co-leader, And manage password (add, remove or update) of users/students and more)
-2)  make the theorycard compact, by displaying only the CA & Mid-Sem names & marks (e.g: CA-1 : 10, CA-2 : 9, etc) as default view, and show edit option on each card (subject) which will display & enable to edit all the options (e.g: type, date, etc)
-3) allow student/user to store/upload studymaterial/imgs/files upto 30mb in their personal notes section & make it automatically delete after 48 hours
-4)  premium look or interface of co-leader & admin
-5)  give students the ability to edit their names
-6)  give an option to 1 click copy/paste code/snippet in the Personal Notes
-7)  fix: the private notice are visible to co-leaders (make it visible to only who posted it & Private (Selected users only))
-8)  Make the Degree Completion page to include buttons for common actions (export transcript, mark as graduated, etc), and add more informational stuff
+1) give an option to student to store/upload studymaterial/imgs/file upto 10mb in their personal notes section/tab & make it (temporary) automatically delete after 48 hours
+2) fix or remove or enhance the horizontal scrollbar in the navbar
+
+
+> 11/1/26 (2.0)
+* **Added**:
+  1) add an explicit “Admin Privileges” panel/tab (one place that lists quick admin actions and links like Create User, Manage Notices, Appoint Co-Leader and managing the permissions/privillages of the co-leaders such as which co-leader can create new users, post notices, appoint another/new co-leader, manage password (add, remove or update) of users/students and more)
+  2) Allow students to edit their own names in the Student & Semester Management tab.
+  3) Make the Degree Completion page to include buttons for common actions (export transcript, mark as graduated, etc), and add more informational stuff
+* **Changed**:
+* **Fixed**:
+  1) fix: disable the ability of co-leaders to manage the pasword of admin 
+  2) fix: add an option for the co-leaders to add new students and option to Appoint Co-Leaders (for only those who have Create Users or Appoint Co-Leaders privillage)  
+  3) fix: Add Student option/button isnt working for the co-leader (who have that privillage) also make the Create Users privillage default for new co-leaders (who are appointed by admin/co-leaders)
+  4) fix: the private notice are visible to all co-leaders (make it visible to only who posted it & Private (Selected users only))
+* **Enhanced**:
+  1) Enhance Personal Notes with better code snippet support (Copy button in preview, easy Paste/Insert in editor).
+  2) enhance & make a premium look or interface of co-leader & even more premium for admin
+  3) make the theorycard compact, by displaying only the CA & Mid-Sem names & marks (e.g: CA-1 : 0 (default), CA-2 : 9, etc) as default view, and show edit option on each card (subject) which will display & enable to edit all the options (e.g: type, date, etc) of that card/subject
+* **Removed**:
 
 
 > 11/1/26

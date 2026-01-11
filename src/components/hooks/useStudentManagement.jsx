@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { 
-  doc, 
-  setDoc, 
+import {
+  doc,
+  setDoc,
   deleteDoc,
-  collection, 
+  collection,
   getDocs,
   query,
   where,
@@ -20,7 +20,7 @@ export function useStudentManagement() {
   const [hasInitialized, setHasInitialized] = useState(false);
 
   // Check if current student is admin
-  const isAdmin = selectedStudent && 
+  const isAdmin = selectedStudent &&
     selectedStudent.rollNo === ADMIN_STUDENT.rollNo;
 
   // Load all students from Firestore
@@ -29,7 +29,7 @@ export function useStudentManagement() {
       setIsLoading(true);
       const querySnapshot = await getDocs(collection(db, 'students'));
       const studentsList = [];
-      
+
       querySnapshot.forEach((doc) => {
         studentsList.push(doc.data());
       });
@@ -72,7 +72,7 @@ export function useStudentManagement() {
       }
 
       setHasInitialized(true);
-      
+
     } catch (error) {
       console.error('Error loading students:', error);
       // Fallback to admin
@@ -102,8 +102,8 @@ export function useStudentManagement() {
         throw new Error('Invalid DSY flag');
       }
 
-      const newStudent = { 
-        rollNo, 
+      const newStudent = {
+        rollNo,
         name,
         admissionYear: yearNum,
         isDSY,
@@ -111,7 +111,7 @@ export function useStudentManagement() {
         password: password ? bcrypt.hashSync(password, 10) : null,
         role: role
       };
-      
+
       // Check if student already exists
       const exists = students.some(s => s.rollNo === rollNo);
       if (exists) {
@@ -120,10 +120,10 @@ export function useStudentManagement() {
 
       // Save to Firestore
       await setDoc(doc(db, 'students', rollNo), newStudent);
-      
+
       // Update local state
       setStudents([...students, newStudent]);
-      
+
       return true;
     } catch (error) {
       console.error('Error creating student:', error);
@@ -143,11 +143,28 @@ export function useStudentManagement() {
         throw new Error('Student not found');
       }
 
-      const updatedStudent = { ...student, role: newRole };
+      // Build the updated student object
+      let updatedStudent = { ...student, role: newRole };
+
+      // If promoting to co-leader, add default permissions (canCreateUsers is true by default)
+      if (newRole === 'co-leader' && !student.permissions) {
+        updatedStudent.permissions = {
+          canCreateUsers: true,
+          canPostNotices: true,
+          canAppointCoLeaders: false,
+          canManagePasswords: false
+        };
+      }
+
+      // If demoting from co-leader to student, remove permissions
+      if (newRole === 'student' && student.role === 'co-leader') {
+        delete updatedStudent.permissions;
+      }
+
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
-      
+
       // Update local state
-      setStudents(students.map(s => 
+      setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
@@ -164,6 +181,39 @@ export function useStudentManagement() {
     }
   };
 
+  // Update student name
+  const updateStudentName = async (rollNo, newName) => {
+    try {
+      if (!newName || !newName.trim()) {
+        throw new Error('Name cannot be empty');
+      }
+
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const updatedStudent = { ...student, name: newName.trim() };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+
+      // Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating name:', error);
+      throw error;
+    }
+  };
+
   // Delete student
   const deleteStudent = async (rollNo) => {
     try {
@@ -174,34 +224,34 @@ export function useStudentManagement() {
 
       // Delete student document
       await deleteDoc(doc(db, 'students', rollNo));
-      
+
       // Delete all academic data for this student
       const batch = writeBatch(db);
       const academicQuery = query(
         collection(db, 'academic-data'),
         where('studentId', '==', rollNo)
       );
-      
+
       const academicDocs = await getDocs(academicQuery);
       academicDocs.forEach((doc) => {
         batch.delete(doc.ref);
       });
-      
+
       // Delete user notes
       const notesDoc = doc(db, 'userNotes', rollNo);
       batch.delete(notesDoc);
-      
+
       await batch.commit();
-      
+
       // Update local state
       setStudents(students.filter(s => s.rollNo !== rollNo));
-      
+
       // If deleted student was selected, clear selection
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(null);
         localStorage.removeItem('selected-student');
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error deleting student:', error);
@@ -243,15 +293,48 @@ export function useStudentManagement() {
       };
 
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
-      
+
       // Update local state
-      setStudents(students.map(s => 
+      setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
       return true;
     } catch (error) {
       console.error('Error updating password:', error);
+      throw error;
+    }
+  };
+
+  // Update co-leader permissions
+  const updateCoLeaderPermissions = async (rollNo, permissions) => {
+    try {
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      if (student.role !== 'co-leader') {
+        throw new Error('Can only update permissions for co-leaders');
+      }
+
+      const updatedStudent = { ...student, permissions };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+
+      // Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating co-leader permissions:', error);
       throw error;
     }
   };
@@ -265,7 +348,7 @@ export function useStudentManagement() {
       const previousKey = `academic-data-${previousStudent.rollNo}`;
       localStorage.removeItem(previousKey);
     }
-    
+
     setSelectedStudent(student);
     if (student) {
       localStorage.setItem('selected-student', JSON.stringify(student));
@@ -291,6 +374,9 @@ export function useStudentManagement() {
     authenticateStudent,
     updateStudentPassword,
     updateStudentRole,
+    updateStudentRole,
+    updateCoLeaderPermissions,
+    updateStudentName,
     loadStudents
   };
 }
