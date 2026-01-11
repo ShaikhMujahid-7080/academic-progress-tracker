@@ -374,7 +374,6 @@ export function useStudentManagement() {
     authenticateStudent,
     updateStudentPassword,
     updateStudentRole,
-    updateStudentRole,
     updateCoLeaderPermissions,
     updateStudentName,
     loadStudents

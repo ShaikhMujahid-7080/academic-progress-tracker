@@ -27,14 +27,14 @@ export function TabNavigation({
 
   return (
     <div className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex space-x-1 overflow-x-auto">
+      <div className="max-w-7xl mx-auto px-2 md:px-6">
+        <div className="flex space-x-1 overflow-x-auto pb-2 scrollbar-hide">
           {tabs.map((tabItem) => (
             <button
               key={tabItem.id}
               onClick={() => onTabChange(tabItem.id)}
               className={`
-                flex items-center gap-2 px-6 py-4 font-medium transition-all duration-200 border-b-2 relative whitespace-nowrap
+                flex items-center gap-2 px-3 py-3 md:px-6 md:py-4 font-medium transition-all duration-200 border-b-2 relative whitespace-nowrap text-sm md:text-base
                 ${activeTab === tabItem.id
                   ? tabItem.id === 6
                     ? 'text-yellow-600 border-yellow-600 bg-yellow-50'
@@ -43,10 +43,10 @@ export function TabNavigation({
                 }
               `}
             >
-              <tabItem.icon className="w-5 h-5" />
+              <tabItem.icon className="w-4 h-4 md:w-5 md:h-5" />
               <span>{tabItem.label}</span>
               {activeTab === tabItem.id && (
-                <ChevronRight className="w-4 h-4 ml-1" />
+                <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-1" />
               )}
             </button>
           ))}

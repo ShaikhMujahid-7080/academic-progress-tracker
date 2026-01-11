@@ -2,7 +2,9 @@
 
 > Pending
 1) give an option to student to store/upload studymaterial/imgs/file upto 10mb in their personal notes section/tab & make it (temporary) automatically delete after 48 hours
-2) fix or remove or enhance the horizontal scrollbar in the navbar
+2) fix navbar/tab not accessible on smaller screens
+3) make the entire app responsive
+4) make the dropdown menu of Current Semester and Student Role (from Add new student) more beautiful and animated
 
 
 > 11/1/26 (2.0)
