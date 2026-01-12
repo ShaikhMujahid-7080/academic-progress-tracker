@@ -10,6 +10,7 @@ import { PersonalNotesTab } from "./components/Tabs/PersonalNotesTab";
 import { StudentManagementTab } from "./components/Tabs/StudentManagementTab";
 import { DegreeCompletionTab } from "./components/Tabs/DegreeCompletionTab";
 import { AdminPrivilegesTab } from "./components/Tabs/AdminPrivilegesTab";
+import { CalendarTab } from "./components/Tabs/CalendarTab";
 import { useLocalStorage } from "./components/hooks/useLocalStorage";
 import { ADMIN_STUDENT } from "./data/subjects";
 import { useFirestore } from "./components/hooks/useFirestore";
@@ -254,6 +255,10 @@ export default function App() {
               // Handle options if needed (e.g., showCreateForm)
             }}
           />
+        </TabPanel>
+
+        <TabPanel value={tab} index={7}>
+          <CalendarTab selectedStudent={selectedStudent} />
         </TabPanel>
       </div>
     </div>

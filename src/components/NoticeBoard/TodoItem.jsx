@@ -15,24 +15,27 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
     });
   };
 
   const formatDueDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
     });
   };
 
@@ -140,20 +143,18 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
     <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
-            isCompleted 
-              ? 'bg-green-100' 
-              : isPastDue() 
-                ? 'bg-red-100' 
-                : 'bg-indigo-100'
-          }`}>
-            <Calendar className={`w-5 h-5 ${
-              isCompleted 
-                ? 'text-green-600' 
-                : isPastDue() 
-                  ? 'text-red-600' 
-                  : 'text-indigo-600'
-            }`} />
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isCompleted
+            ? 'bg-green-100'
+            : isPastDue()
+              ? 'bg-red-100'
+              : 'bg-indigo-100'
+            }`}>
+            <Calendar className={`w-5 h-5 ${isCompleted
+              ? 'text-green-600'
+              : isPastDue()
+                ? 'text-red-600'
+                : 'text-indigo-600'
+              }`} />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -177,13 +178,13 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
           </div>
-          
+
           {canEdit && (
             <button
               onClick={handleEditStart}
@@ -193,7 +194,7 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
               <Edit3 className="w-4 h-4" />
             </button>
           )}
-          
+
           {canManagePermissions && (
             <button
               onClick={onManagePermissions}
@@ -203,7 +204,7 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
               <Settings className="w-4 h-4" />
             </button>
           )}
-          
+
           {canDelete && (
             <button
               onClick={() => onDelete(notice.id)}
@@ -215,7 +216,7 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
           )}
         </div>
       </div>
-      
+
       {/* Markdown Content */}
       <div className="mb-4 prose prose-sm max-w-none">
         <ReactMarkdown
@@ -230,6 +231,15 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
               >
                 {children}
               </a>
+            ),
+            h1: ({ children }) => (
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">{children}</h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{children}</h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="text-lg font-bold text-gray-900 mb-1">{children}</h3>
             ),
             p: ({ children }) => (
               <p className="text-gray-700 leading-relaxed">{children}</p>
@@ -274,16 +284,16 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
           onClick={onToggle}
           className={`
             w-full flex items-center justify-center gap-3 p-3 rounded-xl border-2 transition-all
-            ${isCompleted 
-              ? 'bg-green-50 border-green-200 text-green-700' 
+            ${isCompleted
+              ? 'bg-green-50 border-green-200 text-green-700'
               : 'bg-gray-50 border-gray-200 hover:border-indigo-300 text-gray-700'
             }
           `}
         >
           <div className={`
             w-6 h-6 rounded-lg border-2 flex items-center justify-center
-            ${isCompleted 
-              ? 'bg-green-500 border-green-500 text-white' 
+            ${isCompleted
+              ? 'bg-green-500 border-green-500 text-white'
               : 'border-gray-300'
             }
           `}>
@@ -295,37 +305,33 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
         </button>
 
         {/* Due Date */}
-        <div className={`p-3 rounded-xl border-2 ${
-          isPastDue() && !isCompleted
-            ? 'bg-red-50 border-red-200' 
-            : isCompleted
-              ? 'bg-green-50 border-green-200'
-              : 'bg-indigo-50 border-indigo-200'
-        }`}>
+        <div className={`p-3 rounded-xl border-2 ${isPastDue() && !isCompleted
+          ? 'bg-red-50 border-red-200'
+          : isCompleted
+            ? 'bg-green-50 border-green-200'
+            : 'bg-indigo-50 border-indigo-200'
+          }`}>
           <div className="flex items-center gap-2">
-            <Calendar className={`w-4 h-4 ${
-              isPastDue() && !isCompleted
-                ? 'text-red-600' 
-                : isCompleted
-                  ? 'text-green-600'
-                  : 'text-indigo-600'
-            }`} />
-            <span className={`text-sm font-medium ${
-              isPastDue() && !isCompleted
-                ? 'text-red-700' 
-                : isCompleted
-                  ? 'text-green-700'
-                  : 'text-indigo-700'
-            }`}>
+            <Calendar className={`w-4 h-4 ${isPastDue() && !isCompleted
+              ? 'text-red-600'
+              : isCompleted
+                ? 'text-green-600'
+                : 'text-indigo-600'
+              }`} />
+            <span className={`text-sm font-medium ${isPastDue() && !isCompleted
+              ? 'text-red-700'
+              : isCompleted
+                ? 'text-green-700'
+                : 'text-indigo-700'
+              }`}>
               {isPastDue() && !isCompleted ? 'Was due:' : 'Due:'}
             </span>
-            <span className={`text-sm font-bold ${
-              isPastDue() && !isCompleted
-                ? 'text-red-800' 
-                : isCompleted
-                  ? 'text-green-800'
-                  : 'text-indigo-800'
-            }`}>
+            <span className={`text-sm font-bold ${isPastDue() && !isCompleted
+              ? 'text-red-800'
+              : isCompleted
+                ? 'text-green-800'
+                : 'text-indigo-800'
+              }`}>
               {formatDueDate(notice.meta.dueDate)}
             </span>
           </div>

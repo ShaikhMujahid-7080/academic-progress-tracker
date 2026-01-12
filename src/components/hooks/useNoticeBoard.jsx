@@ -8,7 +8,8 @@ import {
   onSnapshot,
   serverTimestamp,
   orderBy,
-  query
+  query,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { ADMIN_STUDENT } from '../../data/subjects';
@@ -77,6 +78,18 @@ export function useNoticeBoard(currentUser) {
               noticesList.push(noticeData);
             }
           }
+        });
+
+        // Client-side Sort: Order (asc) first, then CreatedAt (desc)
+        noticesList.sort((a, b) => {
+          const orderA = a.order !== undefined ? a.order : 0;
+          const orderB = b.order !== undefined ? b.order : 0;
+
+          if (orderA !== orderB) {
+            return orderA - orderB;
+          }
+
+          return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
         });
 
         setNotices(noticesList);
@@ -186,6 +199,29 @@ export function useNoticeBoard(currentUser) {
     } catch (error) {
       console.error('Error updating permissions:', error);
       return false;
+    }
+  };
+
+  // Reorder notices
+  const updateNoticesOrder = async (orderedIds) => {
+    if (!canManageNotices) throw new Error('Permission denied');
+
+    try {
+      setIsSaving(true);
+      const batch = writeBatch(db);
+
+      orderedIds.forEach((id, index) => {
+        const ref = doc(db, 'noticeBoard', id);
+        batch.update(ref, { order: index });
+      });
+
+      await batch.commit();
+      return true;
+    } catch (error) {
+      console.error('Error reordering notices:', error);
+      return false;
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -369,7 +405,10 @@ export function useNoticeBoard(currentUser) {
     updateNotice,
     editNotice,
     deleteNotice,
+    editNotice,
+    deleteNotice,
     updateNoticePermissions,
+    updateNoticesOrder,
     voteInPoll,
     toggleChecklistItem,
     toggleTodo

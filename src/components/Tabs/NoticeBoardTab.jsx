@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { 
-  Megaphone, 
-  Plus, 
-  Filter, 
-  Search, 
+import {
+  Megaphone,
+  Plus,
+  Filter,
+  Search,
   X,
   Loader2,
   FileText,
@@ -15,7 +15,8 @@ import {
   Users,
   Globe,
   Lock,
-  Star
+  Star,
+  ArrowUpDown
 } from "lucide-react";
 import { useNoticeBoard } from "../hooks/useNoticeBoard";
 import { useStudentManagement } from "../hooks/useStudentManagement";
@@ -24,8 +25,10 @@ import { ChecklistItem } from "../NoticeBoard/ChecklistItem";
 import { PollItem } from "../NoticeBoard/PollItem";
 import { ReminderItem } from "../NoticeBoard/ReminderItem";
 import { TodoItem } from "../NoticeBoard/TodoItem";
+import { AssessmentItem } from "../NoticeBoard/AssessmentItem";
 import { CreateNoticeForm } from "../NoticeBoard/CreateNoticeForm";
 import { ManagePermissionsModal } from "../NoticeBoard/ManagePermissionsModal";
+import { ReorderNoticesModal } from "../NoticeBoard/ReorderNoticesModal";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
 
@@ -42,6 +45,7 @@ export function NoticeBoardTab({ selectedStudent }) {
     deleteNotice,
     editNotice,
     updateNoticePermissions,
+    updateNoticesOrder,
     voteInPoll,
     toggleChecklistItem,
     toggleTodo
@@ -49,6 +53,7 @@ export function NoticeBoardTab({ selectedStudent }) {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
   const [selectedNoticeForPermissions, setSelectedNoticeForPermissions] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,13 +67,13 @@ export function NoticeBoardTab({ selectedStudent }) {
     cancelText: 'Cancel',
     confirmColor: 'red',
     icon: 'warning',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   // Filter notices
   const filteredNotices = notices.filter(notice => {
     const matchesType = filterType === 'all' || notice.type === filterType;
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       notice.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
       notice.createdBy.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
@@ -80,7 +85,8 @@ export function NoticeBoardTab({ selectedStudent }) {
     { id: 'checklist', label: 'Checklists', icon: CheckSquare, count: notices.filter(n => n.type === 'checklist').length },
     { id: 'poll', label: 'Polls', icon: BarChart3, count: notices.filter(n => n.type === 'poll').length },
     { id: 'reminder', label: 'Reminders', icon: Bell, count: notices.filter(n => n.type === 'reminder').length },
-    { id: 'todo', label: 'Todos', icon: Calendar, count: notices.filter(n => n.type === 'todo').length }
+    { id: 'todo', label: 'Todos', icon: Calendar, count: notices.filter(n => n.type === 'todo').length },
+    { id: 'assessment', label: 'Assessments', icon: FileText, count: notices.filter(n => n.type === 'assessment').length }
   ];
 
   const showConfirm = (config) => {
@@ -110,7 +116,7 @@ export function NoticeBoardTab({ selectedStudent }) {
       noticeData.allowedUsers || [],
       noticeData.isPublic || false
     );
-    
+
     if (success) {
       setShowCreateForm(false);
       toast.success('✅ Notice created successfully!');
@@ -119,15 +125,25 @@ export function NoticeBoardTab({ selectedStudent }) {
     }
   };
 
+  const [editingNotice, setEditingNotice] = useState(null);
+
+  // ... (previous states)
+
+  // ... (previous handlers)
+
   const handleEditNotice = async (noticeId, updates) => {
     if (!canManageNotices) {
       toast.error('❌ Only admin and co-leaders can edit notices');
       return false;
     }
 
-    const success = await editNotice(noticeId, updates);
+    // If updates contains ID, remove it (or ensure editNotice ignores it)
+    const { id, ...cleanUpdates } = updates;
+
+    const success = await editNotice(noticeId, cleanUpdates);
     if (success) {
       toast.success('✅ Notice updated successfully!');
+      setEditingNotice(null); // Close modal
     } else {
       toast.error('❌ Failed to update notice. Please try again.');
     }
@@ -172,7 +188,7 @@ export function NoticeBoardTab({ selectedStudent }) {
         allowedUsers,
         isPublic
       );
-      
+
       if (success) {
         setShowPermissionsModal(false);
         setSelectedNoticeForPermissions(null);
@@ -182,6 +198,16 @@ export function NoticeBoardTab({ selectedStudent }) {
       }
     } catch (error) {
       toast.error('❌ Error updating permissions: ' + error.message);
+    }
+  };
+
+  const handleReorderNotices = async (orderedIds) => {
+    const success = await updateNoticesOrder(orderedIds);
+    if (success) {
+      setShowReorderModal(false);
+      toast.success('✅ Notices reordered successfully!');
+    } else {
+      toast.error('❌ Failed to reorder notices');
     }
   };
 
@@ -201,7 +227,7 @@ export function NoticeBoardTab({ selectedStudent }) {
     switch (notice.type) {
       case 'checklist':
         return (
-          <ChecklistItem 
+          <ChecklistItem
             key={notice.id}
             {...commonProps}
             onToggleItem={(itemIndex) => toggleChecklistItem(notice.id, itemIndex, selectedStudent?.rollNo)}
@@ -209,7 +235,7 @@ export function NoticeBoardTab({ selectedStudent }) {
         );
       case 'poll':
         return (
-          <PollItem 
+          <PollItem
             key={notice.id}
             {...commonProps}
             onVote={(selectedIndices, voterId) => voteInPoll(notice.id, selectedIndices, voterId)}
@@ -219,10 +245,18 @@ export function NoticeBoardTab({ selectedStudent }) {
         return <ReminderItem key={notice.id} {...commonProps} />;
       case 'todo':
         return (
-          <TodoItem 
+          <TodoItem
             key={notice.id}
             {...commonProps}
             onToggle={() => toggleTodo(notice.id, selectedStudent?.rollNo)}
+          />
+        );
+      case 'assessment':
+        return (
+          <AssessmentItem
+            key={notice.id}
+            {...commonProps}
+            onRequestEdit={(notice) => setEditingNotice(notice)}
           />
         );
       default:
@@ -269,7 +303,7 @@ export function NoticeBoardTab({ selectedStudent }) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between sticky top-0 z-20 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/60 py-4 transition-all -mx-4 px-4 rounded-b-2xl mb-4">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
             <Megaphone className="w-8 h-8 text-blue-600" />
@@ -282,73 +316,83 @@ export function NoticeBoardTab({ selectedStudent }) {
             )}
           </h2>
           <p className="text-gray-600">
-            {canManageNotices 
-              ? `${isAdmin ? 'Admin' : 'Co-Leader'}: Create and manage notices for all students` 
+            {canManageNotices
+              ? `${isAdmin ? 'Admin' : 'Co-Leader'}: Create and manage notices for all students`
               : "Stay updated with announcements, polls, and reminders"
             }
           </p>
         </div>
-        
+
         {canManageNotices && (
-          <button
-            onClick={() => setShowCreateForm(true)}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            Create Notice
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowReorderModal(true)}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+              title="Reorder Notices"
+            >
+              <ArrowUpDown className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" />
+              Create Notice
+            </button>
+          </div>
         )}
       </div>
 
       {/* Privileges Info Banner */}
-      {canManageNotices && (
-        <div className={`rounded-2xl p-4 border ${
-          isAdmin 
-            ? 'bg-yellow-50 border-yellow-200' 
+      {
+        canManageNotices && (
+          <div className={`rounded-2xl p-4 border ${isAdmin
+            ? 'bg-yellow-50 border-yellow-200'
             : 'bg-purple-50 border-purple-200'
-        }`}>
-          <div className="flex items-start gap-3">
-            {isAdmin ? (
-              <Shield className="w-5 h-5 text-yellow-600 mt-0.5" />
-            ) : (
-              <Star className="w-5 h-5 text-purple-600 mt-0.5" />
-            )}
-            <div>
-              <h4 className={`font-medium mb-1 ${
-                isAdmin ? 'text-yellow-900' : 'text-purple-900'
-              }`}>
-                {isAdmin ? 'Admin Privileges' : 'Co-Leader Privileges'}
-              </h4>
-              <ul className={`text-sm space-y-1 ${
-                isAdmin ? 'text-yellow-700' : 'text-purple-700'
-              }`}>
-                <li>• Create, edit and manage notices with user visibility</li>
-                <li>• View who voted for each poll option and completed checklist items</li>
-                <li>• Create multi-select or single-choice polls</li>
-                <li>• Edit existing notices, polls, and checklists</li>
-                {isAdmin && (
-                  <li>• Assign co-leader roles to other students</li>
-                )}
-              </ul>
+            }`}>
+            <div className="flex items-start gap-3">
+              {isAdmin ? (
+                <Shield className="w-5 h-5 text-yellow-600 mt-0.5" />
+              ) : (
+                <Star className="w-5 h-5 text-purple-600 mt-0.5" />
+              )}
+              <div>
+                <h4 className={`font-medium mb-1 ${isAdmin ? 'text-yellow-900' : 'text-purple-900'
+                  }`}>
+                  {isAdmin ? 'Admin Privileges' : 'Co-Leader Privileges'}
+                </h4>
+                <ul className={`text-sm space-y-1 ${isAdmin ? 'text-yellow-700' : 'text-purple-700'
+                  }`}>
+                  <li>• Create, edit and manage notices with user visibility</li>
+                  <li>• View who voted for each poll option and completed checklist items</li>
+                  <li>• Create multi-select or single-choice polls</li>
+                  <li>• Edit existing notices, polls, and checklists</li>
+                  {isAdmin && (
+                    <li>• Assign co-leader roles to other students</li>
+                  )}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* User Info Banner */}
-      {!canManageNotices && (
-        <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
-          <div className="flex items-center gap-3">
-            <Megaphone className="w-5 h-5 text-blue-600" />
-            <div>
-              <p className="text-sm text-blue-700">
-                You can view and interact with notices shared with you. Click on voter counts in polls or completion counts in checklists to see who participated.
-              </p>
+      {
+        !canManageNotices && (
+          <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
+            <div className="flex items-center gap-3">
+              <Megaphone className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-sm text-blue-700">
+                  You can view and interact with notices shared with you. Click on voter counts in polls or completion counts in checklists to see who participated.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Filters and Search */}
       <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
@@ -398,31 +442,53 @@ export function NoticeBoardTab({ selectedStudent }) {
         </div>
       </div>
 
-      {/* Create Notice Form Modal */}
-      {showCreateForm && canManageNotices && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <CreateNoticeForm
-              onSubmit={handleCreateNotice}
-              onCancel={() => setShowCreateForm(false)}
+      {/* Create / Edit Notice Form Modal */}
+      {
+        (showCreateForm || editingNotice) && canManageNotices && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+            <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <CreateNoticeForm
+                onSubmit={editingNotice ? (updates) => handleEditNotice(editingNotice.id, updates) : handleCreateNotice}
+                onCancel={() => {
+                  setShowCreateForm(false);
+                  setEditingNotice(null);
+                }}
+                isLoading={isSaving}
+                students={students}
+                initialData={editingNotice}
+              />
+            </div>
+          </div>
+        )
+      }
+
+      {/* Reorder Modal */}
+      {
+        showReorderModal && canManageNotices && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+            <ReorderNoticesModal
+              notices={notices} // Pass all notices, or filter logic if needed? Usually global reorder impacts all.
+              onSave={handleReorderNotices}
+              onCancel={() => setShowReorderModal(false)}
               isLoading={isSaving}
-              students={students}
             />
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Manage Permissions Modal */}
-      {showPermissionsModal && selectedNoticeForPermissions && canManageNotices && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-          <ManagePermissionsModal
-            notice={selectedNoticeForPermissions}
-            students={students}
-            onUpdate={handleUpdatePermissions}
-            onCancel={() => setShowPermissionsModal(false)}
-          />
-        </div>
-      )}
+      {
+        showPermissionsModal && selectedNoticeForPermissions && canManageNotices && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+            <ManagePermissionsModal
+              notice={selectedNoticeForPermissions}
+              students={students}
+              onUpdate={handleUpdatePermissions}
+              onCancel={() => setShowPermissionsModal(false)}
+            />
+          </div>
+        )
+      }
 
       {/* Notice List */}
       <div className="space-y-4">
@@ -433,9 +499,9 @@ export function NoticeBoardTab({ selectedStudent }) {
             <Megaphone className="w-16 h-16 mx-auto text-gray-300 mb-4" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">No notices found</h3>
             <p className="text-gray-600 mb-4">
-              {searchQuery || filterType !== 'all' 
+              {searchQuery || filterType !== 'all'
                 ? 'Try adjusting your filters or search terms'
-                : canManageNotices 
+                : canManageNotices
                   ? 'Create the first notice to get started!'
                   : 'No notices have been shared with you yet.'
               }
@@ -452,6 +518,6 @@ export function NoticeBoardTab({ selectedStudent }) {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

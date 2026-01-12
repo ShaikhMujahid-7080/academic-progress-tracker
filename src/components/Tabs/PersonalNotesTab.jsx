@@ -17,7 +17,9 @@ import {
   Quote,
   Code,
   Check,
-  Copy
+  Copy,
+  Lightbulb,
+  MoveVertical
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -36,7 +38,9 @@ export function PersonalNotesTab({ selectedStudent }) {
 
   const [viewMode, setViewMode] = useState('split'); // 'edit', 'preview', 'split'
   const [showHelp, setShowHelp] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const _viewInitialized = useRef(false);
+  const textareaRef = useRef(null);
 
   // Make preview the active view by default when notes exist (but avoid overriding user's manual changes)
   useEffect(() => {
@@ -53,6 +57,14 @@ export function PersonalNotesTab({ selectedStudent }) {
     _viewInitialized.current = false;
   }, [selectedStudent]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [notes, viewMode]);
+
   const handleClearNotes = async () => {
     const confirmed = window.confirm(
       '⚠️ Are you sure you want to clear all your notes? This action cannot be undone.'
@@ -66,6 +78,8 @@ export function PersonalNotesTab({ selectedStudent }) {
 
   const insertMarkdown = (before, after = '', placeholder = '') => {
     const textarea = document.getElementById('notes-textarea');
+    if (!textarea) return;
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = notes.substring(start, end);
@@ -90,7 +104,8 @@ export function PersonalNotesTab({ selectedStudent }) {
     { icon: Quote, title: 'Quote', action: () => insertMarkdown('> ', '', 'Quote') },
     { icon: Code, title: 'Inline Code', action: () => insertMarkdown('`', '`', 'code') },
     { icon: FileText, title: 'Code Block', action: () => insertMarkdown('\n```\n', '\n```\n', 'code block') },
-    { icon: Link, title: 'Link', action: () => insertMarkdown('[', '](url)', 'link text') }
+    { icon: Link, title: 'Link', action: () => insertMarkdown('[', '](url)', 'link text') },
+    { icon: MoveVertical, title: 'Spacer (Empty Line)', action: () => insertMarkdown('\n\n>>>\n\n', '', '') }
   ];
 
   const formatLastSaved = (date) => {
@@ -145,8 +160,22 @@ export function PersonalNotesTab({ selectedStudent }) {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowTips(!showTips)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm ${showTips
+              ? 'bg-yellow-100 text-yellow-700'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+          >
+            <Lightbulb className="w-4 h-4" />
+            Tips
+          </button>
+
+          <button
             onClick={() => setShowHelp(!showHelp)}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all text-sm"
+            className={`px-4 py-2 rounded-xl transition-all text-sm ${showHelp
+              ? 'bg-blue-100 text-blue-700'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
           >
             Markdown Help
           </button>
@@ -230,6 +259,27 @@ export function PersonalNotesTab({ selectedStudent }) {
         )}
       </div>
 
+      {/* Tips */}
+      {showTips && (
+        <div className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-start gap-3">
+            <Lightbulb className="w-5 h-5 text-yellow-600 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-yellow-900 mb-1">💡 Tips for better note-taking:</h4>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>• Your notes are private and only visible to you</li>
+                <li>• Use headings (#) to organize your content</li>
+                <li>• Add links to external resources for quick access</li>
+                <li>• Use --- for a page break/divider</li>
+                <li>• Use &gt;&gt;&gt; for a large empty line/gap</li>
+                <li>• Notes are automatically saved as you type</li>
+                <li>• Use the split view to see formatting in real-time</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Markdown Help */}
       {showHelp && (
         <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
@@ -274,15 +324,21 @@ export function PersonalNotesTab({ selectedStudent }) {
         )}
 
         {/* Content Area */}
-        <div className="flex h-96">
+        <div className="flex min-h-[500px] items-stretch">
           {/* Editor */}
           {(viewMode === 'edit' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-1/2 border-r border-gray-200' : 'w-full'}`}>
+            <div className={`${viewMode === 'split' ? 'w-1/2 border-r border-gray-200' : 'w-full'} bg-white`}>
               <textarea
+                ref={textareaRef}
                 id="notes-textarea"
                 value={notes}
-                onChange={(e) => updateNotes(e.target.value)}
-                className="w-full h-full p-6 border-none outline-none resize-none font-mono text-sm"
+                onChange={(e) => {
+                  updateNotes(e.target.value);
+                  // Auto-resize
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                className="w-full h-full p-6 border-none outline-none resize-none font-mono text-sm overflow-hidden min-h-[500px]"
                 placeholder={`Write your personal notes here, ${selectedStudent.name}...
 
 You can use Markdown syntax:
@@ -300,7 +356,7 @@ Your notes are automatically saved as you type.`}
 
           {/* Preview */}
           {(viewMode === 'preview' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} overflow-y-auto`}>
+            <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} bg-gray-50/50`}>
               <div className="p-6 prose prose-sm max-w-none">
                 {notes.trim() ? (
                   <ReactMarkdown
@@ -315,6 +371,32 @@ Your notes are automatically saved as you type.`}
                         >
                           {children}
                         </a>
+                      ),
+                      h1: ({ children }) => (
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-xl font-bold text-gray-900 mb-2">{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">{children}</h3>
+                      ),
+                      hr: () => (
+                        <hr className="my-8 border-t-2 border-gray-200" />
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside text-gray-700 mb-2 space-y-1">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside text-gray-700 mb-2 space-y-1">{children}</ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-gray-700">{children}</li>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-gray-300 pl-4 py-1 text-gray-600 italic my-2">
+                          {children}
+                        </blockquote>
                       ),
                       code: ({ node, inline, className, children, ...props }) => {
                         const [isCopied, setIsCopied] = useState(false);
@@ -365,7 +447,7 @@ Your notes are automatically saved as you type.`}
                       }
                     }}
                   >
-                    {notes}
+                    {notes.replace(/>>>/g, '\n\n&nbsp;\n\n').replace(/\n/g, '  \n')}
                   </ReactMarkdown>
                 ) : (
                   <div className="text-gray-500 italic">
@@ -383,23 +465,6 @@ Your notes are automatically saved as you type.`}
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Tips */}
-      <div className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
-        <div className="flex items-start gap-3">
-          <StickyNote className="w-5 h-5 text-yellow-600 mt-0.5" />
-          <div>
-            <h4 className="font-medium text-yellow-900 mb-1">💡 Tips for better note-taking:</h4>
-            <ul className="text-sm text-yellow-700 space-y-1">
-              <li>• Your notes are private and only visible to you</li>
-              <li>• Use headings (#) to organize your content</li>
-              <li>• Add links to external resources for quick access</li>
-              <li>• Notes are automatically saved as you type</li>
-              <li>• Use the split view to see formatting in real-time</li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>

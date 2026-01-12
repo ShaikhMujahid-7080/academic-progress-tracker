@@ -3,6 +3,7 @@ import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shiel
 import { subjects, ADMIN_STUDENT } from "../../data/subjects";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
+import { AnimatedDropdown } from "../common/AnimatedDropdown"; // Imported AnimatedDropdown
 
 export function StudentManagementTab({
   semester,
@@ -746,20 +747,21 @@ export function StudentManagementTab({
         <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Current Semester</h3>
 
-          <select
-            className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-lg font-medium bg-white"
-            value={semester}
-            onChange={(e) => setSemester(Number(e.target.value))}
-          >
-            {(selectedStudent?.isDSY ? [3, 4, 5, 6, 7, 8] : [1, 2, 3, 4, 5, 6, 7, 8]).map((sem) => (
-              <option
-                key={sem}
-                value={sem}
-              >
-                Semester {sem} ({subjects[sem].theory.length} theory + {subjects[sem].practical.length} practical)
-              </option>
-            ))}
-          </select>
+          <div className="relative z-20"> {/* Added z-index for dropdown */}
+            <AnimatedDropdown
+              options={(selectedStudent?.isDSY ? [3, 4, 5, 6, 7, 8] : [1, 2, 3, 4, 5, 6, 7, 8]).map(sem => ({
+                value: sem,
+                label: `Semester ${sem}`,
+                description: `${subjects[sem].theory.length} theory + ${subjects[sem].practical.length} practical`,
+                icon: Star,
+                iconColor: 'text-blue-500',
+                iconBg: 'bg-blue-50'
+              }))}
+              value={semester}
+              onChange={(val) => setSemester(Number(val))}
+              placeholder="Select Semester"
+            />
+          </div>
 
           <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
             <div className="flex items-start gap-3">
@@ -847,16 +849,17 @@ export function StudentManagementTab({
             </div>
 
             {/* Role Selection */}
-            <div className="mb-3">
+            <div className="mb-3 relative z-10"> {/* z-index to show dropdown over fields below */}
               <label className="block text-sm font-medium text-green-900 mb-2">Role</label>
-              <select
+              <AnimatedDropdown
+                options={[
+                  { value: 'student', label: 'Student', icon: User, iconColor: 'text-blue-500', iconBg: 'bg-blue-50', description: 'Standard access' },
+                  { value: 'co-leader', label: 'Co-Leader', icon: Star, iconColor: 'text-purple-500', iconBg: 'bg-purple-50', description: 'Can manage certain notices' }
+                ]}
                 value={newStudent.role}
-                onChange={(e) => setNewStudent({ ...newStudent, role: e.target.value })}
-                className="w-full p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="student">Student</option>
-                <option value="co-leader">Co-Leader</option>
-              </select>
+                onChange={(val) => setNewStudent({ ...newStudent, role: val })}
+                placeholder="Select Role"
+              />
             </div>
 
             {/* Admission Info */}

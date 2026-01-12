@@ -2,9 +2,44 @@
 
 > Pending
 1) give an option to student to store/upload studymaterial/imgs/file upto 10mb in their personal notes section/tab & make it (temporary) automatically delete after 48 hours
-2) fix navbar/tab not accessible on smaller screens
+2)  Fix: Admin Privileges the "Admin Privileges Manage co-leader permissions and quick admin actions with executive control" & other/more is displaying over/above the header (when scrolled)
 3) make the entire app responsive
-4) make the dropdown menu of Current Semester and Student Role (from Add new student) more beautiful and animated
+
+
+> 12/1/26
+* **Added**:
+  1) (Notice Board) ability to reorder all the (posted) notices (only to co-leader & admin ofcorse)
+  2) (Notice Board) option to post Assessment notice for posting [Subject_Name] [Assessment_Name (e.g: CA-1, CA-2, etc)] [Assessment_Type] [Assessment_Date,Time&Day] kinda like table or something
+  3) calender/tab to track all the Todos, Reminders and other events
+  4) Implemented fixed holidays (Christmas, Republic Day, Gandhi Jayanti, etc.) in CalendarTab.jsx. Use the defined logic to color these dates Red. Clicking them displays the holiday name in the event list. Note: Ensure you navigate to the correct month (e.g., Dec, Jan) to see them.
+  5) Personal Notes Spacer: Added a special symbol >>> to create an empty line/gap. Usage: Type >>> on its own line in your notes, and it will render as a visible empty space in the preview. Added this to the Tips section for reference.
+  6) Personal Notes - Spacer Icon: Added a Spacer (MoveVertical) icon to the toolbar in Personal Notes. Clicking it instantly inserts the >>> spacer token into your notes.
+* **Changed**:
+  1) Moved the "Tips for better note-taking" section, Added a "Tips" button in the toolbar to toggle the visibility of the "Tips for better note-taking" section.
+  2) Todo (Noticeboard) time-format to 12 hours
+  3) updated the Assessment color in the Calendar as requested: New Color: Purple. Visibility: Event dots are now purple. Event details in the side panel use a purple theme (bg-purple-50, text-purple-600). Conflict Resolved: This clearly distinguishes Assessments from the Red Holiday events.
+* **Fixed**:
+  1) Todo (Noticeboard) headings & list items "#,•" not supporting/working
+  2) Personal Notes headings & list items "#,•" not supporting/working
+  3) make the new notice (when posted) appear at the top of the noticeboard instead of at the bottom 
+  4) [Notice Board] the edit option of Assessment notice is not working 
+  5) the assessment or any other event posted for today(for current day) is not reflecting on the calendar
+  6) multiple assessments with different date (but in single post) are not reflecting on the calendar
+  7) [Calendar] the name of subject (of an assessment notice) isnt visible in the Events list in calendar
+  8) [Calendar] make the date/numbers of sunday as red color (signifying holiday)
+  9) [Calendar] make the date/numbers of friday as green color (signifying religious day)
+  10) [Calendar] make the first day of the week (monday) as default
+  11) [Assessment Notice] from the assessment_type remove the options (End Semester,Quiz, Assignment, and other) and add (CA-3, CA-4, Mid-Sem, and End-Sem)
+  12) [Calendar] the assessment_type isnt visible in the event list of the calendar
+  13) Calendar Assessment Name Optional: You can now create assessment notices without entering an "Assessment Name". In the calendar, it will display as "Subject (Type)" (e.g., "Maths (CA-1)") if the name is omitted. If a name is provided, it displays as "Subject: Name (Type)"
+* **Enhanced**:
+  1) Todo (Noticeboard) make it display the day (of selected date)
+  2) make the navbar horizontally scrollable (when hovered & scrolled) and also make it horizontally draggable (when clicked & dragged kinda like scrolling but with mouse)
+  3) [Notice Board] option to add multiple assessments (rows) in the Assessment notice 
+  4) Created a new AnimatedDropdown component with smooth transitions and styling.Replaced the "Current Semester" dropdown in Student Management. Replaced the "Role" dropdown in the "Add Student" form.
+  5) Calendar - Glow Effects: Holidays/Sundays: Now have a subtle Red Glow around their date. Fridays: Now have a subtle Green Glow around their date. This makes them stand out beautifully without overpowering the UI.
+* **Removed**:
+  1) Removed fixed height constraints from the Personal Notes editor and preview panes. The editor now automatically grows with content, allowing the main page scrollbar to be used instead of an inner scrollbar.
 
 
 > 11/1/26 (2.0)
