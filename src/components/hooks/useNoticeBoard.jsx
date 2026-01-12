@@ -405,8 +405,6 @@ export function useNoticeBoard(currentUser) {
     updateNotice,
     editNotice,
     deleteNotice,
-    editNotice,
-    deleteNotice,
     updateNoticePermissions,
     updateNoticesOrder,
     voteInPoll,
