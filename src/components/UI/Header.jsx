@@ -16,7 +16,7 @@ export function Header({ semester, syncStatus, selectedStudent, onStudentSwitch 
               <p className="text-sm text-gray-600">Semester {semester} • Track your academic journey</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-6">
             {/* Current Student */}
             {selectedStudent && (
@@ -39,7 +39,7 @@ export function Header({ semester, syncStatus, selectedStudent, onStudentSwitch 
                 </button>
               </div>
             )}
-            
+
             {/* Sync Status */}
             <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export function Header({ semester, syncStatus, selectedStudent, onStudentSwitch 
                   </div>
                 )}
               </div>
-              
+
               {lastSynced && (
                 <div className="text-xs text-gray-500">
                   Last synced: {lastSynced.toLocaleTimeString()}
@@ -72,7 +72,15 @@ export function Header({ semester, syncStatus, selectedStudent, onStudentSwitch 
             {/* Academic Year */}
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar className="w-4 h-4" />
-              <span>Academic Year 2024-25</span>
+              <span>
+                Academic Year {(() => {
+                  const now = new Date();
+                  const year = now.getFullYear();
+                  // Academic year starts from June (index 5)
+                  const startYear = now.getMonth() >= 5 ? year : year - 1;
+                  return `${startYear}-${(startYear + 1).toString().slice(-2)}`;
+                })()}
+              </span>
             </div>
           </div>
         </div>

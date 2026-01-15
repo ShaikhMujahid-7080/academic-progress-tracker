@@ -19,7 +19,8 @@ import {
   Check,
   Copy,
   Lightbulb,
-  MoveVertical
+  MoveVertical,
+  Minus
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -90,7 +91,7 @@ export function PersonalNotesTab({ selectedStudent }) {
 
     // Set cursor position
     setTimeout(() => {
-      textarea.focus();
+      textarea.focus({ preventScroll: true });
       const newPosition = start + before.length + (selectedText || placeholder).length;
       textarea.setSelectionRange(newPosition, newPosition);
     }, 0);
@@ -105,6 +106,7 @@ export function PersonalNotesTab({ selectedStudent }) {
     { icon: Code, title: 'Inline Code', action: () => insertMarkdown('`', '`', 'code') },
     { icon: FileText, title: 'Code Block', action: () => insertMarkdown('\n```\n', '\n```\n', 'code block') },
     { icon: Link, title: 'Link', action: () => insertMarkdown('[', '](url)', 'link text') },
+    { icon: Minus, title: 'Horizontal Line', action: () => insertMarkdown('\n---\n', '', '') },
     { icon: MoveVertical, title: 'Spacer (Empty Line)', action: () => insertMarkdown('\n\n>>>\n\n', '', '') }
   ];
 
@@ -304,15 +306,19 @@ export function PersonalNotesTab({ selectedStudent }) {
       )}
 
       {/* Main Editor Area */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
         {/* Toolbar */}
         {(viewMode === 'edit' || viewMode === 'split') && (
-          <div className="border-b border-gray-200 p-3">
+          <div className="sticky top-[64px] z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 p-3 rounded-t-2xl transition-all">
             <div className="flex items-center gap-1">
               {toolbarButtons.map((button, index) => (
                 <button
                   key={index}
-                  onClick={button.action}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    button.action();
+                  }}
                   className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   title={button.title}
                 >

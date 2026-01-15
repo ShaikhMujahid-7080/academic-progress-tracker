@@ -211,6 +211,7 @@ export default function App() {
             semester={semester}
             allData={allData}
             handleDataChange={handleDataChange}
+            selectedStudent={selectedStudent}
           />
         </TabPanel>
 
@@ -225,6 +226,7 @@ export default function App() {
         <TabPanel value={tab} index={2}>
           <NoticeBoardTab
             selectedStudent={selectedStudent}
+            semester={semester}
           />
         </TabPanel>
 
@@ -258,7 +260,10 @@ export default function App() {
         </TabPanel>
 
         <TabPanel value={tab} index={7}>
-          <CalendarTab selectedStudent={selectedStudent} />
+          <CalendarTab
+            selectedStudent={selectedStudent}
+            semester={semester}
+          />
         </TabPanel>
       </div>
     </div>

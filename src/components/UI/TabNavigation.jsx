@@ -73,7 +73,7 @@ export function TabNavigation({
   }, []);
 
   return (
-    <div className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
+    <div className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-2 md:px-6">
         <div
           ref={scrollContainerRef}

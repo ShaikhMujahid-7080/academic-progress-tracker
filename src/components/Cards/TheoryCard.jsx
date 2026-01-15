@@ -2,7 +2,7 @@ import { useState, useEffect, memo } from "react";
 import { BookOpen, Target, Award, Calculator } from "lucide-react";
 import { caOptions } from "../../data/subjects";
 
-export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, initialData }) {
+export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, initialData, assessmentNotices = [] }) {
   const [caData, setCaData] = useState({
     ca1: { type: '', date: '', marks: '' },
     ca2: { type: '', date: '', marks: '' },
@@ -16,6 +16,49 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
   useEffect(() => {
     if (initialData) setCaData(initialData);
   }, [initialData]);
+
+  // Auto-fill logic from assessment notices
+  useEffect(() => {
+    if (!assessmentNotices.length) return;
+
+    let hasChanges = false;
+    const newData = { ...caData };
+
+    assessmentNotices.forEach(notice => {
+      const assessments = notice.meta?.assessments || [];
+
+      assessments.forEach(assessment => {
+        // Match subject name (case-insensitive)
+        if (assessment.subject?.toLowerCase().trim() === subject?.toLowerCase().trim()) {
+          const type = assessment.assessmentType; // "CA-1", "CA-2", "Mid-Sem", etc.
+          const key = type?.toLowerCase().replace('-', ''); // Convert "CA-1" -> "ca1", "Mid-Sem" -> "midsem" (wait, midSem is camelCase)
+
+          let targetKey = key;
+          if (key === 'midsem') targetKey = 'midSem';
+
+          if (newData[targetKey]) {
+            // Only fill if current field is empty to avoid overwriting user data
+            if (!newData[targetKey].date && assessment.date) {
+              // Format date from YYYY-MM-DDTHH:mm to YYYY-MM-DD for date input
+              newData[targetKey].date = assessment.date.split('T')[0];
+              hasChanges = true;
+            }
+
+            // Only fill type/assessmentName for CAs if empty
+            if (targetKey !== 'midSem' && !newData[targetKey].type && assessment.assessmentName) {
+              newData[targetKey].type = assessment.assessmentName;
+              hasChanges = true;
+            }
+          }
+        }
+      });
+    });
+
+    if (hasChanges) {
+      setCaData(newData);
+      onDataChange && onDataChange(subject, newData);
+    }
+  }, [assessmentNotices, subject]); // Note: We only run this when notices change or for a new subject card
 
   const updateCA = (caNum, field, value) => {
     // Validate marks input

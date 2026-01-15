@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -12,10 +12,37 @@ import {
 } from 'lucide-react';
 import { useNoticeBoard } from '../hooks/useNoticeBoard';
 
-export function CalendarTab({ selectedStudent }) {
-    const { notices } = useNoticeBoard(selectedStudent);
+export function CalendarTab({ selectedStudent, semester }) {
+    const { notices } = useNoticeBoard(selectedStudent, semester);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const [now, setNow] = useState(new Date());
+
+    // Update time every second
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const formatTime = (date) => {
+        return date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
+    };
+
+    const formatDate = (date) => {
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
+    };
+
+    const formatDay = (date) => {
+        return date.toLocaleDateString('en-US', { weekday: 'long' });
+    };
 
     // Helper to check if two dates are same day
     const isSameDay = (d1, d2) => {
@@ -290,8 +317,32 @@ export function CalendarTab({ selectedStudent }) {
                 </div>
 
                 {/* Info Panel / Side Panel */}
-                <div className="lg:w-80 w-full space-y-6">
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 h-full min-h-[500px]">
+                <div className="lg:w-80 w-full flex flex-col gap-6">
+                    {/* Real-time Date-Time Card */}
+                    <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-2xl shadow-xl p-6 text-white overflow-hidden relative z-0 group">
+                        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-700"></div>
+                        <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-purple-500/20 rounded-full blur-xl"></div>
+
+                        <div className="relative z-10 flex flex-col items-center">
+                            <div className="text-sm font-medium opacity-80 uppercase tracking-widest mb-1">
+                                {formatDay(now)}
+                            </div>
+                            <div className="text-4xl sm:text-5xl font-black tracking-tighter mb-2 drop-shadow-md whitespace-nowrap">
+                                {formatTime(now).split(' ')[0]}
+                                <span className="text-xl sm:text-2xl font-bold opacity-60 ml-2 uppercase">
+                                    {formatTime(now).split(' ')[1]}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-sm border border-white/10">
+                                <CalendarIcon className="w-4 h-4 text-blue-200" />
+                                <span className="text-sm font-bold tracking-tight">
+                                    {formatDate(now)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex-1 flex flex-col min-h-[400px]">
                         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                             {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                             <span className="text-sm font-normal text-gray-500 ml-auto">
@@ -299,7 +350,7 @@ export function CalendarTab({ selectedStudent }) {
                             </span>
                         </h3>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 flex-1 overflow-y-auto -mr-2 pr-2">
                             {selectedDayEvents.length > 0 ? (
                                 selectedDayEvents.map(event => (
                                     <div

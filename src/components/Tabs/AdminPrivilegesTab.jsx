@@ -385,7 +385,7 @@ export function AdminPrivilegesTab({
         <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br rounded-full blur-[100px] opacity-30 ${isAdmin ? 'from-yellow-600 to-amber-800' : 'from-purple-600 to-pink-800'}`} />
         <div className={`absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr rounded-full blur-[100px] opacity-30 ${isAdmin ? 'from-amber-600 to-yellow-800' : 'from-pink-600 to-purple-800'}`} />
 
-        <div className="relative z-10">
+        <div className="relative">
           <div className="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-xl">
             {isAdmin ? (
               <Crown className="w-10 h-10 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
@@ -463,7 +463,7 @@ export function AdminPrivilegesTab({
               <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <UserPlus className="w-6 h-6 text-white" />
               </div>
-              <div className="text-left z-10">
+              <div className="text-left">
                 <p className="font-bold text-green-900 text-lg group-hover:text-green-800">Create User</p>
                 <p className="text-xs text-green-600 font-medium">Add new student</p>
               </div>
@@ -480,7 +480,7 @@ export function AdminPrivilegesTab({
               <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <Megaphone className="w-6 h-6 text-white" />
               </div>
-              <div className="text-left z-10">
+              <div className="text-left">
                 <p className="font-bold text-blue-900 text-lg group-hover:text-blue-800">Manage Notices</p>
                 <p className="text-xs text-blue-600 font-medium">Create & edit notices</p>
               </div>
@@ -496,7 +496,7 @@ export function AdminPrivilegesTab({
             <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-fuchsia-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
               <Users className="w-6 h-6 text-white" />
             </div>
-            <div className="text-left z-10">
+            <div className="text-left">
               <p className="font-bold text-purple-900 text-lg group-hover:text-purple-800">View Students</p>
               <p className="text-xs text-purple-600 font-medium">Student management</p>
             </div>

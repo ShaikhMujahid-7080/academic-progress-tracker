@@ -1,7 +1,16 @@
 import { TheoryCard } from "../Cards/TheoryCard";
 import { subjects } from "../../data/subjects";
+import { useNoticeBoard } from "../hooks/useNoticeBoard";
+import { useMemo } from "react";
 
-export function TheoryTab({ semester, allData, handleDataChange }) { // Remove dataVersion
+export function TheoryTab({ semester, allData, handleDataChange, selectedStudent }) {
+  const { notices } = useNoticeBoard(selectedStudent, semester);
+
+  // Filter for assessment notices only
+  const assessmentNotices = useMemo(() => {
+    return notices.filter(notice => notice.type === 'assessment');
+  }, [notices]);
+
   return (
     <>
       <div className="mb-8">
@@ -11,10 +20,11 @@ export function TheoryTab({ semester, allData, handleDataChange }) { // Remove d
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {subjects[semester].theory.map((subj) => (
           <TheoryCard
-            key={`${semester}-${subj}`} // Stable key - only changes when semester/subject changes
+            key={`${semester}-${subj}`}
             subject={subj}
             onDataChange={(subject, data) => handleDataChange(subject, data, 'theory')}
             initialData={allData[`${semester}-${subj}`]?.data}
+            assessmentNotices={assessmentNotices}
           />
         ))}
       </div>

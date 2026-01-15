@@ -1,10 +1,45 @@
 (remember to give the complete code of any file that needs to be edited along with its name & dont give a portion to replace or add in the file)
 
 > Pending
-1) give an option to student to store/upload studymaterial/imgs/file upto 10mb in their personal notes section/tab & make it (temporary) automatically delete after 48 hours
-2)  Fix: Admin Privileges the "Admin Privileges Manage co-leader permissions and quick admin actions with executive control" & other/more is displaying over/above the header (when scrolled)
-3) make the entire app responsive
+1) add: [PersonalNotes] give an option to student to store/upload studymaterial/imgs/file upto 10mb in their personal notes section/tab & make it (temporary) automatically delete after 48 hours, the current firebase plan (Free) doesnt support file upload/storage, so we'll have to make adjustments for that (store in database or something) 
+2) make the entire app responsive
+3) add: a small footer to the app that will display the developer name (Shaikh Mujahid) and more info about the app
+4) add: Time Table/Schedule 
+5) add: [Calendar] just like the PersonalNotes add schedule button above the calender which will display the schedule/timetable (along with an edit option) entered by the admin/co-leader
 
+  
+> 15/1/26
+* **Added**:
+  1) [PersonalNotes] add a button in toolbar that will insert a horizontal line 
+  2) [Calendar] added the real-time Date-Time Card to the Calendar side panel! It features:
+   * A live-ticking clock with seconds.
+   * A large, prominent display for the time.
+   * Current date in dd/mm/yyyy and the full day name.
+   * A premium gradient design with smooth animations.
+* **Changed**:
+* **Fixed**:
+  1) [PersonalNotes] whenever you use any of the buttons/tools from the toolbar it scrolls to the top of the page 
+  2) [Calendar] the text of date,day & time card and a transparent background for date is overlapping on the navbar
+  3) [Calendar] fixed the alignment issue in the Calendar. The Event List card now stretches to perfectly match the bottom of the main Calendar grid, regardless of how many rows the month view has. I also added independent scrolling to the event list to keep the UI clean when you have many items.
+  4) [NoticeBoard] the searchbar is overlapping the sticky Global Notice Board navbar
+  5) fixed the Academic Year display in the header! It is now dynamic and automatically calculates the correct year based on the current date. Since it's currently Jan 2026, it correctly displays as Academic Year 2025-26. The tracker is now always up-to-date!
+* **Enhanced**:
+  1) [PersonalNotes] make the toolbar sticky for easy access to the toolbar buttons
+  2) [NoticeBoard] make the notices only visible in the semester from which they are posted from
+  3) [Calendar] make the events only visible in the semester from which they are posted from
+  4) [TheorySubjects] the automatic filling of Theory Subject details from NoticeBoard assessment notices. Now, whenever an assessment notice is posted, the relevant subject cards will automatically populate their Date and Assessment Name fields if they are currently empty. This ensures your academic tracker stays in sync with announcements!
+* **Removed**:
+
+> 14/1/26
+* **Added**:
+* **Changed**:
+* **Fixed**:
+  1) Fixed Admin Privileges tab: Hero section text ("Manage co-leader permissions...") overlapping main navbar on scroll [AdminPrivilegesTab.jsx]
+  2) Fixed Student Management tab: Semester + Role dropdowns breaking through sticky header [StudentManagementTab.jsx]
+  3) Fixed Notice Board tab: Secondary sticky navbar (top-0 z-20) hiding main navigation [NoticeBoardTab.jsx]
+  4) Fixed Admin Privileges Quick Actions: "Create User", "Manage Notices", "View Students" buttons overlapping navbar [AdminPrivilegesTab.jsx]
+* **Enhanced**:
+* **Removed**:
 
 > 12/1/26
 * **Added**:

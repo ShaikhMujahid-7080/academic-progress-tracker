@@ -747,7 +747,7 @@ export function StudentManagementTab({
         <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Current Semester</h3>
 
-          <div className="relative z-20"> {/* Added z-index for dropdown */}
+          <div className="relative"> {/* Removed z-20 to prevent header overlap */}
             <AnimatedDropdown
               options={(selectedStudent?.isDSY ? [3, 4, 5, 6, 7, 8] : [1, 2, 3, 4, 5, 6, 7, 8]).map(sem => ({
                 value: sem,
@@ -849,7 +849,7 @@ export function StudentManagementTab({
             </div>
 
             {/* Role Selection */}
-            <div className="mb-3 relative z-10"> {/* z-index to show dropdown over fields below */}
+            <div className="mb-3 relative"> {/* Removed z-10 to prevent header overlap */}
               <label className="block text-sm font-medium text-green-900 mb-2">Role</label>
               <AnimatedDropdown
                 options={[

@@ -14,7 +14,7 @@ import {
 import { db } from '../../firebase';
 import { ADMIN_STUDENT } from '../../data/subjects';
 
-export function useNoticeBoard(currentUser) {
+export function useNoticeBoard(currentUser, currentSemester) {
   const [notices, setNotices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -56,6 +56,13 @@ export function useNoticeBoard(currentUser) {
         const noticesList = [];
         querySnapshot.forEach((doc) => {
           const noticeData = { id: doc.id, ...doc.data() };
+
+          // Filter by semester: 
+          // 1. If notice has a semester field, it must match currentSemester
+          // 2. If notice doesn't have a semester field (legacy), we show it to avoid data loss
+          if (noticeData.semester && noticeData.semester !== currentSemester) {
+            return;
+          }
 
           const allowedUsers = noticeData.allowedUsers || [];
           const isPublic = noticeData.isPublic || false;
@@ -102,7 +109,7 @@ export function useNoticeBoard(currentUser) {
     );
 
     return () => unsubscribe();
-  }, [currentUser, canManageNotices]);
+  }, [currentUser, canManageNotices, currentSemester]); // Added currentSemester to dependencies
 
   // Create new notice (admin and co-leaders only)
   const createNotice = async (type, content, meta = {}, allowedUsers = [], isPublic = false) => {
@@ -116,6 +123,7 @@ export function useNoticeBoard(currentUser) {
         type,
         content,
         meta,
+        semester: currentSemester, // Include current semester
         createdBy: currentUser.name,
         createdByRoll: currentUser.rollNo,
         allowedUsers: allowedUsers,

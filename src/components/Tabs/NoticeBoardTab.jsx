@@ -32,7 +32,7 @@ import { ReorderNoticesModal } from "../NoticeBoard/ReorderNoticesModal";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
 
-export function NoticeBoardTab({ selectedStudent }) {
+export function NoticeBoardTab({ selectedStudent, semester }) {
   const { students } = useStudentManagement();
   const {
     notices,
@@ -49,7 +49,7 @@ export function NoticeBoardTab({ selectedStudent }) {
     voteInPoll,
     toggleChecklistItem,
     toggleTodo
-  } = useNoticeBoard(selectedStudent);
+  } = useNoticeBoard(selectedStudent, semester);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
@@ -303,7 +303,7 @@ export function NoticeBoardTab({ selectedStudent }) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between sticky top-0 z-20 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/60 py-4 transition-all -mx-4 px-4 rounded-b-2xl mb-4">
+      <div className="flex items-center justify-between sticky top-[64px] z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/60 py-4 transition-all -mx-4 px-4 rounded-b-2xl mb-4">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
             <Megaphone className="w-8 h-8 text-blue-600" />
