@@ -6,7 +6,22 @@
 3) add: a small footer to the app that will display the developer name (Shaikh Mujahid) and more info about the app
 4) add: Time Table/Schedule 
 5) add: [Calendar] just like the PersonalNotes add schedule button above the calender which will display the schedule/timetable (along with an edit option) entered by the admin/co-leader
+6) fix: [Header] Make the header even more responsive 
 
+> 16/1/26
+* **Added**:
+  1) [Calendar] added the status bar card to the Calendar tab. It now displays the last update time and the total number of events, matching the design of the Personal Notes tab
+* **Changed**:
+* **Fixed**:
+  1) [NoticeBoard] removed the date restrictions in the Notice Board. You can now select and input previous/old dates for Assessments, Reminders, and Todos in both the creation form and when editing existing items.
+  2) [PersonalNotes] when typing (or toolbar button input) anything in the editor the screen is scrolling to top (when there is already too much text in editor)
+* **Enhanced**:
+  1) implemented the synchronization between Assessment Notices and Theory Cards.
+    * Automatic Updates: Theory Cards now update instantly when an admin modifies an Assessment Notice.
+    * Smart Clearing: If an Assessment Notice is deleted, the corresponding date and type fields in the Theory Card are cleared automatically.
+    * Data Integrity: Manually entered data and marks are preserved, and only fields set by notices are affected by deletions.
+    * Source Tracking: The system now distinguishes between data from notices and manual overrides.
+* **Removed**:
   
 > 15/1/26
 * **Added**:

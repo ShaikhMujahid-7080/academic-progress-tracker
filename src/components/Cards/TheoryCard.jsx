@@ -4,11 +4,11 @@ import { caOptions } from "../../data/subjects";
 
 export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, initialData, assessmentNotices = [] }) {
   const [caData, setCaData] = useState({
-    ca1: { type: '', date: '', marks: '' },
-    ca2: { type: '', date: '', marks: '' },
-    ca3: { type: '', date: '', marks: '' },
-    ca4: { type: '', date: '', marks: '' },
-    midSem: { date: '', marks: '' }
+    ca1: { type: '', date: '', marks: '', source: null },
+    ca2: { type: '', date: '', marks: '', source: null },
+    ca3: { type: '', date: '', marks: '', source: null },
+    ca4: { type: '', date: '', marks: '', source: null },
+    midSem: { date: '', marks: '', source: null }
   });
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -17,48 +17,78 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
     if (initialData) setCaData(initialData);
   }, [initialData]);
 
-  // Auto-fill logic from assessment notices
+  // Auto-fill and Sync logic from assessment notices
   useEffect(() => {
-    if (!assessmentNotices.length) return;
-
-    let hasChanges = false;
-    const newData = { ...caData };
+    // 1. Identify all current relevant assessments from notices
+    const assessmentsFromNotices = {};
 
     assessmentNotices.forEach(notice => {
       const assessments = notice.meta?.assessments || [];
-
       assessments.forEach(assessment => {
-        // Match subject name (case-insensitive)
         if (assessment.subject?.toLowerCase().trim() === subject?.toLowerCase().trim()) {
-          const type = assessment.assessmentType; // "CA-1", "CA-2", "Mid-Sem", etc.
-          const key = type?.toLowerCase().replace('-', ''); // Convert "CA-1" -> "ca1", "Mid-Sem" -> "midsem" (wait, midSem is camelCase)
-
+          const type = assessment.assessmentType;
+          const key = type?.toLowerCase().replace('-', '');
           let targetKey = key;
           if (key === 'midsem') targetKey = 'midSem';
 
-          if (newData[targetKey]) {
-            // Only fill if current field is empty to avoid overwriting user data
-            if (!newData[targetKey].date && assessment.date) {
-              // Format date from YYYY-MM-DDTHH:mm to YYYY-MM-DD for date input
-              newData[targetKey].date = assessment.date.split('T')[0];
-              hasChanges = true;
-            }
-
-            // Only fill type/assessmentName for CAs if empty
-            if (targetKey !== 'midSem' && !newData[targetKey].type && assessment.assessmentName) {
-              newData[targetKey].type = assessment.assessmentName;
-              hasChanges = true;
-            }
+          if (caData[targetKey]) {
+            assessmentsFromNotices[targetKey] = {
+              date: assessment.date ? assessment.date.split('T')[0] : '',
+              type: assessment.assessmentName || ''
+            };
           }
         }
       });
+    });
+
+    // 2. Determine if state needs updating
+    let hasChanges = false;
+    const newData = { ...caData };
+
+    // Check all keys (ca1, ca2, ca3, ca4, midSem)
+    Object.keys(newData).forEach(key => {
+      const noticeInfo = assessmentsFromNotices[key];
+      const currentField = newData[key];
+
+      if (noticeInfo) {
+        // CASE: Notice exists for this field
+        // Only update if: 
+        // a) Currently empty 
+        // b) Was previously set by a notice (and notice might have changed)
+        // c) Forced sync - we'll prioritize notice over manual if they conflict and notice is present?
+        // Actually, to be safe: update if empty OR if source is 'notice'
+        if ((!currentField.date && noticeInfo.date) ||
+          (!currentField.type && noticeInfo.type && key !== 'midSem') ||
+          (currentField.source === 'notice' && (currentField.date !== noticeInfo.date || (key !== 'midSem' && currentField.type !== noticeInfo.type)))) {
+
+          newData[key] = {
+            ...currentField,
+            date: noticeInfo.date,
+            type: key === 'midSem' ? currentField.type : noticeInfo.type,
+            source: 'notice'
+          };
+          hasChanges = true;
+        }
+      } else {
+        // CASE: NO notice exists for this field
+        // If it was previously set by a notice, CLEAR it
+        if (currentField.source === 'notice') {
+          newData[key] = {
+            ...currentField,
+            date: '',
+            type: '',
+            source: null
+          };
+          hasChanges = true;
+        }
+      }
     });
 
     if (hasChanges) {
       setCaData(newData);
       onDataChange && onDataChange(subject, newData);
     }
-  }, [assessmentNotices, subject]); // Note: We only run this when notices change or for a new subject card
+  }, [assessmentNotices, subject]);
 
   const updateCA = (caNum, field, value) => {
     // Validate marks input
@@ -74,7 +104,11 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
 
     const newData = {
       ...caData,
-      [caNum]: { ...caData[caNum], [field]: value }
+      [caNum]: {
+        ...caData[caNum],
+        [field]: value,
+        source: (field === 'date' || field === 'type') ? 'manual' : caData[caNum].source
+      }
     };
     setCaData(newData);
     onDataChange && onDataChange(subject, newData);

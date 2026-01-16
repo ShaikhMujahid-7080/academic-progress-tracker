@@ -15,9 +15,9 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -27,9 +27,9 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
   const formatReminderDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -120,7 +120,6 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
             value={editReminderDate}
             onChange={(e) => setEditReminderDate(e.target.value)}
             className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
-            min={new Date().toISOString().slice(0, 16)}
           />
         </div>
       </div>
@@ -131,12 +130,10 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
     <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
-            isReminderPast() ? 'bg-red-100' : 'bg-orange-100'
-          }`}>
-            <Bell className={`w-5 h-5 ${
-              isReminderPast() ? 'text-red-600' : 'text-orange-600'
-            }`} />
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isReminderPast() ? 'bg-red-100' : 'bg-orange-100'
+            }`}>
+            <Bell className={`w-5 h-5 ${isReminderPast() ? 'text-red-600' : 'text-orange-600'
+              }`} />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -153,13 +150,13 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
           </div>
-          
+
           {canEdit && (
             <button
               onClick={handleEditStart}
@@ -169,7 +166,7 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
               <Edit3 className="w-4 h-4" />
             </button>
           )}
-          
+
           {canManagePermissions && (
             <button
               onClick={onManagePermissions}
@@ -179,7 +176,7 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
               <Settings className="w-4 h-4" />
             </button>
           )}
-          
+
           {canDelete && (
             <button
               onClick={() => onDelete(notice.id)}
@@ -191,7 +188,7 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
           )}
         </div>
       </div>
-      
+
       {/* Markdown Content */}
       <div className="mb-4 prose prose-sm max-w-none">
         <ReactMarkdown
@@ -244,23 +241,19 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
       </div>
 
       {/* Reminder Date */}
-      <div className={`p-4 rounded-xl border-2 ${
-        isReminderPast() 
-          ? 'bg-red-50 border-red-200' 
+      <div className={`p-4 rounded-xl border-2 ${isReminderPast()
+          ? 'bg-red-50 border-red-200'
           : 'bg-orange-50 border-orange-200'
-      }`}>
+        }`}>
         <div className="flex items-center gap-2">
-          <Bell className={`w-4 h-4 ${
-            isReminderPast() ? 'text-red-600' : 'text-orange-600'
-          }`} />
-          <span className={`text-sm font-medium ${
-            isReminderPast() ? 'text-red-700' : 'text-orange-700'
-          }`}>
+          <Bell className={`w-4 h-4 ${isReminderPast() ? 'text-red-600' : 'text-orange-600'
+            }`} />
+          <span className={`text-sm font-medium ${isReminderPast() ? 'text-red-700' : 'text-orange-700'
+            }`}>
             {isReminderPast() ? 'Was due:' : 'Reminder set for:'}
           </span>
-          <span className={`text-sm font-bold ${
-            isReminderPast() ? 'text-red-800' : 'text-orange-800'
-          }`}>
+          <span className={`text-sm font-bold ${isReminderPast() ? 'text-red-800' : 'text-orange-800'
+            }`}>
             {formatReminderDate(notice.meta.reminderDate)}
           </span>
         </div>

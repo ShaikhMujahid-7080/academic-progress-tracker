@@ -506,7 +506,6 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
               value={meta.reminderDate}
               onChange={(e) => setMeta({ ...meta, reminderDate: e.target.value })}
               className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              min={new Date().toISOString().slice(0, 16)}
             />
           </div>
         )}
@@ -521,7 +520,6 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
               value={meta.dueDate}
               onChange={(e) => setMeta({ ...meta, dueDate: e.target.value })}
               className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              min={new Date().toISOString().slice(0, 16)}
             />
           </div>
         )}
@@ -586,7 +584,6 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
                       value={assessment.date}
                       onChange={(e) => updateAssessmentRow(index, 'date', e.target.value)}
                       className="w-full p-2 border border-gray-200 rounded-lg text-sm"
-                      min={new Date().toISOString().slice(0, 16)}
                     />
                   </div>
                 </div>

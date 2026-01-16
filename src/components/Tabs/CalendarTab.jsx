@@ -8,7 +8,13 @@ import {
     ListTodo,
     Bell,
     GraduationCap,
-    Star // Added Star import
+    Star,
+    Save,
+    Loader2,
+    AlertCircle,
+    Eye,
+    Edit3,
+    FileText
 } from 'lucide-react';
 import { useNoticeBoard } from '../hooks/useNoticeBoard';
 
@@ -17,12 +23,21 @@ export function CalendarTab({ selectedStudent, semester }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [now, setNow] = useState(new Date());
+    const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [viewMode, setViewMode] = useState('month'); // 'month', 'list'
 
     // Update time every second
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
+
+    // Update lastUpdated when notices change
+    useEffect(() => {
+        if (notices.length > 0) {
+            setLastUpdated(new Date());
+        }
+    }, [notices]);
 
     const formatTime = (date) => {
         return date.toLocaleTimeString('en-US', {
@@ -42,6 +57,15 @@ export function CalendarTab({ selectedStudent, semester }) {
 
     const formatDay = (date) => {
         return date.toLocaleDateString('en-US', { weekday: 'long' });
+    };
+
+    const formatLastUpdated = (date) => {
+        if (!date) return 'Never updated';
+        const diff = new Date() - date;
+        if (diff < 60000) return 'Updated just now';
+        if (diff < 3600000) return `Updated ${Math.floor(diff / 60000)} minutes ago`;
+        if (diff < 86400000) return `Updated ${Math.floor(diff / 3600000)} hours ago`;
+        return `Updated on ${date.toLocaleDateString()}`;
     };
 
     // Helper to check if two dates are same day
@@ -202,6 +226,41 @@ export function CalendarTab({ selectedStudent, semester }) {
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
+            {/* Status Bar - Mirrors PersonalNotes style */}
+            <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100 mb-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <Save className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-gray-600">{formatLastUpdated(lastUpdated)}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <CalendarIcon className="w-4 h-4" />
+                            <span>{allEvents.length} Events</span>
+                        </div>
+                    </div>
+
+                    {/* View Mode Toggle */}
+                    <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                        <button
+                            onClick={() => setViewMode('month')}
+                            className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+                        >
+                            <CalendarIcon className="w-4 h-4" />
+                            Month
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+                        >
+                            <FileText className="w-4 h-4" />
+                            List
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Calendar Section */}
                 <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">

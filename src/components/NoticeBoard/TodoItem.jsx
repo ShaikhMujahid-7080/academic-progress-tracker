@@ -132,7 +132,6 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
             value={editDueDate}
             onChange={(e) => setEditDueDate(e.target.value)}
             className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            min={new Date().toISOString().slice(0, 16)}
           />
         </div>
       </div>

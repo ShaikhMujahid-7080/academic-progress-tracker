@@ -42,6 +42,7 @@ export function PersonalNotesTab({ selectedStudent }) {
   const [showTips, setShowTips] = useState(false);
   const _viewInitialized = useRef(false);
   const textareaRef = useRef(null);
+  const scrollPosRef = useRef(0);
 
   // Make preview the active view by default when notes exist (but avoid overriding user's manual changes)
   useEffect(() => {
@@ -81,6 +82,9 @@ export function PersonalNotesTab({ selectedStudent }) {
     const textarea = document.getElementById('notes-textarea');
     if (!textarea) return;
 
+    // Store scroll position before making changes
+    scrollPosRef.current = window.scrollY;
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = notes.substring(start, end);
@@ -89,12 +93,13 @@ export function PersonalNotesTab({ selectedStudent }) {
     const newNotes = notes.substring(0, start) + replacement + notes.substring(end);
     updateNotes(newNotes);
 
-    // Set cursor position
-    setTimeout(() => {
+    // Restore scroll position and manage focus
+    requestAnimationFrame(() => {
       textarea.focus({ preventScroll: true });
       const newPosition = start + before.length + (selectedText || placeholder).length;
       textarea.setSelectionRange(newPosition, newPosition);
-    }, 0);
+      window.scrollTo(0, scrollPosRef.current);
+    });
   };
 
   const toolbarButtons = [
@@ -339,10 +344,20 @@ export function PersonalNotesTab({ selectedStudent }) {
                 id="notes-textarea"
                 value={notes}
                 onChange={(e) => {
+                  // Store scroll position before state change
+                  scrollPosRef.current = window.scrollY;
+                  
+                  // Update notes (triggers state change)
                   updateNotes(e.target.value);
+                  
                   // Auto-resize
                   e.target.style.height = 'auto';
                   e.target.style.height = e.target.scrollHeight + 'px';
+                  
+                  // Restore scroll position after resize
+                  requestAnimationFrame(() => {
+                    window.scrollTo(0, scrollPosRef.current);
+                  });
                 }}
                 className="w-full h-full p-6 border-none outline-none resize-none font-mono text-sm overflow-hidden min-h-[500px]"
                 placeholder={`Write your personal notes here, ${selectedStudent.name}...
