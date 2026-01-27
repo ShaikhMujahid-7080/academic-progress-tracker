@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  serverTimestamp 
+import { useState, useEffect, useCallback } from 'react';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 
@@ -14,39 +14,39 @@ export function usePersonalNotes(userId) {
   const [lastSaved, setLastSaved] = useState(null);
   const [error, setError] = useState(null);
 
-  // Load notes on userId change
-  useEffect(() => {
+  const fetchNotes = useCallback(async () => {
     if (!userId) {
       setNotes('');
       setIsLoading(false);
       return;
     }
 
-    const loadNotes = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const docRef = doc(db, 'userNotes', userId);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          setNotes(docSnap.data().content || '');
-          setLastSaved(docSnap.data().updatedAt ? docSnap.data().updatedAt.toDate() : null);
-        } else {
-          setNotes('');
-          setLastSaved(null);
-        }
-      } catch (err) {
-        console.error('Error loading notes:', err);
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    loadNotes();
+      const docRef = doc(db, 'userNotes', userId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        setNotes(docSnap.data().content || '');
+        setLastSaved(docSnap.data().updatedAt ? docSnap.data().updatedAt.toDate() : null);
+      } else {
+        setNotes('');
+        setLastSaved(null);
+      }
+    } catch (err) {
+      console.error('Error loading notes:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   }, [userId]);
+
+  // Load notes on userId change
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
 
   // Auto-save notes with debouncing
   useEffect(() => {
@@ -55,14 +55,14 @@ export function usePersonalNotes(userId) {
     const saveTimeout = setTimeout(async () => {
       try {
         setIsSaving(true);
-        
+
         const docRef = doc(db, 'userNotes', userId);
         await setDoc(docRef, {
           content: notes,
           updatedAt: serverTimestamp(),
           userId
         });
-        
+
         setLastSaved(new Date());
         setError(null);
       } catch (err) {
@@ -82,7 +82,7 @@ export function usePersonalNotes(userId) {
 
   const clearNotes = async () => {
     if (!userId) return;
-    
+
     try {
       setIsSaving(true);
       const docRef = doc(db, 'userNotes', userId);
@@ -105,6 +105,7 @@ export function usePersonalNotes(userId) {
     notes,
     updateNotes,
     clearNotes,
+    refreshNotes: fetchNotes,
     isLoading,
     isSaving,
     lastSaved,

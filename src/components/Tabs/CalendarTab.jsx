@@ -25,38 +25,131 @@ export function CalendarTab({ selectedStudent, semester }) {
     const [now, setNow] = useState(new Date());
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [viewMode, setViewMode] = useState('month'); // 'month', 'list'
+    const [timeOffset, setTimeOffset] = useState(0); // Offset between server time and local clock
+    const [isSynced, setIsSynced] = useState(false);
 
-    // Update time every second
+    // Fetch online time from WorldTimeAPI (Asia/Kolkata = UTC+05:30)
+    // Fetch online time with robust fallbacks
     useEffect(() => {
-        const timer = setInterval(() => setNow(new Date()), 1000);
-        return () => clearInterval(timer);
+        const syncTime = (onlineDate) => {
+            const now = new Date();
+            const offset = onlineDate.getTime() - now.getTime();
+            setTimeOffset(offset);
+            setIsSynced(true);
+        };
+
+        const fetchOnlineTime = async () => {
+            const fetchWithTimeout = async (url, options = {}) => {
+                const { timeout = 5000, ...fetchOptions } = options;
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const response = await fetch(url, {
+                        ...fetchOptions,
+                        signal: controller.signal
+                    });
+                    clearTimeout(id);
+                    return response;
+                } catch (error) {
+                    clearTimeout(id);
+                    throw error;
+                }
+            };
+
+            const strategies = [
+                // Strategy 1: TimeAPI.io (Often more reliable)
+                async () => {
+                    const res = await fetchWithTimeout('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata', { timeout: 5000 });
+                    if (!res.ok) throw new Error('TimeAPI failed');
+                    const data = await res.json();
+                    return new Date(data.dateTime + '+05:30');
+                },
+                // Strategy 2: WorldTimeAPI
+                async () => {
+                    const res = await fetchWithTimeout('https://worldtimeapi.org/api/timezone/Asia/Kolkata', { timeout: 5000 });
+                    if (!res.ok) throw new Error('WorldTimeAPI failed');
+                    const data = await res.json();
+                    return new Date(data.datetime);
+                },
+                // Strategy 3: GitHub API (Very High Availability)
+                async () => {
+                    const res = await fetchWithTimeout('https://api.github.com', { method: 'HEAD', timeout: 5000 });
+                    const dateHeader = res.headers.get('date');
+                    if (!dateHeader) throw new Error('No Date header');
+                    return new Date(dateHeader);
+                },
+                // Strategy 4: Coindesk API
+                async () => {
+                    const res = await fetchWithTimeout('https://api.coindesk.com/v1/bpi/currentprice.json', { timeout: 5000 });
+                    if (!res.ok) throw new Error('Coindesk failed');
+                    const data = await res.json();
+                    return new Date(data.time.updatedISO);
+                }
+            ];
+
+            for (let i = 0; i < strategies.length; i++) {
+                try {
+                    const time = await strategies[i]();
+                    syncTime(time);
+                    // Only log on initial success to reduce noise, or debug level
+                    // console.log(`Time synced using strategy ${i + 1}`); 
+                    return;
+                } catch (e) {
+                    // Fail silently and try next
+                }
+            }
+
+            setIsSynced(false);
+            // console.log('All time sync strategies failed, using local time');
+        };
+
+        fetchOnlineTime();
+
+        // Re-sync every 5 minutes
+        const syncInterval = setInterval(fetchOnlineTime, 5 * 60 * 1000);
+        return () => clearInterval(syncInterval);
     }, []);
+
+    // Update time every second using synced offset
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setNow(new Date(Date.now() + timeOffset));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [timeOffset]);
 
     // Update lastUpdated when notices change
     useEffect(() => {
         if (notices.length > 0) {
-            setLastUpdated(new Date());
+            setLastUpdated(new Date(Date.now() + timeOffset));
         }
-    }, [notices]);
+    }, [notices, timeOffset]);
 
     const formatTime = (date) => {
         return date.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
-            hour12: true
+            hour12: true,
+            timeZone: 'Asia/Kolkata'
         });
     };
 
     const formatDate = (date) => {
-        const d = date.getDate().toString().padStart(2, '0');
-        const m = (date.getMonth() + 1).toString().padStart(2, '0');
-        const y = date.getFullYear();
-        return `${d}/${m}/${y}`;
+        // Enforce IST for date display
+        return date.toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Kolkata'
+        });
     };
 
     const formatDay = (date) => {
-        return date.toLocaleDateString('en-US', { weekday: 'long' });
+        return date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            timeZone: 'Asia/Kolkata'
+        });
     };
 
     const formatLastUpdated = (date) => {
@@ -307,7 +400,7 @@ export function CalendarTab({ selectedStudent, semester }) {
                             {Array.from({ length: daysInMonth }).map((_, i) => {
                                 const day = i + 1;
                                 const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                                const isToday = isSameDay(date, new Date());
+                                const isToday = isSameDay(date, now); // Use synced time
                                 const isSelected = isSameDay(date, selectedDate);
 
                                 // UPDATED: Get events including holidays
@@ -397,6 +490,13 @@ export function CalendarTab({ selectedStudent, semester }) {
                                 <span className="text-sm font-bold tracking-tight">
                                     {formatDate(now)}
                                 </span>
+                            </div>
+                            <div className={`flex items-center gap-1 mt-2 text-xs px-3 py-1 rounded-full ${isSynced ? 'bg-green-500/20 text-green-200' : 'bg-yellow-500/20 text-yellow-200'}`}>
+                                {isSynced ? (
+                                    <><CheckCircle2 className="w-3 h-3" /> IST (Synced)</>
+                                ) : (
+                                    <><Clock className="w-3 h-3" /> Local Clock</>
+                                )}
                             </div>
                         </div>
                     </div>

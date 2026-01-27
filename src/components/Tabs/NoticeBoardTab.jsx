@@ -456,6 +456,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
                 isLoading={isSaving}
                 students={students}
                 initialData={editingNotice}
+                semester={semester}
               />
             </div>
           </div>

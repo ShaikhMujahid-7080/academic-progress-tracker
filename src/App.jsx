@@ -220,6 +220,7 @@ export default function App() {
             semester={semester}
             allData={allData}
             handleDataChange={handleDataChange}
+            selectedStudent={selectedStudent}
           />
         </TabPanel>
 

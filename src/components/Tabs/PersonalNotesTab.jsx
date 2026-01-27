@@ -20,7 +20,8 @@ import {
   Copy,
   Lightbulb,
   MoveVertical,
-  Minus
+  Minus,
+  RefreshCw
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -34,7 +35,8 @@ export function PersonalNotesTab({ selectedStudent }) {
     isLoading,
     isSaving,
     lastSaved,
-    error
+    error,
+    refreshNotes
   } = usePersonalNotes(selectedStudent?.rollNo);
 
   const [viewMode, setViewMode] = useState('split'); // 'edit', 'preview', 'split'
@@ -199,9 +201,16 @@ export function PersonalNotesTab({ selectedStudent }) {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100 sticky top-[64px] z-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
+            <button
+              onClick={refreshNotes}
+              className="p-1.5 -ml-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+              title="Refresh notes"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
             <div className="flex items-center gap-2">
               {isSaving ? (
                 <>
@@ -314,7 +323,7 @@ export function PersonalNotesTab({ selectedStudent }) {
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
         {/* Toolbar */}
         {(viewMode === 'edit' || viewMode === 'split') && (
-          <div className="sticky top-[64px] z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 p-3 rounded-t-2xl transition-all">
+          <div className="sticky top-[138px] z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 p-3 rounded-t-2xl transition-all">
             <div className="flex items-center gap-1">
               {toolbarButtons.map((button, index) => (
                 <button

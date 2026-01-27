@@ -18,9 +18,9 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -62,13 +62,13 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
   const getCompletionStats = () => {
     const totalItems = notice.meta.items?.length || 0;
     let completedItems = 0;
-    
+
     for (let i = 0; i < totalItems; i++) {
       if (isItemCompletedByCurrentUser(i)) {
         completedItems++;
       }
     }
-    
+
     return { totalItems, completedItems };
   };
 
@@ -177,11 +177,10 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
           <button
             type="button"
             onClick={() => setEditIsAnonymous(!editIsAnonymous)}
-            className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${
-              editIsAnonymous 
-                ? 'bg-orange-100 text-orange-700' 
+            className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${editIsAnonymous
+                ? 'bg-orange-100 text-orange-700'
                 : 'bg-gray-100 text-gray-600'
-            }`}
+              }`}
           >
             {editIsAnonymous ? (
               <EyeOff className="w-4 h-4" />
@@ -252,13 +251,13 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
           </div>
-          
+
           {canEdit && (
             <button
               onClick={handleEditStart}
@@ -268,7 +267,7 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
               <Edit3 className="w-4 h-4" />
             </button>
           )}
-          
+
           {canManagePermissions && (
             <button
               onClick={onManagePermissions}
@@ -278,7 +277,7 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
               <Settings className="w-4 h-4" />
             </button>
           )}
-          
+
           {canDelete && (
             <button
               onClick={() => onDelete(notice.id)}
@@ -290,7 +289,7 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
           )}
         </div>
       </div>
-      
+
       {/* Markdown Content */}
       <div className="mb-4 prose prose-sm max-w-none">
         <ReactMarkdown
@@ -347,14 +346,14 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
           const isCompleted = isItemCompletedByCurrentUser(index);
           const completedByNames = getCompletedByNames(index);
           const completedCount = getCompletionCount(index);
-          
+
           return (
             <div key={index} className="space-y-2">
               <div
                 className={`
                   flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer
-                  ${isCompleted 
-                    ? 'bg-green-50 border-green-200' 
+                  ${isCompleted
+                    ? 'bg-green-50 border-green-200'
                     : 'bg-gray-50 border-gray-200 hover:border-green-300'
                   }
                 `}
@@ -363,8 +362,8 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
                 <div className="flex items-center gap-3">
                   <div className={`
                     w-6 h-6 rounded-lg border-2 flex items-center justify-center
-                    ${isCompleted 
-                      ? 'bg-green-500 border-green-500 text-white' 
+                    ${isCompleted
+                      ? 'bg-green-500 border-green-500 text-white'
                       : 'border-gray-300'
                     }
                   `}>
@@ -374,7 +373,7 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
                     {item.text}
                   </span>
                 </div>
-                
+
                 {completedCount > 0 && (
                   <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
                     {completedCount} completed
@@ -399,7 +398,7 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
                       <ChevronDown className="w-4 h-4" />
                     )}
                   </button>
-                  
+
                   {expandedItem === index && (
                     <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
                       <div className="flex flex-wrap gap-2">
@@ -416,7 +415,7 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
                   )}
                 </div>
               )}
-              
+
               {/* Anonymous completion count display */}
               {isAnonymous && completedCount > 0 && (
                 <div className="ml-9">

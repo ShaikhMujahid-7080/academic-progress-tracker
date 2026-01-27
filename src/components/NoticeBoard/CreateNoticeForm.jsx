@@ -18,9 +18,9 @@ import {
   Eye,
   GraduationCap
 } from "lucide-react";
-import { ADMIN_STUDENT } from "../../data/subjects";
+import { ADMIN_STUDENT, subjects } from "../../data/subjects";
 
-export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, initialData = null }) {
+export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, initialData = null, semester = 5 }) {
   const [noticeType, setNoticeType] = useState(initialData?.type || 'notice');
   const [content, setContent] = useState(initialData?.content || '');
   const [meta, setMeta] = useState(initialData?.meta || {});
@@ -75,7 +75,7 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
         setMeta({ reminderDate: '' });
         break;
       case 'todo':
-        setMeta({ dueDate: '', completedBy: [] });
+        setMeta({ dueDate: '', completedBy: [], practicalSubject: '', labNumber: '' });
         break;
       case 'assessment':
         setMeta({
@@ -511,16 +511,58 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
         )}
 
         {noticeType === 'todo' && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Due Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              value={meta.dueDate}
-              onChange={(e) => setMeta({ ...meta, dueDate: e.target.value })}
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Due Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                value={meta.dueDate}
+                onChange={(e) => setMeta({ ...meta, dueDate: e.target.value })}
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Optional: Link to Practical Lab */}
+            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+              <label className="block text-sm font-semibold text-green-800 mb-3">
+                🔗 Link to Practical Lab (Optional)
+              </label>
+              <p className="text-xs text-green-600 mb-3">
+                If this TODO is for a practical lab, select the subject and lab number.
+                When students mark this as complete, the lab will auto-mark in their Practical tab.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Practical Subject</label>
+                  <select
+                    value={meta.practicalSubject || ''}
+                    onChange={(e) => setMeta({ ...meta, practicalSubject: e.target.value, labNumber: '' })}
+                    className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                  >
+                    <option value="">-- Select Subject --</option>
+                    {subjects[semester]?.practical?.map((subj) => (
+                      <option key={subj} value={subj}>{subj}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Lab Number</label>
+                  <select
+                    value={meta.labNumber || ''}
+                    onChange={(e) => setMeta({ ...meta, labNumber: e.target.value })}
+                    disabled={!meta.practicalSubject}
+                    className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white disabled:opacity-50"
+                  >
+                    <option value="">-- Select Lab --</option>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                      <option key={num} value={num}>Lab {num}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

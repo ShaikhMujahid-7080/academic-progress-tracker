@@ -7,13 +7,23 @@
 4) add: Time Table/Schedule 
 5) add: [Calendar] just like the PersonalNotes add schedule button above the calender which will display the schedule/timetable (along with an edit option) entered by the admin/co-leader
 6) fix: [Header] Make the header even more responsive 
-7) Firebase API Keys Protection
+7)  enhance: [NoticeBoard] add option to set auto delete timer (date & time) to every notice
+8)  add: [NoticeBoard] add ability to pin a notice & a floating Sticky colapsable sibebar which contains small buttons to access pinned notice
+9)  enhance: [Student&Settings] make the student year (like 1st,2nd,3rd,4th,Passout) display below student name(above Rollno) in the Select Student card
+10) enhance: [Students&Settings] make the student profile & data automatically delete 1 year after graduation ( 4 yrs of degree, but after 5 yrs data would be deleted)
+11) enhance: [NoticeBoard] Auto-mark TODO notices as done  when matching labs/practicals are marked completed
+12) enhance: [NoticeBoard] in TODO notice enable option to select multiple Lab Number instead of a single (in the Link to Practical Lab (Optional)) 
 
 > 27/1/26
 * **Added**:
+  1) enhance: [PersonalNotes] add a refresh button in the statusbar to refresh/reload & view if any updated notes
+  2) enhance: [PersonalNotes] make the Statusbar sticky as well, for easier access to switch between edit/preview views
 * **Changed**:
+  1) [Firebase] added Firebase API Keys Protection 
+  2) [Calendar] Sync time from online API (UTC+05:30 India) instead of local system clock
 * **Fixed**:
 * **Enhanced**:
+  1) [PracticalCard] Auto-mark labs as completed when matching TODO notices are marked done
 * **Removed**:
 
 > 16/1/26

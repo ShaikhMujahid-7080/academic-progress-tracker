@@ -1,7 +1,11 @@
 import { PracticalCard } from "../Cards/PracticalCard";
 import { subjects } from "../../data/subjects";
+import { useNoticeBoard } from "../hooks/useNoticeBoard";
 
-export function PracticalTab({ semester, allData, handleDataChange }) { // Remove dataVersion
+export function PracticalTab({ semester, allData, handleDataChange, selectedStudent }) {
+  // Get notices to check for TODO-based lab completions
+  const { notices } = useNoticeBoard(selectedStudent, semester);
+
   return (
     <>
       <div className="mb-8">
@@ -11,10 +15,12 @@ export function PracticalTab({ semester, allData, handleDataChange }) { // Remov
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {subjects[semester].practical.map((subj) => (
           <PracticalCard
-            key={`${semester}-${subj}`} // Stable key - only changes when semester/subject changes
+            key={`${semester}-${subj}`}
             subject={subj}
             onDataChange={(subject, data) => handleDataChange(subject, data, 'practical')}
             initialData={allData[`${semester}-${subj}`]?.data}
+            notices={notices}
+            currentUserRollNo={selectedStudent?.rollNo}
           />
         ))}
       </div>

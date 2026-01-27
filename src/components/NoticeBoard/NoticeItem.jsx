@@ -14,9 +14,9 @@ export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManage
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -128,7 +128,7 @@ export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManage
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Visibility Indicator */}
           <div className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100">
@@ -149,7 +149,7 @@ export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManage
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
           </div>
-          
+
           {canEdit && (
             <button
               onClick={handleEditStart}
@@ -159,7 +159,7 @@ export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManage
               <Edit3 className="w-4 h-4" />
             </button>
           )}
-          
+
           {canManagePermissions && (
             <button
               onClick={onManagePermissions}
@@ -169,7 +169,7 @@ export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManage
               <Settings className="w-4 h-4" />
             </button>
           )}
-          
+
           {canDelete && (
             <button
               onClick={() => onDelete(notice.id)}
@@ -181,7 +181,7 @@ export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManage
           )}
         </div>
       </div>
-      
+
       {/* Markdown Content */}
       <div className="prose prose-sm max-w-none">
         <ReactMarkdown
