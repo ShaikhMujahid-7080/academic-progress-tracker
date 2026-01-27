@@ -7,6 +7,14 @@
 4) add: Time Table/Schedule 
 5) add: [Calendar] just like the PersonalNotes add schedule button above the calender which will display the schedule/timetable (along with an edit option) entered by the admin/co-leader
 6) fix: [Header] Make the header even more responsive 
+7) Firebase API Keys Protection
+
+> 27/1/26
+* **Added**:
+* **Changed**:
+* **Fixed**:
+* **Enhanced**:
+* **Removed**:
 
 > 16/1/26
 * **Added**:

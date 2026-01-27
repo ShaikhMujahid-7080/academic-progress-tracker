@@ -346,14 +346,14 @@ export function PersonalNotesTab({ selectedStudent }) {
                 onChange={(e) => {
                   // Store scroll position before state change
                   scrollPosRef.current = window.scrollY;
-                  
+
                   // Update notes (triggers state change)
                   updateNotes(e.target.value);
-                  
+
                   // Auto-resize
                   e.target.style.height = 'auto';
                   e.target.style.height = e.target.scrollHeight + 'px';
-                  
+
                   // Restore scroll position after resize
                   requestAnimationFrame(() => {
                     window.scrollTo(0, scrollPosRef.current);
@@ -418,6 +418,10 @@ Your notes are automatically saved as you type.`}
                         <blockquote className="border-l-4 border-gray-300 pl-4 py-1 text-gray-600 italic my-2">
                           {children}
                         </blockquote>
+                      ),
+                      // Use div instead of p to prevent hydration errors when block elements are nested
+                      p: ({ children }) => (
+                        <div className="mb-4 text-gray-700">{children}</div>
                       ),
                       code: ({ node, inline, className, children, ...props }) => {
                         const [isCopied, setIsCopied] = useState(false);
