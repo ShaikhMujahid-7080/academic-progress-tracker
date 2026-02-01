@@ -393,10 +393,10 @@ export function AdminPrivilegesTab({
               <Star className="w-10 h-10 text-purple-400 drop-shadow-[0_0_15px_rgba(192,132,252,0.5)]" />
             )}
           </div>
-          <h2 className="text-4xl font-extrabold text-white mb-2 tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-2 tracking-tight">
             Admin Privileges
           </h2>
-          <p className="text-gray-400 max-w-xl mx-auto text-lg">
+          <p className="text-gray-400 max-w-xl mx-auto text-base sm:text-lg">
             {isAdmin
               ? 'Manage co-leader permissions and quick admin actions with executive control'
               : 'View your assigned permissions and accessible management tools'
@@ -425,7 +425,7 @@ export function AdminPrivilegesTab({
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className={`font-bold text-2xl ${isAdmin ? 'text-amber-900' : 'text-purple-900'}`}>
+              <h3 className={`font-bold text-xl sm:text-2xl ${isAdmin ? 'text-amber-900' : 'text-purple-900'}`}>
                 {isAdmin ? 'Administrator' : 'Co-Leader'}
               </h3>
               <span className={`px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${isAdmin ? 'bg-amber-900/10 text-amber-900' : 'bg-purple-900/10 text-purple-900'

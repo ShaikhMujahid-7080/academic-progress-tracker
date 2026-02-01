@@ -6,7 +6,6 @@ const baseTabs = [
   { id: 1, label: "Practicals", icon: FlaskConical },
   { id: 2, label: "Notice Board", icon: Megaphone },
   { id: 3, label: "Personal Notes", icon: StickyNote },
-  { id: 4, label: "Student & Settings", icon: Settings },
   { id: 7, label: "Calendar", icon: Calendar }
 ];
 
@@ -73,7 +72,7 @@ export function TabNavigation({
   }, []);
 
   return (
-    <div className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
+    <div className="bg-white shadow-sm border-b border-gray-100 sticky top-[92px] sm:top-[72px] z-40">
       <div className="max-w-7xl mx-auto px-2 md:px-6">
         <div
           ref={scrollContainerRef}

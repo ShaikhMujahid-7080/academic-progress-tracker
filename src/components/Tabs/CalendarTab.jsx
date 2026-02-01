@@ -320,9 +320,9 @@ export function CalendarTab({ selectedStudent, semester }) {
     return (
         <div className="max-w-6xl mx-auto space-y-6">
             {/* Status Bar - Mirrors PersonalNotes style */}
-            <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100 mb-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+            <div className="bg-white rounded-2xl shadow-lg p-3 sm:p-4 border border-gray-100 mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
                         <div className="flex items-center gap-2">
                             <Save className="w-4 h-4 text-green-600" />
                             <span className="text-sm text-gray-600">{formatLastUpdated(lastUpdated)}</span>
@@ -393,7 +393,7 @@ export function CalendarTab({ selectedStudent, semester }) {
                         <div className="grid grid-cols-7 gap-1">
                             {/* Empty cells for previous month */}
                             {Array.from({ length: firstDay }).map((_, i) => (
-                                <div key={`empty-${i}`} className="h-24 sm:h-32 bg-gray-50/50 rounded-xl" />
+                                <div key={`empty-${i}`} className="h-16 sm:h-32 bg-gray-50/50 rounded-xl" />
                             ))}
 
                             {/* Days */}
@@ -422,7 +422,7 @@ export function CalendarTab({ selectedStudent, semester }) {
                                         key={day}
                                         onClick={() => setSelectedDate(date)}
                                         className={`
-                      relative h-24 sm:h-32 rounded-xl border p-2 transition-all text-left flex flex-col justify-between
+                      relative h-16 sm:h-32 rounded-xl border p-1 sm:p-2 transition-all text-left flex flex-col justify-between
                       ${isSelected
                                                 ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/30'
                                                 : 'border-transparent hover:bg-gray-50'
@@ -479,9 +479,9 @@ export function CalendarTab({ selectedStudent, semester }) {
                             <div className="text-sm font-medium opacity-80 uppercase tracking-widest mb-1">
                                 {formatDay(now)}
                             </div>
-                            <div className="text-4xl sm:text-5xl font-black tracking-tighter mb-2 drop-shadow-md whitespace-nowrap">
+                            <div className="text-3xl sm:text-5xl font-black tracking-tighter mb-2 drop-shadow-md whitespace-nowrap">
                                 {formatTime(now).split(' ')[0]}
-                                <span className="text-xl sm:text-2xl font-bold opacity-60 ml-2 uppercase">
+                                <span className="text-lg sm:text-2xl font-bold opacity-60 ml-2 uppercase">
                                     {formatTime(now).split(' ')[1]}
                                 </span>
                             </div>

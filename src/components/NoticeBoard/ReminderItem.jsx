@@ -128,64 +128,68 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isReminderPast() ? 'bg-red-100' : 'bg-orange-100'
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${isReminderPast() ? 'bg-red-100' : 'bg-orange-100'
             }`}>
             <Bell className={`w-5 h-5 ${isReminderPast() ? 'text-red-600' : 'text-orange-600'
               }`} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-bold text-gray-900">Reminder</h3>
               {isReminderPast() && (
-                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                <span className="text-[10px] sm:text-xs bg-red-100 text-red-700 px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
                   Past Due
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <User className="w-3 h-3" />
-              <span>By {notice.createdBy}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 mt-0.5">
+              <div className="flex items-center gap-1">
+                <User className="w-3 h-3" />
+                <span className="truncate max-w-[120px] sm:max-w-none">By {notice.createdBy}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-50">
+          <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
           </div>
 
-          {canEdit && (
-            <button
-              onClick={handleEditStart}
-              className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
-              title="Edit Reminder"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {canEdit && (
+              <button
+                onClick={handleEditStart}
+                className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Edit Reminder"
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+            )}
 
-          {canManagePermissions && (
-            <button
-              onClick={onManagePermissions}
-              className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
-              title="Manage Permissions"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
+            {canManagePermissions && (
+              <button
+                onClick={onManagePermissions}
+                className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Manage Permissions"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
 
-          {canDelete && (
-            <button
-              onClick={() => onDelete(notice.id)}
-              className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-              title="Delete Reminder"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+            {canDelete && (
+              <button
+                onClick={() => onDelete(notice.id)}
+                className="p-1.5 sm:p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                title="Delete Reminder"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -242,18 +246,20 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
 
       {/* Reminder Date */}
       <div className={`p-4 rounded-xl border-2 ${isReminderPast()
-          ? 'bg-red-50 border-red-200'
-          : 'bg-orange-50 border-orange-200'
+        ? 'bg-red-50 border-red-200 shadow-sm'
+        : 'bg-orange-50 border-orange-200'
         }`}>
-        <div className="flex items-center gap-2">
-          <Bell className={`w-4 h-4 ${isReminderPast() ? 'text-red-600' : 'text-orange-600'
-            }`} />
-          <span className={`text-sm font-medium ${isReminderPast() ? 'text-red-700' : 'text-orange-700'
-            }`}>
-            {isReminderPast() ? 'Was due:' : 'Reminder set for:'}
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Bell className={`w-4 h-4 ${isReminderPast() ? 'text-red-600' : 'text-orange-600'
+              }`} />
+            <span className={`text-sm font-medium ${isReminderPast() ? 'text-red-700' : 'text-orange-700'
+              }`}>
+              {isReminderPast() ? 'Was due:' : 'Reminder set for:'}
+            </span>
+          </div>
           <span className={`text-sm font-bold ${isReminderPast() ? 'text-red-800' : 'text-orange-800'
-            }`}>
+            } sm:ml-auto`}>
             {formatReminderDate(notice.meta.reminderDate)}
           </span>
         </div>

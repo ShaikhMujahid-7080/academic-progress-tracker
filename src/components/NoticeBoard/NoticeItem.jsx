@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Trash2, FileText, User, Clock, Settings, Edit3, Save, X, Globe, Lock, Users, Star, Crown } from "lucide-react";
+import { Trash2, FileText, User, Clock, Settings, Edit3, Save, X, Globe, Lock, Users, Star, Crown, Pin, PinOff } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManageNotices, onDelete, onManagePermissions, onEdit }) {
+export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManageNotices, onDelete, onManagePermissions, onEdit, onTogglePin }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(notice.content);
 
@@ -108,77 +108,100 @@ export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManage
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-2xl flex items-center justify-center">
-            <FileText className="w-5 h-5 text-blue-600" />
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900">Notice</h3>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <User className="w-3 h-3" />
-              <span>By {notice.createdBy}</span>
+          <div className="min-w-0">
+            <h3 className="font-bold text-gray-900 text-sm sm:text-base truncate">Notice</h3>
+            <div className="flex items-center gap-2 text-[10px] sm:text-sm text-gray-600">
+              <User className="w-3 h-3 shrink-0" />
+              <span className="truncate">By {notice.createdBy}</span>
               {creatorRole === 'admin' && (
-                <Crown className="w-3 h-3 text-yellow-500" title="Admin" />
+                <Crown className="w-3 h-3 text-yellow-500 shrink-0" title="Admin" />
               )}
               {creatorRole === 'co-leader' && notice.createdByRoll !== '2405225' && (
-                <Star className="w-3 h-3 text-purple-500" title="Co-Leader" />
+                <Star className="w-3 h-3 text-purple-500 shrink-0" title="Co-Leader" />
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {/* Visibility Indicator */}
-          <div className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100">
+          <div className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-gray-100">
             {notice.isPublic ? (
               <>
-                <Globe className="w-3 h-3 text-green-600" />
+                <Globe className="w-2.5 h-2.5 text-green-600" />
                 <span className="text-green-700">Public</span>
               </>
             ) : (
               <>
-                <Lock className="w-3 h-3 text-blue-600" />
+                <Lock className="w-2.5 h-2.5 text-blue-600" />
                 <span className="text-blue-700">{notice.allowedUsers?.length || 0} users</span>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+          {/* Pinned Indicator - Visible to everyone */}
+          {notice.isPinned && (
+            <div className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+              <Pin className="w-2.5 h-2.5 fill-orange-700" />
+              <span className="font-medium">Pinned</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500">
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
           </div>
 
-          {canEdit && (
-            <button
-              onClick={handleEditStart}
-              className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
-              title="Edit Notice"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-0.5 ml-auto sm:ml-0">
+            {canEdit && (
+              <button
+                onClick={handleEditStart}
+                className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Edit Notice"
+              >
+                <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
 
-          {canManagePermissions && (
-            <button
-              onClick={onManagePermissions}
-              className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
-              title="Manage Permissions"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
+            {canManagePermissions && (
+              <button
+                onClick={onManagePermissions}
+                className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Manage Permissions"
+              >
+                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
 
-          {canDelete && (
-            <button
-              onClick={() => onDelete(notice.id)}
-              className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-              title="Delete Notice"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+            {canManageNotices && (
+              <button
+                onClick={onTogglePin}
+                className={`p-1.5 sm:p-2 rounded-lg transition-colors ${notice.isPinned
+                  ? 'text-orange-600 hover:bg-orange-100'
+                  : 'text-gray-400 hover:bg-gray-100 hover:text-orange-600'
+                  }`}
+                title={notice.isPinned ? "Unpin Notice" : "Pin Notice"}
+              >
+                {notice.isPinned ? <PinOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Pin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+              </button>
+            )}
+
+            {canDelete && (
+              <button
+                onClick={() => onDelete(notice.id)}
+                className="p-1.5 sm:p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                title="Delete Notice"
+              >
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

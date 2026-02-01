@@ -178,8 +178,8 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
             type="button"
             onClick={() => setEditIsAnonymous(!editIsAnonymous)}
             className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${editIsAnonymous
-                ? 'bg-orange-100 text-orange-700'
-                : 'bg-gray-100 text-gray-600'
+              ? 'bg-orange-100 text-orange-700'
+              : 'bg-gray-100 text-gray-600'
               }`}
           >
             {editIsAnonymous ? (
@@ -228,65 +228,67 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-2xl flex items-center justify-center">
-            <CheckSquare className="w-5 h-5 text-green-600" />
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+            <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-gray-900">Checklist</h3>
+          <div className="min-w-0">
+            <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
+              <h3 className="font-bold text-gray-900 text-sm sm:text-base">Checklist</h3>
               {isAnonymous && (
-                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-                  Anonymous
+                <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">
+                  Anon
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <User className="w-3 h-3" />
-              <span>By {notice.createdBy}</span>
+            <div className="flex items-center gap-2 text-[10px] sm:text-sm text-gray-600">
+              <User className="w-3 h-3 shrink-0" />
+              <span className="truncate">By {notice.createdBy}</span>
               <span>•</span>
-              <span>{completedItems}/{totalItems} completed</span>
+              <span className="whitespace-nowrap">{completedItems}/{totalItems} done</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500">
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
           </div>
 
-          {canEdit && (
-            <button
-              onClick={handleEditStart}
-              className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
-              title="Edit Checklist"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-0.5 ml-auto sm:ml-0">
+            {canEdit && (
+              <button
+                onClick={handleEditStart}
+                className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Edit Checklist"
+              >
+                <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
 
-          {canManagePermissions && (
-            <button
-              onClick={onManagePermissions}
-              className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
-              title="Manage Permissions"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
+            {canManagePermissions && (
+              <button
+                onClick={onManagePermissions}
+                className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Manage Permissions"
+              >
+                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
 
-          {canDelete && (
-            <button
-              onClick={() => onDelete(notice.id)}
-              className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-              title="Delete Checklist"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+            {canDelete && (
+              <button
+                onClick={() => onDelete(notice.id)}
+                className="p-1.5 sm:p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                title="Delete Checklist"
+              >
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -351,7 +353,7 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
             <div key={index} className="space-y-2">
               <div
                 className={`
-                  flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer
+                  flex items-center justify-between p-2.5 sm:p-3 rounded-xl border-2 transition-all cursor-pointer
                   ${isCompleted
                     ? 'bg-green-50 border-green-200'
                     : 'bg-gray-50 border-gray-200 hover:border-green-300'
@@ -359,24 +361,24 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
                 `}
                 onClick={() => onToggleItem(index)}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <div className={`
-                    w-6 h-6 rounded-lg border-2 flex items-center justify-center
+                    w-5 h-5 sm:w-6 sm:h-6 rounded-lg border-2 flex items-center justify-center shrink-0
                     ${isCompleted
                       ? 'bg-green-500 border-green-500 text-white'
                       : 'border-gray-300'
                     }
                   `}>
-                    {isCompleted && <Check className="w-4 h-4" />}
+                    {isCompleted && <Check className="w-3 h-3 sm:w-4 sm:h-4" />}
                   </div>
-                  <span className={`${isCompleted ? 'text-green-700 font-medium' : 'text-gray-700'}`}>
+                  <span className={`text-sm sm:text-base truncate ${isCompleted ? 'text-green-700 font-medium' : 'text-gray-700'}`}>
                     {item.text}
                   </span>
                 </div>
 
                 {completedCount > 0 && (
-                  <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
-                    {completedCount} completed
+                  <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full shrink-0 ml-2">
+                    {completedCount}
                   </span>
                 )}
               </div>

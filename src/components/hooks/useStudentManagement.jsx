@@ -12,6 +12,7 @@ import {
 import { db } from '../../firebase';
 import { ADMIN_STUDENT } from '../../data/subjects';
 import bcrypt from 'bcryptjs';
+import { shouldDeleteStudent } from '../../utils/studentUtils';
 
 export function useStudentManagement() {
   const [students, setStudents] = useState([]);
@@ -51,7 +52,27 @@ export function useStudentManagement() {
         await setDoc(doc(db, 'students', ADMIN_STUDENT.rollNo), adminWithPassword);
       }
 
-      setStudents(studentsList);
+      // Auto-deletion of graduated students (1 year post graduation)
+      const expiredStudents = studentsList.filter(s => s.rollNo !== ADMIN_STUDENT.rollNo && shouldDeleteStudent(s));
+
+      if (expiredStudents.length > 0) {
+        console.log(`Auto-deleting ${expiredStudents.length} expired student profiles.`);
+        const batch = writeBatch(db);
+        for (const student of expiredStudents) {
+          batch.delete(doc(db, 'students', student.rollNo));
+          batch.delete(doc(db, 'userNotes', student.rollNo));
+          const academicQuery = query(collection(db, 'academic-data'), where('studentId', '==', student.rollNo));
+          const academicDocs = await getDocs(academicQuery);
+          academicDocs.forEach((d) => batch.delete(d.ref));
+        }
+        await batch.commit();
+        const remainingStudents = studentsList.filter(s => !expiredStudents.some(es => es.rollNo === s.rollNo));
+        setStudents(remainingStudents);
+        // Update the list for subsequent restoration logic
+        studentsList.splice(0, studentsList.length, ...remainingStudents);
+      } else {
+        setStudents(studentsList);
+      }
 
       // Restore selected student from localStorage when available
       try {

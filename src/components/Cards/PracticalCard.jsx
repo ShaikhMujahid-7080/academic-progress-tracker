@@ -7,6 +7,7 @@ export const PracticalCard = memo(function PracticalCard({
   onDataChange,
   initialData,
   notices = [],
+  onToggleTodo,
   currentUserRollNo
 }) {
   const [completedLabs, setCompletedLabs] = useState(new Set());
@@ -30,7 +31,11 @@ export const PracticalCard = memo(function PracticalCard({
         notice.meta?.labNumber &&
         notice.meta?.completedBy?.includes(currentUserRollNo)
       ) {
-        autoMarked.add(Number(notice.meta.labNumber));
+        if (Array.isArray(notice.meta.labNumber)) {
+          notice.meta.labNumber.forEach(num => autoMarked.add(Number(num)));
+        } else {
+          autoMarked.add(Number(notice.meta.labNumber));
+        }
       }
     });
 
@@ -43,19 +48,81 @@ export const PracticalCard = memo(function PracticalCard({
   }, [completedLabs, autoCompletedLabs]);
 
   const toggleLab = (labNum) => {
-    // Can't toggle auto-completed labs (they're controlled by TODO)
-    if (autoCompletedLabs.has(labNum)) {
-      return;
-    }
+    const isCurrentlyCompleted = allCompletedLabs.has(labNum);
 
-    const newCompleted = new Set(completedLabs);
-    if (newCompleted.has(labNum)) {
-      newCompleted.delete(labNum);
+    if (isCurrentlyCompleted) {
+      // UNMARKING logic
+      // 1. Remove from manual completions if present
+      if (completedLabs.has(labNum)) {
+        const newCompleted = new Set(completedLabs);
+        newCompleted.delete(labNum);
+        setCompletedLabs(newCompleted);
+        onDataChange && onDataChange(subject, Array.from(newCompleted));
+      }
+
+      // 2. If it was linked to a TODO notice that is currently checked, uncheck that TODO
+      if (onToggleTodo && currentUserRollNo) {
+        notices.forEach(notice => {
+          if (
+            notice.type === 'todo' &&
+            notice.meta?.practicalSubject === subject &&
+            notice.meta?.labNumber &&
+            notice.meta?.completedBy?.includes(currentUserRollNo)
+          ) {
+            let coversLab = false;
+            if (Array.isArray(notice.meta.labNumber)) {
+              coversLab = notice.meta.labNumber.some(n => Number(n) === labNum);
+            } else {
+              coversLab = Number(notice.meta.labNumber) === labNum;
+            }
+
+            if (coversLab) {
+              onToggleTodo(notice.id, currentUserRollNo);
+            }
+          }
+        });
+      }
     } else {
+      // MARKING logic
+      // 1. Add to manual completions
+      const newCompleted = new Set(completedLabs);
       newCompleted.add(labNum);
+      setCompletedLabs(newCompleted);
+      onDataChange && onDataChange(subject, Array.from(newCompleted));
+
+      // 2. Auto-complete associated TODO notices if all their labs are now done
+      if (onToggleTodo && currentUserRollNo) {
+        notices.forEach(notice => {
+          if (
+            notice.type === 'todo' &&
+            notice.meta?.practicalSubject === subject &&
+            notice.meta?.labNumber &&
+            !notice.meta?.completedBy?.includes(currentUserRollNo)
+          ) {
+            let coversLab = false;
+            if (Array.isArray(notice.meta.labNumber)) {
+              coversLab = notice.meta.labNumber.some(n => Number(n) === labNum);
+            } else {
+              coversLab = Number(notice.meta.labNumber) === labNum;
+            }
+
+            if (coversLab) {
+              // Check if all needed labs for this notice are now in newCompleted
+              let allNeededDone = true;
+              if (Array.isArray(notice.meta.labNumber)) {
+                allNeededDone = notice.meta.labNumber.every(n => newCompleted.has(Number(n)));
+              } else {
+                allNeededDone = true; // singular
+              }
+
+              if (allNeededDone) {
+                onToggleTodo(notice.id, currentUserRollNo);
+              }
+            }
+          }
+        });
+      }
     }
-    setCompletedLabs(newCompleted);
-    onDataChange && onDataChange(subject, Array.from(newCompleted));
   };
 
   const progress = (allCompletedLabs.size / 10) * 100;
@@ -100,12 +167,11 @@ export const PracticalCard = memo(function PracticalCard({
               <button
                 key={num}
                 onClick={() => toggleLab(num)}
-                disabled={isAutoCompleted}
-                title={isAutoCompleted ? 'Auto-marked from TODO notice' : undefined}
+                title={isAutoCompleted ? 'Auto-marked from TODO notice (Click to unmark both)' : undefined}
                 className={`
                   flex items-center justify-center p-4 rounded-2xl border-2 transition-all duration-200 font-medium
                   ${isAutoCompleted
-                    ? 'bg-yellow-100 border-yellow-500 text-yellow-700 shadow-md cursor-default'
+                    ? 'bg-yellow-100 border-yellow-500 text-yellow-700 shadow-md'
                     : isCompleted
                       ? 'bg-green-100 border-green-500 text-green-700 shadow-md'
                       : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-green-300 hover:bg-green-50'
@@ -138,4 +204,3 @@ export const PracticalCard = memo(function PracticalCard({
     </div>
   );
 });
-

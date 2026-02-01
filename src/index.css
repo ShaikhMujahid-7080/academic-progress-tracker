@@ -6,10 +6,44 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .glass-card {
+    @apply backdrop-blur-3xl border border-white/10 shadow-2xl transition-all duration-500;
+    background: rgba(15, 23, 42, 0.4);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-card-light {
+    @apply backdrop-blur-3xl border border-white/40 shadow-2xl transition-all duration-500;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  }
+
+  .animate-gradient {
+    background-size: 400% 400%;
+    animation: gradient 12s ease infinite;
+  }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:scale-[0.98];
+  }
 }
-
-

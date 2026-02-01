@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Award, Calendar, ChevronRight, FileText, Download, GraduationCap, PartyPopper, UserCheck } from 'lucide-react';
+import { CheckCircle, Award, Calendar, ChevronRight, FileText, Download, GraduationCap, PartyPopper, UserCheck, ShieldAlert } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { ADMIN_STUDENT } from '../../data/subjects';
 
@@ -39,11 +39,11 @@ export function DegreeCompletionTab({ selectedStudent }) {
           <div className="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-xl">
             <GraduationCap className="w-10 h-10 text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]" />
           </div>
-          <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 tracking-tight">
             Degree Completion
           </h2>
-          <p className="text-gray-400 max-w-xl mx-auto text-lg">
-            Track graduation eligibility and manage degree certification
+          <p className="text-gray-400 max-w-xl mx-auto text-base sm:text-lg">
+            Track graduation eligibility and manage certification
           </p>
         </div>
       </div>
@@ -102,8 +102,8 @@ export function DegreeCompletionTab({ selectedStudent }) {
                   onClick={handleMarkAsGraduated}
                   disabled={!isEligible && selectedStudent.rollNo !== ADMIN_STUDENT.rollNo} // Admin can always force graduate for testing
                   className={`p-4 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all ${isEligible || selectedStudent.rollNo === ADMIN_STUDENT.rollNo
-                      ? 'border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer hover:border-green-400 hover:shadow-md'
-                      : 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                    ? 'border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer hover:border-green-400 hover:shadow-md'
+                    : 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
                     }`}
                 >
                   <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
@@ -180,6 +180,21 @@ export function DegreeCompletionTab({ selectedStudent }) {
           </div>
         </div>
 
+      </div>
+
+      {/* Data Retention Warning */}
+      <div className="bg-amber-50 rounded-3xl p-6 border border-amber-200 shadow-sm transition-all hover:bg-amber-100/50">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center shadow-sm">
+            <ShieldAlert className="w-6 h-6 text-amber-600" />
+          </div>
+          <div>
+            <h4 className="text-lg font-bold text-amber-900 mb-2">Data Retention Policy</h4>
+            <p className="text-amber-800 leading-relaxed font-medium">
+              To maintain data privacy and system performance, your student profile and all associated data (Academic Records, Personal Notes, and Settings) are automatically deleted <span className="text-amber-900 font-bold underline">1 year after graduation</span>. Please ensure you export any necessary records before this period.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

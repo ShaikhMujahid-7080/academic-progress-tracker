@@ -188,7 +188,7 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
       {/* Compact View (Summary) */}
       {!isExpanded && (
         <div className="p-4 bg-gray-50/50 cursor-pointer" onClick={() => setIsExpanded(true)}>
-          <div className="grid grid-cols-5 gap-2 text-center">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center">
             {['ca1', 'ca2', 'ca3', 'ca4'].map((key, index) => (
               <div key={key} className="flex flex-col items-center p-2 rounded-xl border border-gray-100 bg-white shadow-sm">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">CA-{index + 1}</span>

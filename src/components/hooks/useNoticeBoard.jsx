@@ -64,6 +64,15 @@ export function useNoticeBoard(currentUser, currentSemester) {
             return;
           }
 
+          // Filter by expiration date:
+          // If the notice has an expiration date and it's in the past, hide it
+          if (noticeData.deleteAt) {
+            const deleteAtDate = noticeData.deleteAt.toDate ? noticeData.deleteAt.toDate() : new Date(noticeData.deleteAt);
+            if (deleteAtDate < new Date()) {
+              return;
+            }
+          }
+
           const allowedUsers = noticeData.allowedUsers || [];
           const isPublic = noticeData.isPublic || false;
           const isCreator = noticeData.createdByRoll === currentUser.rollNo;
@@ -109,10 +118,78 @@ export function useNoticeBoard(currentUser, currentSemester) {
     );
 
     return () => unsubscribe();
-  }, [currentUser, canManageNotices, currentSemester]); // Added currentSemester to dependencies
+  }, [currentUser, canManageNotices, currentSemester, isAdmin]); // Added currentSemester and isAdmin to dependencies
+
+  // Auto-cleanup expired notices (admin and co-leaders only)
+  useEffect(() => {
+    if (!canManageNotices || notices.length === 0) return;
+
+    const cleanupExpiredNotices = async () => {
+      const expiredIds = [];
+      const now = new Date();
+
+      // We use the full notice list from state which is already filtered by semester
+      // but we need to check if any notice (even hidden ones) should be wiped from DB
+      // However, we only have access to notices in the current listener state.
+      // To keep it simple and safe, we'll only clean up notices that are currently in the state (filtered by semester).
+
+      const q = query(
+        collection(db, 'noticeBoard'),
+        orderBy('deleteAt', 'asc')
+      );
+
+      // We'll do a fresh query to find all expired notices regardless of semester
+      // but only if user is admin. This ensures the DB stays clean globally.
+      const snapshot = await onSnapshot(q, (snapshot) => {
+        const batch = writeBatch(db);
+        let hasExpired = false;
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.deleteAt) {
+            const deleteAtDate = data.deleteAt.toDate ? data.deleteAt.toDate() : new Date(data.deleteAt);
+            if (deleteAtDate < now) {
+              batch.delete(doc.ref);
+              hasExpired = true;
+            }
+          }
+        });
+
+        if (hasExpired) {
+          batch.commit().catch(err => console.error('Error during notice cleanup:', err));
+        }
+      });
+
+      return snapshot; // Return unsubscribe
+    };
+
+    let unsubscribeCleanup;
+    if (canManageNotices) {
+      // Just check once per mount/update
+      const now = new Date();
+      const batch = writeBatch(db);
+      let hasExpired = false;
+
+      notices.forEach(notice => {
+        if (notice.deleteAt) {
+          const deleteAtDate = notice.deleteAt.toDate ? notice.deleteAt.toDate() : new Date(notice.deleteAt);
+          if (deleteAtDate < now) {
+            batch.delete(doc(db, 'noticeBoard', notice.id));
+            hasExpired = true;
+          }
+        }
+      });
+
+      if (hasExpired) {
+        batch.commit().catch(err => console.error('Cleanup error:', err));
+      }
+    }
+
+    return () => unsubscribeCleanup && unsubscribeCleanup();
+  }, [canManageNotices, notices.length]); // Track notices.length to trigger cleanup 
 
   // Create new notice (admin and co-leaders only)
-  const createNotice = async (type, content, meta = {}, allowedUsers = [], isPublic = false) => {
+  const createNotice = async (type, content, meta = {}, allowedUsers = [], isPublic = false, deleteAt = null) => {
     if (!canManageNotices) {
       throw new Error('Only admin and co-leaders can create notices');
     }
@@ -128,6 +205,7 @@ export function useNoticeBoard(currentUser, currentSemester) {
         createdByRoll: currentUser.rollNo,
         allowedUsers: allowedUsers,
         isPublic: isPublic,
+        deleteAt: deleteAt,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
@@ -399,6 +477,23 @@ export function useNoticeBoard(currentUser, currentSemester) {
     }
   };
 
+  // Toggle pin status (admin and co-leaders only)
+  const togglePin = async (noticeId, currentStatus) => {
+    if (!canManageNotices) {
+      throw new Error('Only admin and co-leaders can pin/unpin notices');
+    }
+
+    try {
+      await updateNotice(noticeId, {
+        isPinned: !currentStatus
+      }, 'admin');
+      return true;
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+      return false;
+    }
+  };
+
   return {
     notices,
     isLoading,
@@ -417,6 +512,7 @@ export function useNoticeBoard(currentUser, currentSemester) {
     updateNoticesOrder,
     voteInPoll,
     toggleChecklistItem,
-    toggleTodo
+    toggleTodo,
+    togglePin
   };
 }

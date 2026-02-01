@@ -1,18 +1,38 @@
-(remember to give the complete code of any file that needs to be edited along with its name & dont give a portion to replace or add in the file)
-
 > Pending
 1) add: [PersonalNotes] give an option to student to store/upload studymaterial/imgs/file upto 10mb in their personal notes section/tab & make it (temporary) automatically delete after 48 hours, the current firebase plan (Free) doesnt support file upload/storage, so we'll have to make adjustments for that (store in database or something) 
-2) make the entire app responsive
-3) add: a small footer to the app that will display the developer name (Shaikh Mujahid) and more info about the app
-4) add: Time Table/Schedule 
-5) add: [Calendar] just like the PersonalNotes add schedule button above the calender which will display the schedule/timetable (along with an edit option) entered by the admin/co-leader
-6) fix: [Header] Make the header even more responsive 
-7)  enhance: [NoticeBoard] add option to set auto delete timer (date & time) to every notice
-8)  add: [NoticeBoard] add ability to pin a notice & a floating Sticky colapsable sibebar which contains small buttons to access pinned notice
-9)  enhance: [Student&Settings] make the student year (like 1st,2nd,3rd,4th,Passout) display below student name(above Rollno) in the Select Student card
-10) enhance: [Students&Settings] make the student profile & data automatically delete 1 year after graduation ( 4 yrs of degree, but after 5 yrs data would be deleted)
-11) enhance: [NoticeBoard] Auto-mark TODO notices as done  when matching labs/practicals are marked completed
-12) enhance: [NoticeBoard] in TODO notice enable option to select multiple Lab Number instead of a single (in the Link to Practical Lab (Optional)) 
+2) fix: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
+3) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
+
+
+
+> 1/2/26
+* **Added**:
+  1) add: [NoticeBoard] add ability to pin a notice & add a floating Sticky colapsable sidebar which contains small buttons to access pinned notice
+  2) add: [Students&Settings & Degree Completion] added a prominent data retention warning/notice regarding automatic profile deletion after graduation
+  3) add: [UI] added a premium footer with developer info (Shaikh Mujahid) and app versioning
+* **Changed**:
+  1) change: [Students&Settings] removed the Student&Settings Tab from the menubar and made it accessible via the "Manage" button in the Header's profile card
+* **Fixed**:
+  1) fix: [PersonalNotes] resolved mobile sticky toolbar overlap by adjusting offsets and compacting status bar layout
+  2) fix: [NoticeBoard] enhanced mobile UI with corrected sticky offsets, optimized typography, and horizontally scrollable filters
+  3) fix: [Checklist & Poll] improved mobile card density and layout for notice board items
+  4) fix: [NoticeBoard] resolved pinned sidebar overlap and set it to collapsed by default on mobile
+  5) fix: [Practicals] enabled unmarking of auto-marked labs and synchronized the state back to linked TODO notices
+* **Enhanced**:
+  1) enhance: [NoticeBoard] added auto-delete timer to every notice (defaults to 1 year from creation)
+  2) enhance: [NoticeBoard] in TODO notice (in the Link to Practical Lab (Optional)) enable option to select multiple Lab Number instead of a single 
+  2) enhance: [NoticeBoard] Auto-mark TODO notices as done  when matching labs/practicals are marked completed
+  3) enhance: [Header] improved the UI of the header to make it look better for both phone & desktop
+  4) enhance: [PersonalNotes] improved mobile responsiveness with fixed sticky offsets, scrollable toolbar, and responsive column layouts
+  5) enhance: [Header & Navigation] fixed sticky stacking order and responsive padding across the app
+  6) enhance: [Student&Settings] displayed the student's academic year (1st, 2nd, 3rd, 4th, or Passout) in the selection cards, current profile card, and management lists
+  7) enhance: [Utilities] centralized academic year and semester calculation logic into studentUtils.js for consistency across the app
+  8) enhance: [Students&Settings] implemented automatic deletion of student profiles and data 1 year after graduation for standard and DSY students
+- **v4.2.3**: **Premium Login Overhaul** - Redesigned the student selection screen with a dual-theme system (Premium Light & Dark modes), persistent theme toggle, increased roll number legibility, and dynamic glassmorphic animations.
+- **v4.2.2**: **Notice Board Responsiveness** - Specifically optimized `TodoItem` and `ReminderItem` headers, metadata, and date containers for mobile devices to prevent overlaps and improve readability.
+- **v4.2.1**: **Global Mobile Responsiveness Overhaul** - Optimized sticky layout offsets for Header and Navigation, refined Theory/Practical card densities, and improved Calendar event display for smaller screens. Scaled management headers for mobile viewports.
+- **v4.2.0**: **Developer Footer & Admin Enhancements** - Integrated a premium developer footer (Shaikh Mujahid), implemented auto-deletion for graduated students (1-year policy), and added data retention warnings to management tabs.
+* **Removed**:
 
 > 27/1/26
 * **Added**:

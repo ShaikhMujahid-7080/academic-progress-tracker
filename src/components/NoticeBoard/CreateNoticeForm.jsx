@@ -16,7 +16,8 @@ import {
   ToggleRight,
   EyeOff,
   Eye,
-  GraduationCap
+  GraduationCap,
+  Clock
 } from "lucide-react";
 import { ADMIN_STUDENT, subjects } from "../../data/subjects";
 
@@ -26,6 +27,17 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
   const [meta, setMeta] = useState(initialData?.meta || {});
   const [isPublic, setIsPublic] = useState(initialData ? initialData.isPublic : true);
   const [selectedUsers, setSelectedUsers] = useState(initialData?.allowedUsers || []);
+  const [deleteAt, setDeleteAt] = useState(() => {
+    if (initialData?.deleteAt) {
+      const date = initialData.deleteAt.toDate ? initialData.deleteAt.toDate() : new Date(initialData.deleteAt);
+      return date.toISOString().slice(0, 16);
+    }
+    // Default to 1 year from now
+    const oneYearFromNow = new Date();
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+    return oneYearFromNow.toISOString().slice(0, 16);
+  });
+  const [useAutoDelete, setUseAutoDelete] = useState(initialData ? !!initialData.deleteAt : true);
 
   const isEditing = !!initialData;
 
@@ -75,7 +87,7 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
         setMeta({ reminderDate: '' });
         break;
       case 'todo':
-        setMeta({ dueDate: '', completedBy: [], practicalSubject: '', labNumber: '' });
+        setMeta({ dueDate: '', completedBy: [], practicalSubject: '', labNumber: [] });
         break;
       case 'assessment':
         setMeta({
@@ -192,7 +204,8 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
       content: content.trim(),
       meta,
       allowedUsers: isPublic ? [] : selectedUsers,
-      isPublic
+      isPublic,
+      deleteAt: useAutoDelete ? new Date(deleteAt) : null
     });
   };
 
@@ -538,7 +551,7 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
                   <label className="block text-xs text-gray-600 mb-1">Practical Subject</label>
                   <select
                     value={meta.practicalSubject || ''}
-                    onChange={(e) => setMeta({ ...meta, practicalSubject: e.target.value, labNumber: '' })}
+                    onChange={(e) => setMeta({ ...meta, practicalSubject: e.target.value, labNumber: [] })}
                     className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
                   >
                     <option value="">-- Select Subject --</option>
@@ -549,17 +562,44 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
                 </div>
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">Lab Number</label>
-                  <select
-                    value={meta.labNumber || ''}
-                    onChange={(e) => setMeta({ ...meta, labNumber: e.target.value })}
-                    disabled={!meta.practicalSubject}
-                    className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white disabled:opacity-50"
-                  >
-                    <option value="">-- Select Lab --</option>
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                      <option key={num} value={num}>Lab {num}</option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-5 gap-2">
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => {
+                      const isSelected = Array.isArray(meta.labNumber)
+                        ? meta.labNumber.includes(num.toString()) || meta.labNumber.includes(num)
+                        : meta.labNumber == num;
+
+                      return (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => {
+                            const currentLabs = Array.isArray(meta.labNumber) ? [...meta.labNumber] : (meta.labNumber ? [meta.labNumber] : []);
+                            const strNum = num.toString();
+
+                            let newLabs;
+                            if (currentLabs.some(l => l.toString() === strNum)) {
+                              newLabs = currentLabs.filter(l => l.toString() !== strNum);
+                            } else {
+                              newLabs = [...currentLabs, num];
+                            }
+                            setMeta({ ...meta, labNumber: newLabs });
+                          }}
+                          disabled={!meta.practicalSubject}
+                          className={`
+                            p-2 rounded-lg text-xs font-medium border transition-all
+                            ${!meta.practicalSubject
+                              ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 border-gray-200'
+                              : isSelected
+                                ? 'bg-green-100 border-green-500 text-green-700'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-green-50 hover:border-green-300'
+                            }
+                          `}
+                        >
+                          {num}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -718,6 +758,42 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
                   {selectedUsers.length} student{selectedUsers.length > 1 ? 's' : ''} selected
                 </p>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Auto-Delete Settings */}
+        <div className="border-t pt-6">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-orange-500" />
+              Auto-delete Notice
+            </label>
+            <button
+              type="button"
+              onClick={() => setUseAutoDelete(!useAutoDelete)}
+              className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${useAutoDelete
+                ? 'bg-orange-100 text-orange-700'
+                : 'bg-gray-100 text-gray-600'
+                }`}
+            >
+              {useAutoDelete ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+              <span className="text-xs font-medium">{useAutoDelete ? 'Enabled' : 'Disabled'}</span>
+            </button>
+          </div>
+
+          {useAutoDelete && (
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 mb-2">
+                This notice will be automatically deleted at the specified time.
+                Default is set to 1 year from now.
+              </p>
+              <input
+                type="datetime-local"
+                value={deleteAt}
+                onChange={(e) => setDeleteAt(e.target.value)}
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
             </div>
           )}
         </div>

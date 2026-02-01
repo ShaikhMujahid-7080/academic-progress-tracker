@@ -156,21 +156,21 @@ export function PersonalNotesTab({ selectedStudent }) {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-            <StickyNote className="w-8 h-8 text-yellow-600" />
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 flex items-center gap-2 sm:gap-3">
+            <StickyNote className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
             Personal Notes
           </h2>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             Private notes for <strong>{selectedStudent.name}</strong> ({selectedStudent.rollNo})
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
           <button
             onClick={() => setShowTips(!showTips)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm ${showTips
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all text-xs sm:text-sm whitespace-nowrap ${showTips
               ? 'bg-yellow-100 text-yellow-700'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -181,7 +181,7 @@ export function PersonalNotesTab({ selectedStudent }) {
 
           <button
             onClick={() => setShowHelp(!showHelp)}
-            className={`px-4 py-2 rounded-xl transition-all text-sm ${showHelp
+            className={`px-3 sm:px-4 py-2 rounded-xl transition-all text-xs sm:text-sm whitespace-nowrap ${showHelp
               ? 'bg-blue-100 text-blue-700'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -192,7 +192,7 @@ export function PersonalNotesTab({ selectedStudent }) {
           <button
             onClick={handleClearNotes}
             disabled={isSaving || !notes.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap"
           >
             <Trash2 className="w-4 h-4" />
             Clear All
@@ -201,9 +201,9 @@ export function PersonalNotesTab({ selectedStudent }) {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100 sticky top-[64px] z-20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="bg-white rounded-2xl shadow-lg py-2 px-3 sm:p-4 border border-gray-100 sticky top-[138px] sm:top-[128px] z-20 transition-all">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <button
               onClick={refreshNotes}
               className="p-1.5 -ml-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
@@ -248,7 +248,7 @@ export function PersonalNotesTab({ selectedStudent }) {
             </button>
             <button
               onClick={() => setViewMode('split')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+              className={`hidden sm:flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
                 }`}
             >
               <div className="w-4 h-4 border border-current rounded-sm flex">
@@ -322,9 +322,9 @@ export function PersonalNotesTab({ selectedStudent }) {
       {/* Main Editor Area */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
         {/* Toolbar */}
-        {(viewMode === 'edit' || viewMode === 'split') && (
-          <div className="sticky top-[138px] z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 p-3 rounded-t-2xl transition-all">
-            <div className="flex items-center gap-1">
+        {(viewMode === 'edit' || (viewMode === 'split')) && (
+          <div className="sticky top-[250px] sm:top-[200px] z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 p-2 sm:p-3 rounded-t-2xl transition-all">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-0.5">
               {toolbarButtons.map((button, index) => (
                 <button
                   key={index}
@@ -344,10 +344,10 @@ export function PersonalNotesTab({ selectedStudent }) {
         )}
 
         {/* Content Area */}
-        <div className="flex min-h-[500px] items-stretch">
+        <div className="flex flex-col sm:flex-row min-h-[500px] items-stretch">
           {/* Editor */}
           {(viewMode === 'edit' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-1/2 border-r border-gray-200' : 'w-full'} bg-white`}>
+            <div className={`${viewMode === 'split' ? 'w-full sm:w-1/2 border-b sm:border-b-0 sm:border-r border-gray-200' : 'w-full'} bg-white`}>
               <textarea
                 ref={textareaRef}
                 id="notes-textarea"
@@ -368,7 +368,7 @@ export function PersonalNotesTab({ selectedStudent }) {
                     window.scrollTo(0, scrollPosRef.current);
                   });
                 }}
-                className="w-full h-full p-6 border-none outline-none resize-none font-mono text-sm overflow-hidden min-h-[500px]"
+                className="w-full h-full p-4 sm:p-6 border-none outline-none resize-none font-mono text-sm overflow-hidden min-h-[500px]"
                 placeholder={`Write your personal notes here, ${selectedStudent.name}...
 
 You can use Markdown syntax:
@@ -386,8 +386,8 @@ Your notes are automatically saved as you type.`}
 
           {/* Preview */}
           {(viewMode === 'preview' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} bg-gray-50/50`}>
-              <div className="p-6 prose prose-sm max-w-none">
+            <div className={`${viewMode === 'split' ? 'w-full sm:w-1/2' : 'w-full'} bg-gray-50/50`}>
+              <div className="p-4 sm:p-6 prose prose-sm max-w-none">
                 {notes.trim() ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}

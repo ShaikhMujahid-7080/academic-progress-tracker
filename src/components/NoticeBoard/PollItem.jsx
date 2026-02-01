@@ -19,7 +19,7 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
 
   useEffect(() => {
     if (!notice?.meta?.options) return;
-    
+
     if (isAnonymous) {
       // For anonymous polls, check userVotes
       const userVotes = notice.meta.userVotes || {};
@@ -40,9 +40,9 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -51,10 +51,10 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
 
   const getTotalVotes = () => {
     if (isAnonymous) {
-      return notice.meta.options?.reduce((total, option) => 
+      return notice.meta.options?.reduce((total, option) =>
         total + (option.anonymousVotes || 0), 0) || 0;
     } else {
-      return notice.meta.options?.reduce((total, option) => 
+      return notice.meta.options?.reduce((total, option) =>
         total + (option.votes?.length || 0), 0) || 0;
     }
   };
@@ -82,7 +82,7 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
 
   const handleOptionToggle = (optionIndex) => {
     let newSelections;
-    
+
     if (notice.meta.allowMultiple) {
       // Multi-select mode
       if (selectedOptions.includes(optionIndex)) {
@@ -94,7 +94,7 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
       // Single select mode
       newSelections = selectedOptions.includes(optionIndex) ? [] : [optionIndex];
     }
-    
+
     setSelectedOptions(newSelections);
     onVote(newSelections, currentUser);
   };
@@ -209,11 +209,10 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
             <button
               type="button"
               onClick={() => setEditAllowMultiple(!editAllowMultiple)}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${
-                editAllowMultiple 
-                  ? 'bg-green-100 text-green-700' 
+              className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${editAllowMultiple
+                  ? 'bg-green-100 text-green-700'
                   : 'bg-gray-100 text-gray-600'
-              }`}
+                }`}
             >
               {editAllowMultiple ? (
                 <ToggleRight className="w-4 h-4" />
@@ -232,11 +231,10 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
             <button
               type="button"
               onClick={() => setEditIsAnonymous(!editIsAnonymous)}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${
-                editIsAnonymous 
-                  ? 'bg-orange-100 text-orange-700' 
+              className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${editIsAnonymous
+                  ? 'bg-orange-100 text-orange-700'
                   : 'bg-gray-100 text-gray-600'
-              }`}
+                }`}
             >
               {editIsAnonymous ? (
                 <EyeOff className="w-4 h-4" />
@@ -284,73 +282,75 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-100 rounded-2xl flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-purple-600" />
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-gray-900">Poll</h3>
+          <div className="min-w-0">
+            <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
+              <h3 className="font-bold text-gray-900 text-sm sm:text-base">Poll</h3>
               {notice.meta.allowMultiple && (
-                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                  Multi-select
+                <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">
+                  Multi
                 </span>
               )}
               {isAnonymous && (
-                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-                  Anonymous
+                <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">
+                  Anon
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <User className="w-3 h-3" />
-              <span>By {notice.createdBy}</span>
+            <div className="flex items-center gap-2 text-[10px] sm:text-sm text-gray-600">
+              <User className="w-3 h-3 shrink-0" />
+              <span className="truncate">By {notice.createdBy}</span>
               <span>•</span>
               <span>{totalVotes} votes</span>
             </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500">
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
           </div>
-          
-          {canEdit && (
-            <button
-              onClick={handleEditStart}
-              className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
-              title="Edit Poll"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-          )}
-          
-          {canManagePermissions && (
-            <button
-              onClick={onManagePermissions}
-              className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
-              title="Manage Permissions"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
-          
-          {canDelete && (
-            <button
-              onClick={() => onDelete(notice.id)}
-              className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-              title="Delete Poll"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+
+          <div className="flex items-center gap-0.5 ml-auto sm:ml-0">
+            {canEdit && (
+              <button
+                onClick={handleEditStart}
+                className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Edit Poll"
+              >
+                <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+
+            {canManagePermissions && (
+              <button
+                onClick={onManagePermissions}
+                className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Manage Permissions"
+              >
+                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+
+            {canDelete && (
+              <button
+                onClick={() => onDelete(notice.id)}
+                className="p-1.5 sm:p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                title="Delete Poll"
+              >
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
-      
+
       {/* Markdown Poll Question */}
       <div className="mb-4 prose prose-sm max-w-none">
         <ReactMarkdown
@@ -402,33 +402,32 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
           const percentage = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
           const isSelected = selectedOptions.includes(index);
           const voterNames = getVoterNames(index);
-          
+
           return (
             <div key={index} className="space-y-2">
               <button
                 onClick={() => handleOptionToggle(index)}
                 className={`
-                  w-full p-3 rounded-xl border-2 transition-all text-left
-                  ${isSelected 
-                    ? 'bg-purple-50 border-purple-300' 
+                  w-full p-2.5 sm:p-3 rounded-xl border-2 transition-all text-left
+                  ${isSelected
+                    ? 'bg-purple-50 border-purple-300'
                     : 'bg-gray-50 border-gray-200 hover:border-purple-300'
                   }
                 `}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`font-medium ${isSelected ? 'text-purple-700' : 'text-gray-700'}`}>
+                <div className="flex items-center justify-between mb-1.5 sm:mb-2 text-sm sm:text-base">
+                  <span className={`font-medium ${isSelected ? 'text-purple-700' : 'text-gray-700'} truncate mr-2`}>
                     {option.text}
                   </span>
-                  <span className="text-sm text-gray-600">
-                    {voteCount} ({percentage.toFixed(1)}%)
+                  <span className="text-xs sm:text-sm text-gray-600 shrink-0">
+                    {voteCount} ({percentage.toFixed(0)}%)
                   </span>
                 </div>
-                
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all ${
-                      isSelected ? 'bg-purple-500' : 'bg-gray-400'
-                    }`}
+
+                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                  <div
+                    className={`h-1.5 sm:h-2 rounded-full transition-all ${isSelected ? 'bg-purple-500' : 'bg-gray-400'
+                      }`}
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
@@ -451,7 +450,7 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
                       <ChevronDown className="w-4 h-4" />
                     )}
                   </button>
-                  
+
                   {expandedOption === index && (
                     <div className="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-200">
                       <div className="flex flex-wrap gap-2">
@@ -468,7 +467,7 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
                   )}
                 </div>
               )}
-              
+
               {/* Anonymous vote count display */}
               {isAnonymous && voteCount > 0 && (
                 <div className="ml-4">
@@ -482,7 +481,7 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
           );
         })}
       </div>
-      
+
       {selectedOptions.length > 0 && (
         <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
           <div className="text-sm text-purple-700 text-center">

@@ -4,7 +4,7 @@ import { useNoticeBoard } from "../hooks/useNoticeBoard";
 
 export function PracticalTab({ semester, allData, handleDataChange, selectedStudent }) {
   // Get notices to check for TODO-based lab completions
-  const { notices } = useNoticeBoard(selectedStudent, semester);
+  const { notices, toggleTodo } = useNoticeBoard(selectedStudent, semester);
 
   return (
     <>
@@ -20,6 +20,7 @@ export function PracticalTab({ semester, allData, handleDataChange, selectedStud
             onDataChange={(subject, data) => handleDataChange(subject, data, 'practical')}
             initialData={allData[`${semester}-${subj}`]?.data}
             notices={notices}
+            onToggleTodo={toggleTodo}
             currentUserRollNo={selectedStudent?.rollNo}
           />
         ))}

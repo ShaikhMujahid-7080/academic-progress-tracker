@@ -15,6 +15,8 @@ import { useLocalStorage } from "./components/hooks/useLocalStorage";
 import { ADMIN_STUDENT } from "./data/subjects";
 import { useFirestore } from "./components/hooks/useFirestore";
 import { useStudentManagement } from "./components/hooks/useStudentManagement";
+import { computeDefaultSemester, hasCompletedFourYears } from "./utils/studentUtils";
+import { Footer } from "./components/UI/Footer";
 
 export default function App() {
   const [tab, setTab] = useState(0);
@@ -79,16 +81,7 @@ export default function App() {
     // eslint-disable-next-line
   }, [selectedStudent, isOnline]);
 
-  // When a selected student is restored/changed, set the semester based on admission info (if available)
-  // Helper to determine if student has completed 4 or more academic years since admission
-  const hasCompletedFourYears = (student) => {
-    if (!student || !student.admissionYear) return false;
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-    const yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
-    return yearsPassed >= 4;
-  };
+
 
   useEffect(() => {
     if (selectedStudent) {
@@ -135,31 +128,7 @@ export default function App() {
     }
   };
 
-  // Compute default semester from admission info (returns null if not enough info)
-  // Uses academic-year boundaries: each academic year (e.g., 2024-25) has two semesters.
-  // Academic year is considered to start in July (months July-Dec are the first semester, Jan-Jun the second).
-  const computeDefaultSemester = (student) => {
-    if (!student || !student.admissionYear) return null;
-    const now = new Date();
-    const month = now.getMonth() + 1; // 1-12
 
-    // Determine the start year of the current academic year
-    const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-    const admissionAcademicYearStart = Number(student.admissionYear);
-
-    // Number of full academic years passed since admission
-    let yearsPassed = currentAcademicYearStart - admissionAcademicYearStart;
-    if (yearsPassed < 0) yearsPassed = 0;
-
-    const startSem = student.isDSY ? 3 : 1;
-    // semesterIndex: 0 for first semester of academic year (July-Dec), 1 for second (Jan-Jun)
-    const semesterIndex = month >= 7 ? 0 : 1;
-
-    let sem = startSem + yearsPassed * 2 + semesterIndex;
-    if (sem < startSem) sem = startSem;
-    if (sem > 8) sem = 8;
-    return sem;
-  };
 
   // On student selection from selection screen, clear data immediately and set student
   const handleStudentSelection = (student) => {
@@ -169,15 +138,49 @@ export default function App() {
     selectStudent(student);
   };
 
+  // Theme for Student Selection Screen (Light by default)
+  const [loginTheme, setLoginTheme] = useState(() => {
+    return localStorage.getItem('loginTheme') || 'light';
+  });
+
+  const toggleLoginTheme = () => {
+    const newTheme = loginTheme === 'dark' ? 'light' : 'dark';
+    setLoginTheme(newTheme);
+    localStorage.setItem('loginTheme', newTheme);
+  };
+
   // Show loading or student selection screen if no student selected OR resettingData is in progress
   if (!selectedStudent || studentsLoading || !hasInitialized || resettingData) {
     return (
-      <StudentSelectionScreen
-        students={students}
-        onStudentSelect={handleStudentSelection}
-        isLoading={studentsLoading || !hasInitialized || resettingData}
-        studentManagement={studentManagement}
-      />
+      <div className={`
+        min-h-screen transition-colors duration-700 relative overflow-hidden flex flex-col
+        ${loginTheme === 'dark'
+          ? 'bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#312e81]'
+          : 'bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-100'
+        } animate-gradient
+      `}>
+        {/* Animated Background Orbs */}
+        <div className={`
+          absolute top-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full blur-[120px] animate-pulse transition-colors duration-700
+          ${loginTheme === 'dark' ? 'bg-blue-500/10' : 'bg-blue-400/20'}
+        `} />
+        <div className={`
+          absolute bottom-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full blur-[120px] animate-pulse delay-700 transition-colors duration-700
+          ${loginTheme === 'dark' ? 'bg-indigo-500/10' : 'bg-indigo-400/20'}
+        `} />
+
+        <div className="flex-1 flex items-center justify-center relative z-10 px-4 py-8 md:py-12">
+          <StudentSelectionScreen
+            students={students}
+            onStudentSelect={handleStudentSelection}
+            isLoading={studentsLoading || !hasInitialized}
+            studentManagement={studentManagement}
+            theme={loginTheme}
+            onThemeToggle={toggleLoginTheme}
+          />
+        </div>
+        <Footer />
+      </div>
     );
   }
 
@@ -197,6 +200,7 @@ export default function App() {
         syncStatus={syncStatus}
         selectedStudent={selectedStudent}
         onStudentSwitch={handleStudentSwitch}
+        onNavigate={setTab}
       />
       <TabNavigation
         activeTab={tab}
@@ -205,7 +209,7 @@ export default function App() {
         showAdminTab={selectedStudent?.rollNo === ADMIN_STUDENT.rollNo || selectedStudent?.role === 'co-leader'}
       />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <TabPanel value={tab} index={0}>
           <TheoryTab
             semester={semester}
@@ -267,6 +271,8 @@ export default function App() {
           />
         </TabPanel>
       </div>
+
+      <Footer />
     </div>
   );
 }

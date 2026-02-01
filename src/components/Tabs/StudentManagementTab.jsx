@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check } from "lucide-react";
+import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check, ShieldAlert } from "lucide-react";
 import { subjects, ADMIN_STUDENT } from "../../data/subjects";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
-import { AnimatedDropdown } from "../common/AnimatedDropdown"; // Imported AnimatedDropdown
+import { AnimatedDropdown } from "../common/AnimatedDropdown";
+import { getStudentYear } from "../../utils/studentUtils";
 
 export function StudentManagementTab({
   semester,
@@ -619,9 +620,9 @@ export function StudentManagementTab({
       )}
 
       {/* Header */}
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Student & Semester Management</h2>
-        <p className="text-gray-600">Manage students, roles, and select current semester</p>
+      <div className="text-center px-4">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Student & Semester Management</h2>
+        <p className="text-sm sm:text-base text-gray-600">Manage students, roles, and select current semester</p>
       </div>
 
       {/* Current Student & Semester */}
@@ -711,6 +712,18 @@ export function StudentManagementTab({
                       }`}>
                       Roll No: {selectedStudent.rollNo}
                     </p>
+                    {selectedStudent.admissionYear && (
+                      <div className="mt-1">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
+                          ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
+                          : selectedStudent.role === 'co-leader'
+                            ? 'text-purple-700 bg-purple-50 border-purple-200'
+                            : 'text-blue-700 bg-blue-50 border-blue-200'
+                          }`}>
+                          {getStudentYear(selectedStudent)}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Admission Info */}
                     {selectedStudent.admissionYear && (
@@ -741,6 +754,23 @@ export function StudentManagementTab({
               </div>
             </div>
           )}
+
+          {/* Data Retention Warning */}
+          <div className="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-200 shadow-sm transition-all hover:bg-amber-100/50">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                <ShieldAlert className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-bold text-amber-900 mb-1 flex items-center gap-2">
+                  Data Retention Notice
+                </h4>
+                <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                  To maintain data privacy and system performance, student profiles and all associated data (Academic Progress, Notes) are automatically deleted <span className="text-amber-900 font-bold underline">1 year after graduation</span>.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Current Semester */}
@@ -1008,7 +1038,20 @@ export function StudentManagementTab({
                           className: `w-4 h-4 ${roleDisplay.color}`
                         })}
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">Roll: {student.rollNo}</p>
+                      <p className="text-sm text-gray-600 mb-1">Roll: {student.rollNo}</p>
+
+                      {student.admissionYear && (
+                        <div className="mb-2">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${student.rollNo === ADMIN_STUDENT.rollNo
+                            ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
+                            : student.role === 'co-leader'
+                              ? 'text-purple-700 bg-purple-50 border-purple-200'
+                              : 'text-blue-700 bg-blue-50 border-blue-200'
+                            }`}>
+                            {getStudentYear(student)}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Role Badge */}
                       <div className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${roleDisplay.bgColor}`}>

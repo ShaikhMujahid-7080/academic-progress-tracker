@@ -29,6 +29,7 @@ import { AssessmentItem } from "../NoticeBoard/AssessmentItem";
 import { CreateNoticeForm } from "../NoticeBoard/CreateNoticeForm";
 import { ManagePermissionsModal } from "../NoticeBoard/ManagePermissionsModal";
 import { ReorderNoticesModal } from "../NoticeBoard/ReorderNoticesModal";
+import { PinnedNoticesSidebar } from "../NoticeBoard/PinnedNoticesSidebar";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
 
@@ -48,7 +49,8 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
     updateNoticesOrder,
     voteInPoll,
     toggleChecklistItem,
-    toggleTodo
+    toggleTodo,
+    togglePin
   } = useNoticeBoard(selectedStudent, semester);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -114,7 +116,8 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       noticeData.content,
       noticeData.meta,
       noticeData.allowedUsers || [],
-      noticeData.isPublic || false
+      noticeData.isPublic || false,
+      noticeData.deleteAt
     );
 
     if (success) {
@@ -211,6 +214,20 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
     }
   };
 
+  const handleScrollToNotice = (noticeId) => {
+    const element = document.getElementById(`notice-${noticeId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Add highlight effect
+      element.classList.add('ring-2', 'ring-orange-400', 'ring-offset-2');
+      setTimeout(() => {
+        element.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2');
+      }, 2000);
+    }
+  };
+
+  const pinnedNotices = notices.filter(n => n.isPinned);
+
   const renderNoticeItem = (notice) => {
     const commonProps = {
       notice,
@@ -221,7 +238,9 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       canManageNotices,
       onDelete: handleDeleteNotice,
       onEdit: handleEditNotice,
-      onManagePermissions: () => handleManagePermissions(notice)
+      onEdit: handleEditNotice,
+      onManagePermissions: () => handleManagePermissions(notice),
+      onTogglePin: () => togglePin(notice.id, notice.isPinned)
     };
 
     switch (notice.type) {
@@ -303,22 +322,22 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between sticky top-[64px] z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/60 py-4 transition-all -mx-4 px-4 rounded-b-2xl mb-4">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-            <Megaphone className="w-8 h-8 text-blue-600" />
-            Global Notice Board
+      <div className="flex items-center justify-between sticky top-[136px] sm:top-[128px] z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/60 py-2 sm:py-4 transition-all -mx-4 px-4 rounded-b-2xl mb-4 border-b border-gray-100 sm:border-none">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-3xl font-bold text-gray-900 mb-0.5 sm:mb-2 flex items-center gap-2 sm:gap-3">
+            <Megaphone className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 shrink-0" />
+            <span className="truncate">Global Notice Board</span>
             {isAdmin && (
-              <Shield className="w-6 h-6 text-yellow-600" title="Admin View" />
+              <Shield className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-600 shrink-0" title="Admin View" />
             )}
             {isCoLeader && (
-              <Star className="w-6 h-6 text-purple-600" title="Co-Leader View" />
+              <Star className="w-4 h-4 sm:w-6 sm:h-6 text-purple-600 shrink-0" title="Co-Leader View" />
             )}
           </h2>
-          <p className="text-gray-600">
+          <p className="text-xs sm:text-base text-gray-600 truncate">
             {canManageNotices
-              ? `${isAdmin ? 'Admin' : 'Co-Leader'}: Create and manage notices for all students`
-              : "Stay updated with announcements, polls, and reminders"
+              ? `${isAdmin ? 'Admin' : 'Co-Leader'}: Manage notices`
+              : "Updates and announcements"
             }
           </p>
         </div>
@@ -395,24 +414,24 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       }
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100">
         {/* Type Filters */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex overflow-x-auto gap-2 mb-4 pb-2 scrollbar-hide -mx-1 px-1">
           {noticeTypes.map((type) => (
             <button
               key={type.id}
               onClick={() => setFilterType(type.id)}
               className={`
-                flex items-center gap-2 px-4 py-2 rounded-xl transition-all
+                flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all whitespace-nowrap text-xs sm:text-sm
                 ${filterType === type.id
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-100 scale-105'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }
               `}
             >
-              <type.icon className="w-4 h-4" />
+              <type.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{type.label}</span>
-              <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs ${filterType === type.id ? 'bg-white/20' : 'bg-gray-200'}`}>
                 {type.count}
               </span>
             </button>
@@ -429,7 +448,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
             placeholder="Search notices..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-10 py-2 sm:py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
           />
           {searchQuery && (
             <button
@@ -491,10 +510,24 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
         )
       }
 
+      {/* Pinned Notices Sidebar */}
+      <PinnedNoticesSidebar
+        pinnedNotices={pinnedNotices}
+        onNoticeClick={handleScrollToNotice}
+      />
+
       {/* Notice List */}
       <div className="space-y-4">
         {filteredNotices.length > 0 ? (
-          filteredNotices.map(renderNoticeItem)
+          filteredNotices.map(notice => (
+            <div
+              key={notice.id}
+              id={`notice-${notice.id}`}
+              className="scroll-mt-32 transition-all duration-300 rounded-2xl"
+            >
+              {renderNoticeItem(notice)}
+            </div>
+          ))
         ) : (
           <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-100">
             <Megaphone className="w-16 h-16 mx-auto text-gray-300 mb-4" />
