@@ -238,7 +238,6 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       canManageNotices,
       onDelete: handleDeleteNotice,
       onEdit: handleEditNotice,
-      onEdit: handleEditNotice,
       onManagePermissions: () => handleManagePermissions(notice),
       onTogglePin: () => togglePin(notice.id, notice.isPinned)
     };
