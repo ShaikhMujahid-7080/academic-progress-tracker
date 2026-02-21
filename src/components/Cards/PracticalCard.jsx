@@ -4,6 +4,7 @@ import { FlaskConical, CheckCircle2, Circle, Trophy, Sparkles } from "lucide-rea
 // Wrap with memo
 export const PracticalCard = memo(function PracticalCard({
   subject,
+  subjectConfig,
   onDataChange,
   initialData,
   notices = [],
@@ -11,6 +12,7 @@ export const PracticalCard = memo(function PracticalCard({
   currentUserRollNo
 }) {
   const [completedLabs, setCompletedLabs] = useState(new Set());
+  const labCount = subjectConfig?.labCount || 10;
 
   useEffect(() => {
     if (initialData && Array.isArray(initialData)) {
@@ -125,7 +127,7 @@ export const PracticalCard = memo(function PracticalCard({
     }
   };
 
-  const progress = (allCompletedLabs.size / 10) * 100;
+  const progress = (allCompletedLabs.size / labCount) * 100;
 
   return (
     <div className="bg-white rounded-3xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
@@ -137,7 +139,7 @@ export const PracticalCard = memo(function PracticalCard({
             <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Practical</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-sm opacity-90">{allCompletedLabs.size}/10</div>
+            <div className="text-sm opacity-90">{allCompletedLabs.size}/{labCount}</div>
             <div className="w-12 h-2 bg-white/20 rounded-full overflow-hidden">
               <div
                 className="h-full bg-white rounded-full transition-all duration-500"
@@ -150,7 +152,7 @@ export const PracticalCard = memo(function PracticalCard({
       <div className="p-6">
         <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
-          Lab Experiments ({allCompletedLabs.size}/10 completed)
+          Lab Experiments ({allCompletedLabs.size}/{labCount} completed)
           {autoCompletedLabs.size > 0 && (
             <span className="text-xs text-yellow-600 flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
@@ -159,7 +161,7 @@ export const PracticalCard = memo(function PracticalCard({
           )}
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => {
+          {Array.from({ length: labCount }, (_, i) => i + 1).map((num) => {
             const isAutoCompleted = autoCompletedLabs.has(num);
             const isCompleted = allCompletedLabs.has(num);
 

@@ -22,7 +22,9 @@ export function StudentManagementTab({
     authenticateStudent,
     updateStudentPassword,
     updateStudentRole,
-    updateStudentName
+    updateStudentName,
+    updateStudentDSY,
+    updateStudentYD
   } = studentManagement;
 
   // Check if current user is a co-leader with permissions
@@ -35,7 +37,7 @@ export function StudentManagementTab({
   const canAppointCoLeaders = isAdmin || (isCoLeader && coLeaderPermissions.canAppointCoLeaders);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newStudent, setNewStudent] = useState({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false });
+  const [newStudent, setNewStudent] = useState({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false, isYD: false });
   const [passwordProtected, setPasswordProtected] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -256,10 +258,11 @@ export function StudentManagementTab({
         passwordProtected ? newStudent.password.trim() : '',
         newStudent.role,
         admissionYearNum,
-        newStudent.isDSY
+        newStudent.isDSY,
+        newStudent.isYD
       );
 
-      setNewStudent({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false });
+      setNewStudent({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false, isYD: false });
       setPasswordProtected(false);
       setShowCreateForm(false);
       toast.success('✅ Student created successfully!');
@@ -380,6 +383,28 @@ export function StudentManagementTab({
         }
       }
     });
+  };
+
+  const handleToggleDSY = async (student, e) => {
+    e.stopPropagation();
+    try {
+      const newVal = !student.isDSY;
+      await updateStudentDSY(student.rollNo, newVal);
+      toast.success(`✅ ${student.name} marked as ${newVal ? 'DSY' : 'non-DSY'}`);
+    } catch (error) {
+      toast.error(`❌ Error updating DSY: ${error.message}`);
+    }
+  };
+
+  const handleToggleYD = async (student, e) => {
+    e.stopPropagation();
+    try {
+      const newVal = !student.isYD;
+      await updateStudentYD(student.rollNo, newVal);
+      toast.success(`✅ ${student.name} marked as ${newVal ? 'Year Drop' : 'no Year Drop'}`);
+    } catch (error) {
+      toast.error(`❌ Error updating YD: ${error.message}`);
+    }
   };
 
   const clearSearch = () => {
@@ -725,10 +750,24 @@ export function StudentManagementTab({
                       </div>
                     )}
 
-                    {/* Admission Info */}
+                    {/* Admission Info with DSY toggle for admin */}
                     {selectedStudent.admissionYear && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Admission: {selectedStudent.admissionYear || 'N/A'} {selectedStudent.isDSY ? '(DSY)' : ''}
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
+                        Admission: {selectedStudent.admissionYear || 'N/A'}
+                        {isAdmin ? (
+                          <button
+                            onClick={(e) => handleToggleDSY(selectedStudent, e)}
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${selectedStudent.isDSY
+                              ? 'bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200'
+                              : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+                              }`}
+                            title="Click to toggle DSY status"
+                          >
+                            {selectedStudent.isDSY ? '✓ DSY' : 'Non-DSY'}
+                          </button>
+                        ) : (
+                          selectedStudent.isDSY ? ' (DSY)' : ''
+                        )}
                       </p>
                     )}
 
@@ -893,7 +932,7 @@ export function StudentManagementTab({
             </div>
 
             {/* Admission Info */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
               <div>
                 <label className="block text-sm font-medium text-green-900 mb-2">Admission Year</label>
                 <input
@@ -907,16 +946,29 @@ export function StudentManagementTab({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-green-900 mb-2">Direct Second Year (DSY)</label>
-                <div className="flex items-center gap-2">
+                <label className="block text-sm font-medium text-green-900 mb-2">Direct Second Year</label>
+                <div className="flex bg-gray-50 border border-gray-200 p-3 rounded-xl items-center gap-2">
                   <input
                     id="is-dsy"
                     type="checkbox"
                     checked={newStudent.isDSY}
                     onChange={(e) => setNewStudent({ ...newStudent, isDSY: e.target.checked })}
-                    className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                    className="w-4 h-4 text-green-600 bg-white border-gray-300 rounded focus:ring-green-500"
                   />
-                  <label htmlFor="is-dsy" className="text-sm text-gray-700">Is DSY (Direct Second Year)</label>
+                  <label htmlFor="is-dsy" className="text-sm font-medium text-gray-700">Is DSY</label>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-green-900 mb-2">Year Drop (YD)</label>
+                <div className="flex bg-gray-50 border border-gray-200 p-3 rounded-xl items-center gap-2">
+                  <input
+                    id="is-yd"
+                    type="checkbox"
+                    checked={newStudent.isYD}
+                    onChange={(e) => setNewStudent({ ...newStudent, isYD: e.target.checked })}
+                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                  />
+                  <label htmlFor="is-yd" className="text-sm font-medium text-gray-700">Has YD</label>
                 </div>
               </div>
             </div>
@@ -1054,9 +1106,36 @@ export function StudentManagementTab({
                       )}
 
                       {/* Role Badge */}
-                      <div className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${roleDisplay.bgColor}`}>
+                      <div className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${roleDisplay.bgColor} mb-1 block w-fit`}>
                         <span className={roleDisplay.color}>{roleDisplay.name}</span>
                       </div>
+
+                      {/* DSY & YD badges + toggle (admin only, non-admin students) */}
+                      {isAdmin && student.rollNo !== ADMIN_STUDENT.rollNo && (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          <button
+                            onClick={(e) => handleToggleDSY(student, e)}
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${student.isDSY
+                              ? 'bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200'
+                              : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+                              }`}
+                            title="Toggle DSY status"
+                          >
+                            {student.isDSY ? '✓ DSY' : 'Non-DSY'}
+                          </button>
+
+                          <button
+                            onClick={(e) => handleToggleYD(student, e)}
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${student.isYD
+                              ? 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'
+                              : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+                              }`}
+                            title="Toggle Year Drop (YD) status"
+                          >
+                            {student.isYD ? '✓ Year Drop' : 'No YD'}
+                          </button>
+                        </div>
+                      )}
 
                       <div className="mt-2">
                         {selectedStudent?.rollNo === student.rollNo ? (

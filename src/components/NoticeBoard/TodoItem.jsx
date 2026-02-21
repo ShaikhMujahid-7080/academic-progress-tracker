@@ -139,7 +139,7 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all">
+    <div className={`bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 ${isCompleted ? 'opacity-60 saturate-50' : ''}`}>
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${isCompleted
@@ -157,7 +157,7 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-bold text-gray-900">Todo</h3>
+              <h3 className={`font-bold ${isCompleted ? 'text-gray-400' : 'text-gray-900'}`}>Todo</h3>
               {isCompleted && (
                 <span className="text-[10px] sm:text-xs bg-green-100 text-green-700 px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
                   Completed
@@ -221,7 +221,7 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
       </div>
 
       {/* Markdown Content */}
-      <div className="mb-4 prose prose-sm max-w-none">
+      <div className={`mb-4 prose prose-sm max-w-none transition-all ${isCompleted ? 'opacity-60' : ''}`}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{

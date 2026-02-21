@@ -1,7 +1,24 @@
 > Pending
 1) add: [PersonalNotes] give an option to student to store/upload studymaterial/imgs/file upto 10mb in their personal notes section/tab & make it (temporary) automatically delete after 48 hours, the current firebase plan (Free) doesnt support file upload/storage, so we'll have to make adjustments for that (store in database or something) 
-2) fix: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
-3) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
+2)  add: [Profile] give an Ability to add or remove user profile photo to each student
+3) add: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
+4) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
+5) enhance: [Readme] update the Readme page/file
+6) add: [Dashboard] add a dashboard page
+7) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
+
+> Completed
+22/02/2026:
+- Added **Year Drop (YD)** flag support. Admins can toggle this on a student's profile, automatically delaying their default academic tier calculation (Semester & Year labels) downwards by 1 full year.
+- **Enhanced Footer**: Replaced the basic browser alert for "App Info" with a modern, animated React Modal Component detailing app version and credits.
+- Implemented **Curriculum Management** for App Admins: Subject names, continuous assessment counts (CAs), and total practical lab experiments are now entirely customizable and sync globally via Firestore (migrated away from static `subjects.js`).
+
+> 21/2/26
+* **Enhanced**:
+  1) enhance: [NoticeBoard & Calendar] add option to mark the Assessment Notice as completed & the Assessment/todos/reminders which are marked as complete would fade (a little) (for particular student whos marks it complete)
+* **Fixed**:
+  1) fix: [Admin database] resolved `isDSY` field auto-resetting to `false` — added `updateStudentDSY` function in the hook and a clickable DSY toggle badge in the Student Management tab (Current Student panel + each student card), so the flag is now editable through the app instead of requiring manual Firestore edits that get overwritten
+  2) fix: [TheorySubjects] CA marks were not being saved for some subjects because the assessment-notice sync effect was calling `onDataChange` with a stale state snapshot, overwriting already-saved marks — removed `onDataChange` from the sync effect so only explicit user edits trigger a Firestore save
 
 
 
@@ -21,13 +38,13 @@
 * **Enhanced**:
   1) enhance: [NoticeBoard] added auto-delete timer to every notice (defaults to 1 year from creation)
   2) enhance: [NoticeBoard] in TODO notice (in the Link to Practical Lab (Optional)) enable option to select multiple Lab Number instead of a single 
-  2) enhance: [NoticeBoard] Auto-mark TODO notices as done  when matching labs/practicals are marked completed
-  3) enhance: [Header] improved the UI of the header to make it look better for both phone & desktop
-  4) enhance: [PersonalNotes] improved mobile responsiveness with fixed sticky offsets, scrollable toolbar, and responsive column layouts
-  5) enhance: [Header & Navigation] fixed sticky stacking order and responsive padding across the app
-  6) enhance: [Student&Settings] displayed the student's academic year (1st, 2nd, 3rd, 4th, or Passout) in the selection cards, current profile card, and management lists
-  7) enhance: [Utilities] centralized academic year and semester calculation logic into studentUtils.js for consistency across the app
-  8) enhance: [Students&Settings] implemented automatic deletion of student profiles and data 1 year after graduation for standard and DSY students
+  3) enhance: [NoticeBoard] Auto-mark TODO notices as done  when matching labs/practicals are marked completed
+  4) enhance: [Header] improved the UI of the header to make it look better for both phone & desktop
+  5) enhance: [PersonalNotes] improved mobile responsiveness with fixed sticky offsets, scrollable toolbar, and responsive column layouts
+  6) enhance: [Header & Navigation] fixed sticky stacking order and responsive padding across the app
+  7) enhance: [Student&Settings] displayed the student's academic year (1st, 2nd, 3rd, 4th, or Passout) in the selection cards, current profile card, and management lists
+  8) enhance: [Utilities] centralized academic year and semester calculation logic into studentUtils.js for consistency across the app
+  9) enhance: [Students&Settings] implemented automatic deletion of student profiles and data 1 year after graduation for standard and DSY students
 - **v4.2.3**: **Premium Login Overhaul** - Redesigned the student selection screen with a dual-theme system (Premium Light & Dark modes), persistent theme toggle, increased roll number legibility, and dynamic glassmorphic animations.
 - **v4.2.2**: **Notice Board Responsiveness** - Specifically optimized `TodoItem` and `ReminderItem` headers, metadata, and date containers for mobile devices to prevent overlaps and improve readability.
 - **v4.2.1**: **Global Mobile Responsiveness Overhaul** - Optimized sticky layout offsets for Header and Navigation, refined Theory/Practical card densities, and improved Calendar event display for smaller screens. Scaled management headers for mobile viewports.

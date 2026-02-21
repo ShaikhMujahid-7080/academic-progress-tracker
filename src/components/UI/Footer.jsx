@@ -1,6 +1,9 @@
+import React, { useState } from 'react';
 import { Github, Heart, Info, Code2, GraduationCap } from 'lucide-react';
+import { AppInfoModal } from './AppInfoModal';
 
 export function Footer() {
+    const [isAppInfoOpen, setIsAppInfoOpen] = useState(false);
     const currentYear = new Date().getFullYear();
 
     return (
@@ -37,15 +40,18 @@ export function Footer() {
                     <Github className="w-4 h-4" />
                 </a>
                 <button
-                    onClick={() => {
-                        alert("Academic Progress Tracker\n\nDesigned to help students track their academic growth, manage practical experiments, and stay updated with class notices.\n\nDeveloper: Shaikh Mujahid\nUniversity: MGM University");
-                    }}
+                    onClick={() => setIsAppInfoOpen(true)}
                     className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all duration-300"
                     title="App Info"
                 >
                     <Info className="w-4 h-4" />
                 </button>
             </div>
+
+            <AppInfoModal
+                isOpen={isAppInfoOpen}
+                onClose={() => setIsAppInfoOpen(false)}
+            />
         </footer>
     );
 }

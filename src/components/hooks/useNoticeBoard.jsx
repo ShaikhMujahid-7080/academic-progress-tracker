@@ -477,6 +477,29 @@ export function useNoticeBoard(currentUser, currentSemester) {
     }
   };
 
+  // Toggle per-student completion for assessments, reminders, plain notices — allows
+  // each student to independently mark a notice as done (fades/strikes through for them only).
+  const toggleCompletion = async (noticeId, userId) => {
+    try {
+      const notice = notices.find(n => n.id === noticeId);
+      if (!notice) return false;
+
+      const completedBy = notice.meta?.completedBy || [];
+      const alreadyDone = completedBy.includes(userId);
+      const updatedCompletedBy = alreadyDone
+        ? completedBy.filter(id => id !== userId)
+        : [...completedBy, userId];
+
+      await updateNotice(noticeId, {
+        meta: { ...notice.meta, completedBy: updatedCompletedBy }
+      }, 'user');
+      return true;
+    } catch (error) {
+      console.error('Error toggling completion:', error);
+      return false;
+    }
+  };
+
   // Toggle pin status (admin and co-leaders only)
   const togglePin = async (noticeId, currentStatus) => {
     if (!canManageNotices) {
@@ -513,6 +536,7 @@ export function useNoticeBoard(currentUser, currentSemester) {
     voteInPoll,
     toggleChecklistItem,
     toggleTodo,
+    toggleCompletion,
     togglePin
   };
 }

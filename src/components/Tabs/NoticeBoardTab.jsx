@@ -50,6 +50,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
     voteInPoll,
     toggleChecklistItem,
     toggleTodo,
+    toggleCompletion,
     togglePin
   } = useNoticeBoard(selectedStudent, semester);
 
@@ -260,7 +261,13 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
           />
         );
       case 'reminder':
-        return <ReminderItem key={notice.id} {...commonProps} />;
+        return (
+          <ReminderItem
+            key={notice.id}
+            {...commonProps}
+            onToggleCompletion={() => toggleCompletion(notice.id, selectedStudent?.rollNo)}
+          />
+        );
       case 'todo':
         return (
           <TodoItem
@@ -275,6 +282,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
             key={notice.id}
             {...commonProps}
             onRequestEdit={(notice) => setEditingNotice(notice)}
+            onToggleCompletion={() => toggleCompletion(notice.id, selectedStudent?.rollNo)}
           />
         );
       default:

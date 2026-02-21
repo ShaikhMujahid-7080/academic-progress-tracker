@@ -103,7 +103,8 @@ export function useStudentManagement() {
         isProtected: true,
         role: 'admin',
         admissionYear: ADMIN_STUDENT.admissionYear || new Date().getFullYear(),
-        isDSY: ADMIN_STUDENT.isDSY || false
+        isDSY: ADMIN_STUDENT.isDSY || false,
+        isYD: ADMIN_STUDENT.isYD || false
       };
       setStudents([adminWithPassword]);
       setHasInitialized(true);
@@ -113,7 +114,7 @@ export function useStudentManagement() {
   };
 
   // Create new student with optional password and role + admission data
-  const createStudent = async (rollNo, name, password = '', role = 'student', admissionYear = (new Date()).getFullYear(), isDSY = false) => {
+  const createStudent = async (rollNo, name, password = '', role = 'student', admissionYear = (new Date()).getFullYear(), isDSY = false, isYD = false) => {
     try {
       const yearNum = Number(admissionYear);
       if (!Number.isInteger(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
@@ -128,6 +129,7 @@ export function useStudentManagement() {
         name,
         admissionYear: yearNum,
         isDSY,
+        isYD,
         isProtected: !!password,
         password: password ? bcrypt.hashSync(password, 10) : null,
         role: role
@@ -231,6 +233,72 @@ export function useStudentManagement() {
       return true;
     } catch (error) {
       console.error('Error updating name:', error);
+      throw error;
+    }
+  };
+
+  // Update student isDSY flag
+  const updateStudentDSY = async (rollNo, newIsDSY) => {
+    try {
+      if (typeof newIsDSY !== 'boolean') {
+        throw new Error('isDSY must be a boolean');
+      }
+
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const updatedStudent = { ...student, isDSY: newIsDSY };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+
+      // Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating isDSY:', error);
+      throw error;
+    }
+  };
+
+  // Update YD status
+  const updateStudentYD = async (rollNo, newIsYD) => {
+    try {
+      if (typeof newIsYD !== 'boolean') {
+        throw new Error('isYD must be a boolean');
+      }
+
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const updatedStudent = { ...student, isYD: newIsYD };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+
+      // Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating isYD:', error);
       throw error;
     }
   };
@@ -397,6 +465,8 @@ export function useStudentManagement() {
     updateStudentRole,
     updateCoLeaderPermissions,
     updateStudentName,
+    updateStudentDSY,
+    updateStudentYD,
     loadStudents
   };
 }

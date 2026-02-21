@@ -17,6 +17,7 @@ import { useFirestore } from "./components/hooks/useFirestore";
 import { useStudentManagement } from "./components/hooks/useStudentManagement";
 import { computeDefaultSemester, hasCompletedFourYears } from "./utils/studentUtils";
 import { Footer } from "./components/UI/Footer";
+import { useSubjects } from "./components/hooks/useSubjects";
 
 export default function App() {
   const [tab, setTab] = useState(0);
@@ -32,6 +33,10 @@ export default function App() {
     hasInitialized,
     selectStudent
   } = studentManagement;
+
+  // Subjects configuration
+  const isCoLeader = selectedStudent?.role === 'co-leader' && selectedStudent?.rollNo !== ADMIN_STUDENT.rollNo;
+  const { subjectsConfig, isLoading: subjectsLoading } = useSubjects(studentManagement.isAdmin, isCoLeader);
 
   // This key ensures local storage is always per selected student
   const studentKey = selectedStudent ? `academic-data-${selectedStudent.rollNo}` : 'academic-data-temp';
@@ -79,7 +84,8 @@ export default function App() {
     return () => { didCancel = true; };
 
     // eslint-disable-next-line
-  }, [selectedStudent, isOnline]);
+  }, [selectedStudent]); // Note: intentionally exclude isOnline — re-running on network
+  // toggle would wipe and reload data mid-edit, overwriting unsaved marks.
 
 
 
@@ -113,11 +119,13 @@ export default function App() {
     const key = `${semester}-${subject}`;
     const updatedItem = { data, type, semester, subject };
 
-    const updatedData = {
-      ...allData,
+    // Use functional updater to always merge into the LATEST state.
+    // Spreading from the captured `allData` closure would silently
+    // discard concurrent saves from other subjects (stale-closure bug).
+    setAllData(prev => ({
+      ...prev,
       [key]: updatedItem
-    };
-    setAllData(updatedData);
+    }));
 
     if (isOnline) {
       try {
@@ -150,7 +158,7 @@ export default function App() {
   };
 
   // Show loading or student selection screen if no student selected OR resettingData is in progress
-  if (!selectedStudent || studentsLoading || !hasInitialized || resettingData) {
+  if (!selectedStudent || studentsLoading || !hasInitialized || resettingData || subjectsLoading) {
     return (
       <div className={`
         min-h-screen transition-colors duration-700 relative overflow-hidden flex flex-col
@@ -211,21 +219,23 @@ export default function App() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <TabPanel value={tab} index={0}>
-          <TheoryTab
+          {subjectsConfig && <TheoryTab
             semester={semester}
             allData={allData}
             handleDataChange={handleDataChange}
             selectedStudent={selectedStudent}
-          />
+            subjectsConfig={subjectsConfig}
+          />}
         </TabPanel>
 
         <TabPanel value={tab} index={1}>
-          <PracticalTab
+          {subjectsConfig && <PracticalTab
             semester={semester}
             allData={allData}
             handleDataChange={handleDataChange}
             selectedStudent={selectedStudent}
-          />
+            subjectsConfig={subjectsConfig}
+          />}
         </TabPanel>
 
         <TabPanel value={tab} index={2}>
@@ -261,6 +271,7 @@ export default function App() {
               setTab(tabIndex);
               // Handle options if needed (e.g., showCreateForm)
             }}
+            subjectsConfig={subjectsConfig}
           />
         </TabPanel>
 

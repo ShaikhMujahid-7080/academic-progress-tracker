@@ -172,10 +172,13 @@ export function CalendarTab({ selectedStudent, semester }) {
     const events = useMemo(() => {
         return notices
             .flatMap(notice => {
+                const isDone = notice.meta?.completedBy?.includes(selectedStudent?.rollNo) || false;
+
                 const baseEvent = {
                     id: notice.id,
                     type: notice.type,
-                    meta: notice.meta
+                    meta: notice.meta,
+                    isDone
                 };
 
                 if (notice.type === 'todo' && notice.meta.dueDate) {
@@ -215,7 +218,8 @@ export function CalendarTab({ selectedStudent, semester }) {
                                 date,
                                 color: 'bg-purple-500',
                                 icon: GraduationCap,
-                                meta: notice.meta
+                                meta: notice.meta,
+                                isDone
                             };
                         }).filter(Boolean);
                     }
@@ -449,6 +453,7 @@ export function CalendarTab({ selectedStudent, semester }) {
                                                             event.type === 'todo' ? 'bg-blue-100 text-blue-700' :
                                                                 event.type === 'holiday' ? 'bg-red-100 text-red-700 font-medium' :
                                                                     'bg-yellow-100 text-yellow-700'}
+                            ${event.isDone ? 'opacity-50 saturate-50' : ''}
                           `}
                                                 >
                                                     <span className={`w-1.5 h-1.5 rounded-full ${event.type === 'holiday' ? 'bg-red-500' : event.color}`} />
@@ -520,6 +525,7 @@ export function CalendarTab({ selectedStudent, semester }) {
                                                 event.type === 'todo' ? 'bg-blue-50 border-blue-100' :
                                                     event.type === 'holiday' ? 'bg-red-50 border-red-200' :
                                                         'bg-yellow-50 border-yellow-100'}
+                      ${event.isDone ? 'opacity-60 saturate-50' : ''}
                     `}
                                     >
                                         <div className={`

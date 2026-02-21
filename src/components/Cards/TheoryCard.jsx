@@ -2,20 +2,26 @@ import { useState, useEffect, memo } from "react";
 import { BookOpen, Target, Award, Calculator } from "lucide-react";
 import { caOptions } from "../../data/subjects";
 
-export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, initialData, assessmentNotices = [] }) {
-  const [caData, setCaData] = useState({
-    ca1: { type: '', date: '', marks: '', source: null },
-    ca2: { type: '', date: '', marks: '', source: null },
-    ca3: { type: '', date: '', marks: '', source: null },
-    ca4: { type: '', date: '', marks: '', source: null },
-    midSem: { date: '', marks: '', source: null }
-  });
+export const TheoryCard = memo(function TheoryCard({ subject, subjectConfig, onDataChange, initialData, assessmentNotices = [] }) {
+  const caCount = subjectConfig?.caCount || 4;
 
+  const getInitialState = () => {
+    const defaultState = {};
+    for (let i = 1; i <= caCount; i++) {
+      defaultState[`ca${i}`] = { type: '', date: '', marks: '', source: null };
+    }
+    defaultState.midSem = { date: '', marks: '', source: null };
+    return defaultState;
+  };
+
+  const [caData, setCaData] = useState(getInitialState());
   const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
-    if (initialData) setCaData(initialData);
-  }, [initialData]);
+    if (initialData) {
+      setCaData(prev => ({ ...getInitialState(), ...initialData }));
+    }
+  }, [initialData, caCount]);
 
   // Auto-fill and Sync logic from assessment notices
   useEffect(() => {
@@ -86,7 +92,11 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
 
     if (hasChanges) {
       setCaData(newData);
-      onDataChange && onDataChange(subject, newData);
+      // Note: we intentionally do NOT call onDataChange here.
+      // The notice-sync effect only updates local UI state (e.g. auto-filling
+      // date/type from a posted assessment). Persisting to Firestore is the
+      // user's responsibility via the normal updateCA flow, which prevents
+      // stale caData snapshots from overwriting already-saved marks.
     }
   }, [assessmentNotices, subject]);
 
@@ -107,7 +117,9 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
       [caNum]: {
         ...caData[caNum],
         [field]: value,
-        source: (field === 'date' || field === 'type') ? 'manual' : caData[caNum].source
+        // Coerce undefined→null; old Firestore docs were saved without `source`
+        // and Firestore rejects undefined field values outright.
+        source: (field === 'date' || field === 'type') ? 'manual' : (caData[caNum].source ?? null)
       }
     };
     setCaData(newData);
@@ -115,26 +127,28 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
   };
 
   const calculateProgress = () => {
-    const totalFields = 14;
+    const totalFields = (caCount * 3) + 2; // (type, date, marks) per CA + (date, marks) for midSem
     let filledFields = 0;
-    ['ca1', 'ca2', 'ca3', 'ca4'].forEach(ca => {
-      if (caData[ca].type) filledFields++;
-      if (caData[ca].date) filledFields++;
-      if (caData[ca].marks) filledFields++;
+    Array.from({ length: caCount }, (_, i) => `ca${i + 1}`).forEach(ca => {
+      if (caData[ca]?.type) filledFields++;
+      if (caData[ca]?.date) filledFields++;
+      if (caData[ca]?.marks) filledFields++;
     });
-    if (caData.midSem.date) filledFields++;
-    if (caData.midSem.marks) filledFields++;
+    if (caData.midSem?.date) filledFields++;
+    if (caData.midSem?.marks) filledFields++;
     return Math.round((filledFields / totalFields) * 100);
   };
 
   // Calculate total internal marks
   const calculateTotalMarks = () => {
     let total = 0;
-    ['ca1', 'ca2', 'ca3', 'ca4'].forEach(ca => {
-      const marks = parseFloat(caData[ca].marks);
-      if (!isNaN(marks)) total += marks;
+    Array.from({ length: caCount }, (_, i) => `ca${i + 1}`).forEach(ca => {
+      if (caData[ca]) {
+        const marks = parseFloat(caData[ca].marks);
+        if (!isNaN(marks)) total += marks;
+      }
     });
-    const midSemMarks = parseFloat(caData.midSem.marks);
+    const midSemMarks = parseFloat(caData.midSem?.marks);
     if (!isNaN(midSemMarks)) total += midSemMarks;
     return total;
   };
@@ -174,7 +188,7 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
           <div className="flex items-center gap-4">
             <div className="text-right">
               <div className="text-lg font-bold">
-                {totalMarks}/60
+                {totalMarks}/{(caCount * 10) + 20}
               </div>
             </div>
             {/* Edit Toggle Icon */}
@@ -219,16 +233,16 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
               <Target className="w-4 h-4" />
-              Continuous Assessment (4 × 10 = 40 marks)
+              Continuous Assessment ({caCount} × 10 = {caCount * 10} marks)
             </h4>
 
-            {[1, 2, 3, 4].map((num) => (
+            {Array.from({ length: caCount }, (_, i) => i + 1).map((num) => (
               <div key={num} className="bg-gray-50 rounded-2xl p-4 space-y-3 border border-gray-100 hover:border-blue-200 transition-colors">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-800">CA-{num}</span>
-                  {caData[`ca${num}`].marks && (
+                  {caData[`ca${num}`]?.marks && (
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                      {caData[`ca${num}`].marks}/10
+                      {caData[`ca${num}`]?.marks}/10
                     </span>
                   )}
                 </div>
@@ -236,7 +250,7 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <select
                     className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                    value={caData[`ca${num}`].type}
+                    value={caData[`ca${num}`]?.type || ''}
                     onChange={(e) => updateCA(`ca${num}`, 'type', e.target.value)}
                   >
                     <option value="">Select Type</option>
@@ -248,7 +262,7 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
                   <input
                     type="date"
                     className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    value={caData[`ca${num}`].date}
+                    value={caData[`ca${num}`]?.date || ''}
                     onChange={(e) => updateCA(`ca${num}`, 'date', e.target.value)}
                   />
 
@@ -259,7 +273,7 @@ export const TheoryCard = memo(function TheoryCard({ subject, onDataChange, init
                     step="0.5"
                     placeholder="Marks (0-10)"
                     className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    value={caData[`ca${num}`].marks}
+                    value={caData[`ca${num}`]?.marks || ''}
                     onChange={(e) => updateCA(`ca${num}`, 'marks', e.target.value)}
                     onKeyDown={(e) => {
                       // Prevent entering invalid characters

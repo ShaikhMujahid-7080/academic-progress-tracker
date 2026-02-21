@@ -14,6 +14,12 @@ export const computeDefaultSemester = (student) => {
 
     // Number of full academic years passed since admission
     let yearsPassed = currentAcademicYearStart - admissionAcademicYearStart;
+
+    // Adjust for Year Drop (YD)
+    if (student.isYD) {
+        yearsPassed -= 1;
+    }
+
     if (yearsPassed < 0) yearsPassed = 0;
 
     const startSem = student.isDSY ? 3 : 1;
@@ -35,15 +41,20 @@ export const getStudentYear = (student) => {
     const now = new Date();
     const month = now.getMonth() + 1;
     const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-    const yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
+    let yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
+    if (student.isYD) {
+        yearsPassed -= 1;
+    }
+    if (yearsPassed < 0) yearsPassed = 0;
 
     // If semester > 8 or years passed >= 4 (for non-DSY) or >= 3 (for DSY)
     // Actually, computeDefaultSemester caps sem at 8. 
     // Let's check yearsPassed instead for Passout.
-    const maxYears = student.isDSY ? 3 : 4;
+    // Also add +1 to maxYears if they had a Year Drop to delay passout label.
+    const baseMaxYears = student.isDSY ? 3 : 4;
 
-    if (yearsPassed >= maxYears) {
-        if (month >= 7 || yearsPassed > maxYears) return "Passout";
+    if (yearsPassed >= baseMaxYears) {
+        if (month >= 7 || yearsPassed > baseMaxYears) return "Passout";
     }
 
     if (sem <= 2) return "1st Year";
@@ -61,7 +72,8 @@ export const hasCompletedFourYears = (student) => {
     const now = new Date();
     const month = now.getMonth() + 1;
     const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-    const yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
+    let yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
+    if (student.isYD) yearsPassed -= 1;
     return yearsPassed >= 4;
 };
 
@@ -73,14 +85,15 @@ export const shouldDeleteStudent = (student) => {
     const now = new Date();
     const month = now.getMonth() + 1;
     const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-    const yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
+    let yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
+    if (student.isYD) yearsPassed -= 1;
 
     // Graduation happens after maxYears (4 for normal, 3 for DSY)
-    const maxYears = student.isDSY ? 3 : 4;
+    const baseMaxYears = student.isDSY ? 3 : 4;
 
     // Delete 1 year after graduation
     // If they graduate in 2024 (yearsPassed 4/3), they should be deleted in 2025 (yearsPassed 5/4)
-    const deletionYears = maxYears + 1;
+    const deletionYears = baseMaxYears + 1;
 
     return yearsPassed >= deletionYears;
 };

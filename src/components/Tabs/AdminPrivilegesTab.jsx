@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { ADMIN_STUDENT } from "../../data/subjects";
 import { toast } from 'react-toastify';
+import { SubjectManager } from "../Admin/SubjectManager";
+import { useSubjects } from "../hooks/useSubjects";
 
 // Default permissions for new co-leaders
 const DEFAULT_PERMISSIONS = {
@@ -44,6 +46,10 @@ export function AdminPrivilegesTab({
     updateStudentPassword,
     updateCoLeaderPermissions
   } = studentManagement;
+
+  // Initialize subjects config hook scoped to Admin Tab
+  const subjectsHook = useSubjects(isAdmin, selectedStudent?.role === 'co-leader');
+  const { subjectsConfig } = subjectsHook;
 
   const [expandedCoLeader, setExpandedCoLeader] = useState(null);
   const [passwordSearchQuery, setPasswordSearchQuery] = useState("");
@@ -504,6 +510,11 @@ export function AdminPrivilegesTab({
           </button>
         </div>
       </div>
+
+      {/* Curriculum Management (Admin Only) */}
+      {isAdmin && (
+        <SubjectManager subjectsConfig={subjectsConfig} subjectsHook={subjectsHook} />
+      )}
 
       {/* Co-Leader Permissions (Admin Only) */}
       {isAdmin && (

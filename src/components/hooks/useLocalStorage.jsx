@@ -13,8 +13,17 @@ export function useLocalStorage(key, initialValue) {
 
   const setValue = (value) => {
     try {
-      setStoredValue(value);
-      window.localStorage.setItem(key, JSON.stringify(value));
+      // Support functional updater pattern: setValue(prev => newVal)
+      if (typeof value === 'function') {
+        setStoredValue(prev => {
+          const next = value(prev);
+          window.localStorage.setItem(key, JSON.stringify(next));
+          return next;
+        });
+      } else {
+        setStoredValue(value);
+        window.localStorage.setItem(key, JSON.stringify(value));
+      }
     } catch (error) {
       console.error(`Error setting localStorage key "${key}":`, error);
     }
