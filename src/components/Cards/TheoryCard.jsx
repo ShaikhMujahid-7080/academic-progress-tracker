@@ -156,6 +156,45 @@ export const TheoryCard = memo(function TheoryCard({ subject, subjectConfig, onD
   const progress = calculateProgress();
   const totalMarks = calculateTotalMarks();
 
+  // Color Status Helpers
+  const getCAStatus = (data) => {
+    if (data?.marks && data.marks !== '') return 'completed';
+    if (data?.date) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const examDate = new Date(data.date);
+      if (examDate < today) return 'expired';
+    }
+    return 'pending';
+  };
+
+  const getStatusStyles = (status, isMidSem = false) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-50 border-green-200 ring-1 ring-green-100';
+      case 'expired':
+        return 'bg-red-50 border-red-200 ring-1 ring-red-100';
+      default:
+        return isMidSem ? 'bg-orange-50 border-orange-100' : 'bg-white border-gray-100';
+    }
+  };
+
+  const getStatusTextStyles = (status, isMidSem = false) => {
+    switch (status) {
+      case 'completed': return 'text-green-700';
+      case 'expired': return 'text-red-700';
+      default: return isMidSem ? 'text-orange-900' : 'text-gray-800';
+    }
+  };
+
+  const getLabelStyles = (status, isMidSem = false) => {
+    switch (status) {
+      case 'completed': return 'text-green-400';
+      case 'expired': return 'text-red-400';
+      default: return isMidSem ? 'text-orange-400' : 'text-gray-400';
+    }
+  };
+
   return (
     <div className="bg-white rounded-3xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden group">
       {/* Header with progress and total marks */}
@@ -203,20 +242,28 @@ export const TheoryCard = memo(function TheoryCard({ subject, subjectConfig, onD
       {!isExpanded && (
         <div className="p-4 bg-gray-50/50 cursor-pointer" onClick={() => setIsExpanded(true)}>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center">
-            {['ca1', 'ca2', 'ca3', 'ca4'].map((key, index) => (
-              <div key={key} className="flex flex-col items-center p-2 rounded-xl border border-gray-100 bg-white shadow-sm">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">CA-{index + 1}</span>
-                <span className={`font-mono font-bold ${caData[key].marks ? 'text-gray-800 text-lg' : 'text-gray-300'}`}>
-                  {caData[key].marks || '0'}
-                </span>
-              </div>
-            ))}
-            <div className="flex flex-col items-center p-2 rounded-xl border border-orange-100 bg-orange-50 shadow-sm">
-              <span className="text-xs font-bold text-orange-400 uppercase tracking-wider mb-1">Mid</span>
-              <span className={`font-mono font-bold ${caData.midSem.marks ? 'text-orange-900 text-lg' : 'text-orange-300'}`}>
-                {caData.midSem.marks || '0'}
-              </span>
-            </div>
+            {Array.from({ length: caCount }, (_, i) => `ca${i + 1}`).map((key, index) => {
+              const status = getCAStatus(caData[key]);
+              return (
+                <div key={key} className={`flex flex-col items-center p-2 rounded-xl border shadow-sm transition-colors ${getStatusStyles(status)}`}>
+                  <span className={`text-xs font-bold uppercase tracking-wider mb-1 ${getLabelStyles(status)}`}>CA-{index + 1}</span>
+                  <span className={`font-mono font-bold text-lg ${getStatusTextStyles(status)}`}>
+                    {caData[key].marks || '0'}
+                  </span>
+                </div>
+              );
+            })}
+            {(() => {
+              const status = getCAStatus(caData.midSem);
+              return (
+                <div className={`flex flex-col items-center p-2 rounded-xl border shadow-sm transition-colors ${getStatusStyles(status, true)}`}>
+                  <span className={`text-xs font-bold uppercase tracking-wider mb-1 ${getLabelStyles(status, true)}`}>Mid</span>
+                  <span className={`font-mono font-bold text-lg ${getStatusTextStyles(status, true)}`}>
+                    {caData.midSem.marks || '0'}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
           <div className="mt-3 text-center">
             <span className="text-xs font-medium text-blue-500 hover:text-blue-600 transition-colors uppercase tracking-widest border-b border-dashed border-blue-300 pb-0.5">
@@ -236,55 +283,61 @@ export const TheoryCard = memo(function TheoryCard({ subject, subjectConfig, onD
               Continuous Assessment ({caCount} × 10 = {caCount * 10} marks)
             </h4>
 
-            {Array.from({ length: caCount }, (_, i) => i + 1).map((num) => (
-              <div key={num} className="bg-gray-50 rounded-2xl p-4 space-y-3 border border-gray-100 hover:border-blue-200 transition-colors">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-800">CA-{num}</span>
-                  {caData[`ca${num}`]?.marks && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                      {caData[`ca${num}`]?.marks}/10
-                    </span>
-                  )}
+            {Array.from({ length: caCount }, (_, i) => i + 1).map((num) => {
+              const key = `ca${num}`;
+              const status = getCAStatus(caData[key]);
+              return (
+                <div key={num} className={`rounded-2xl p-4 space-y-3 border transition-all ${getStatusStyles(status)} hover:shadow-md`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`font-bold ${getStatusTextStyles(status)}`}>CA-{num}</span>
+                    {caData[key]?.marks && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
+                        {caData[key]?.marks}/10
+                      </span>
+                    )}
+                    {status === 'expired' && (
+                      <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold uppercase tracking-tight">
+                        Date Passed
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <select
+                      className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white font-medium"
+                      value={caData[key]?.type || ''}
+                      onChange={(e) => updateCA(key, 'type', e.target.value)}
+                    >
+                      <option value="">Select Type</option>
+                      {caOptions.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="date"
+                      className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-medium ${status === 'expired' ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white'}`}
+                      value={caData[key]?.date || ''}
+                      onChange={(e) => updateCA(key, 'date', e.target.value)}
+                    />
+
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.5"
+                      placeholder="Marks (0-10)"
+                      className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-bold ${status === 'completed' ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-white'}`}
+                      value={caData[key]?.marks || ''}
+                      onChange={(e) => updateCA(key, 'marks', e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === '-' || e.key === '+') e.preventDefault();
+                      }}
+                    />
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <select
-                    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                    value={caData[`ca${num}`]?.type || ''}
-                    onChange={(e) => updateCA(`ca${num}`, 'type', e.target.value)}
-                  >
-                    <option value="">Select Type</option>
-                    {caOptions.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-
-                  <input
-                    type="date"
-                    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    value={caData[`ca${num}`]?.date || ''}
-                    onChange={(e) => updateCA(`ca${num}`, 'date', e.target.value)}
-                  />
-
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    step="0.5"
-                    placeholder="Marks (0-10)"
-                    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    value={caData[`ca${num}`]?.marks || ''}
-                    onChange={(e) => updateCA(`ca${num}`, 'marks', e.target.value)}
-                    onKeyDown={(e) => {
-                      // Prevent entering invalid characters
-                      if (e.key === '-' || e.key === '+') {
-                        e.preventDefault();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Mid Semester */}
@@ -294,42 +347,49 @@ export const TheoryCard = memo(function TheoryCard({ subject, subjectConfig, onD
               Mid Semester Exam (20 marks)
             </h4>
 
-            <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-4 border border-orange-200">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-medium text-gray-800">Mid-Sem Exam</span>
-                {caData.midSem.marks && (
-                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
-                    {caData.midSem.marks}/20
-                  </span>
-                )}
-              </div>
+            {(() => {
+              const status = getCAStatus(caData.midSem);
+              return (
+                <div className={`rounded-2xl p-4 border transition-all ${getStatusStyles(status, true)} hover:shadow-md`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`font-bold ${getStatusTextStyles(status, true)}`}>Mid-Sem Exam</span>
+                    {caData.midSem.marks && (
+                      <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-bold">
+                        {caData.midSem.marks}/20
+                      </span>
+                    )}
+                    {status === 'expired' && (
+                      <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold uppercase tracking-tight">
+                        Date Passed
+                      </span>
+                    )}
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input
-                  type="date"
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-                  value={caData.midSem.date}
-                  onChange={(e) => updateCA('midSem', 'date', e.target.value)}
-                />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input
+                      type="date"
+                      className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all font-medium ${status === 'expired' ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white'}`}
+                      value={caData.midSem.date}
+                      onChange={(e) => updateCA('midSem', 'date', e.target.value)}
+                    />
 
-                <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  step="0.5"
-                  placeholder="Marks (0-20)"
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-                  value={caData.midSem.marks}
-                  onChange={(e) => updateCA('midSem', 'marks', e.target.value)}
-                  onKeyDown={(e) => {
-                    // Prevent entering invalid characters
-                    if (e.key === '-' || e.key === '+') {
-                      e.preventDefault();
-                    }
-                  }}
-                />
-              </div>
-            </div>
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      step="0.5"
+                      placeholder="Marks (0-20)"
+                      className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all font-bold ${status === 'completed' ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-white'}`}
+                      value={caData.midSem.marks}
+                      onChange={(e) => updateCA('midSem', 'marks', e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === '-' || e.key === '+') e.preventDefault();
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           <button

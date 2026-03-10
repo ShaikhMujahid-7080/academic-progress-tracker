@@ -1,11 +1,23 @@
 > Pending
-1) add: [PersonalNotes] give an option to student to store/upload studymaterial/imgs/file upto 10mb in their personal notes section/tab & make it (temporary) automatically delete after 48 hours, the current firebase plan (Free) doesnt support file upload/storage, so we'll have to make adjustments for that (store in database or something) 
+1) add: [NoticeBoard] give an option to post/store/upload studymaterial/imgs/file upto 10mb as a special notice & make it (temporary) automatically delete after 48 hours, the current firebase plan (Free) doesnt support file upload/storage, so we'll have to make adjustments for that (store in database or something) 
 2)  add: [Profile] give an Ability to add or remove user profile photo to each student
 3) add: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
 4) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
-5) enhance: [Readme] update the Readme page/file
-6) add: [Dashboard] add a dashboard page
-7) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
+5) add: [Dashboard] add a dashboard page
+6) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
+7) 
+
+
+
+> 10/3/26
+* fixed:
+  * fix: [blankscreen] the compact view hardcodes ['ca1', 'ca2', 'ca3', 'ca4'] instead of using caCount. So when caCount is less than 4 (e.g., a subject configured with only 3 CAs), caData['ca4'] is undefined, causing the .marks access to crash.
+  * fix: [Admin database] `isDSY` field auto-resetting to `false`
+* enhanced:
+  * enhance: [Subject & Curriculum Management] make the Subject & Curriculum Management card collapsible/expandable (default collapsed)
+  * enhance: [Theorycard] make the (each) CA block/box change color to red (light) if the entered/set date is passed/expired but marks are not entered by the user and if the marks are entered change it to green (light) color
+  * enhance: [Readme] update the README.md page/file
+  * enhance the README.md, make it really beautiful & amazing matching the webiste vibe
 
 > Completed
 22/02/2026:

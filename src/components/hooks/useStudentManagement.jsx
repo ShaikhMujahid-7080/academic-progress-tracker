@@ -388,6 +388,12 @@ export function useStudentManagement() {
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating password:', error);

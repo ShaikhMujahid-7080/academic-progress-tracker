@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, FlaskConical, Plus, Trash2, Edit2, Save, X, Settings2, GripVertical, AlertTriangle } from 'lucide-react';
+import { BookOpen, FlaskConical, Plus, Trash2, Edit2, Save, X, Settings2, GripVertical, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export function SubjectManager({ subjectsConfig, subjectsHook }) {
@@ -21,6 +21,9 @@ export function SubjectManager({ subjectsConfig, subjectsHook }) {
     // Add State
     const [isAdding, setIsAdding] = useState(false);
     const [addForm, setAddForm] = useState({ name: '', count: '' });
+
+    // Collapsible State - Default collapsed
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const currentSubjects = subjectsConfig?.[selectedSemester]?.[activeTab] || [];
 
@@ -131,30 +134,45 @@ export function SubjectManager({ subjectsConfig, subjectsHook }) {
     }
 
     return (
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div>
-                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                        <Settings2 className="w-6 h-6 text-blue-500" />
-                        Subject & Curriculum Management
-                    </h3>
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 transition-all duration-300">
+            <div 
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer group"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <div className="flex-1">
+                    <div className="flex items-center justify-between sm:justify-start gap-4">
+                        <div className="flex items-center gap-2">
+                            <Settings2 className="w-6 h-6 text-blue-500" />
+                            <h3 className="text-xl font-bold text-gray-900">
+                                Subject & Curriculum Management
+                            </h3>
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded-xl border border-gray-100 group-hover:bg-blue-50 group-hover:border-blue-200 transition-colors">
+                            {isExpanded ? <ChevronUp className="w-5 h-5 text-blue-600" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                        </div>
+                    </div>
                     <p className="text-sm text-gray-500 mt-1">Manage theory subjects, practicals, CAs, and Lab counts.</p>
                 </div>
 
-                {/* Semester Selector */}
-                <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
-                    <span className="text-sm font-medium text-gray-600 pl-2">Sem:</span>
-                    <select
-                        className="bg-white border-none rounded-lg text-sm font-semibold text-gray-800 py-1.5 px-3 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer"
-                        value={selectedSemester}
-                        onChange={(e) => handleSemesterChange(parseInt(e.target.value))}
-                    >
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
-                            <option key={sem} value={sem}>{sem}</option>
-                        ))}
-                    </select>
-                </div>
+                {isExpanded && (
+                    /* Semester Selector - Only visible when expanded */
+                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-sm font-medium text-gray-600 pl-2">Sem:</span>
+                        <select
+                            className="bg-white border-none rounded-lg text-sm font-semibold text-gray-800 py-1.5 px-3 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer"
+                            value={selectedSemester}
+                            onChange={(e) => handleSemesterChange(parseInt(e.target.value))}
+                        >
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                                <option key={sem} value={sem}>{sem}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
+
+            {isExpanded && (
+                <div className="mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
 
             <div className="p-3 bg-red-50 border border-red-100 rounded-xl mb-6">
                 <div className="flex gap-2 text-red-700">
@@ -329,6 +347,8 @@ export function SubjectManager({ subjectsConfig, subjectsHook }) {
                     </button>
                 )}
             </div>
+                </div>
+            )}
         </div>
     );
 }
