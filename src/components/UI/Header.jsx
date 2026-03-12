@@ -179,8 +179,12 @@ export function Header({ semester, syncStatus, selectedStudent, onStudentSwitch,
                     </span>
                   </div>
                   <div className="relative">
-                    <div className="w-10 h-10 bg-white border-2 border-gray-100 rounded-xl flex items-center justify-center shadow-sm">
-                      <User className="w-5 h-5 text-gray-400" />
+                    <div className="w-10 h-10 bg-white border-2 border-gray-100 rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
+                      {selectedStudent.photoURL ? (
+                        <img src={selectedStudent.photoURL} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-5 h-5 text-gray-400" />
+                      )}
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white text-white text-[10px] font-bold shadow-sm">
                       {selectedStudent.name.charAt(0)}

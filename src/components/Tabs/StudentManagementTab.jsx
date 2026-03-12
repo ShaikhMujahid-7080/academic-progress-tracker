@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check, ShieldAlert } from "lucide-react";
+import React, { useState, useMemo, useRef } from "react";
+import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check, ShieldAlert, Camera, Image as ImageIcon } from "lucide-react";
 import { subjects, ADMIN_STUDENT } from "../../data/subjects";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
@@ -24,7 +24,10 @@ export function StudentManagementTab({
     updateStudentRole,
     updateStudentName,
     updateStudentDSY,
-    updateStudentYD
+    updateStudentAdmissionYear,
+    updateStudentYD,
+    updateStudentPhoto,
+    removeStudentPhoto
   } = studentManagement;
 
   // Check if current user is a co-leader with permissions
@@ -50,6 +53,15 @@ export function StudentManagementTab({
   const [tempName, setTempName] = useState("");
   const [isSavingName, setIsSavingName] = useState(false);
 
+  // Admission year edit states
+  const [isEditingYear, setIsEditingYear] = useState(false);
+  const [tempYear, setTempYear] = useState("");
+  const [isSavingYear, setIsSavingYear] = useState(false);
+
+  // Photo management states
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
   // Admin authentication states
   const [showAdminAuth, setShowAdminAuth] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
@@ -118,6 +130,37 @@ export function StudentManagementTab({
       toast.error(`❌ Error updating name: ${error.message}`);
     } finally {
       setIsSavingName(false);
+    }
+  };
+
+  const handleStartEditYear = () => {
+    setTempYear(selectedStudent.admissionYear?.toString() || "");
+    setIsEditingYear(true);
+  };
+
+  const handleCancelEditYear = () => {
+    setIsEditingYear(false);
+    setTempYear("");
+  };
+
+  const handleSaveYear = async () => {
+    const yearNum = Number(tempYear);
+    const currentYear = new Date().getFullYear();
+    
+    if (!tempYear || !Number.isInteger(yearNum) || yearNum < 2000 || yearNum > currentYear) {
+      toast.error("Please enter a valid admission year");
+      return;
+    }
+
+    try {
+      setIsSavingYear(true);
+      await updateStudentAdmissionYear(selectedStudent.rollNo, yearNum);
+      toast.success("✅ Admission year updated successfully!");
+      setIsEditingYear(false);
+    } catch (error) {
+      toast.error(`❌ Error updating admission year: ${error.message}`);
+    } finally {
+      setIsSavingYear(false);
     }
   };
 
@@ -385,17 +428,6 @@ export function StudentManagementTab({
     });
   };
 
-  const handleToggleDSY = async (student, e) => {
-    e.stopPropagation();
-    try {
-      const newVal = !student.isDSY;
-      await updateStudentDSY(student.rollNo, newVal);
-      toast.success(`✅ ${student.name} marked as ${newVal ? 'DSY' : 'non-DSY'}`);
-    } catch (error) {
-      toast.error(`❌ Error updating DSY: ${error.message}`);
-    }
-  };
-
   const handleToggleYD = async (student, e) => {
     e.stopPropagation();
     try {
@@ -407,6 +439,53 @@ export function StudentManagementTab({
     }
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size exceeds 10MB limit");
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    try {
+      setIsUploadingPhoto(true);
+      await updateStudentPhoto(selectedStudent.rollNo, file);
+      toast.success("✅ Profile photo updated!");
+    } catch (error) {
+      toast.error(`❌ Upload failed: ${error.message}`);
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    showConfirm({
+      title: 'Remove Photo',
+      message: 'Are you sure you want to remove your profile photo?',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      confirmColor: 'red',
+      icon: 'warning',
+      onConfirm: async () => {
+        try {
+          setIsRemovingPhoto(true);
+          await removeStudentPhoto(selectedStudent.rollNo);
+          toast.success("✅ Profile photo removed!");
+        } catch (error) {
+          toast.error(`❌ Error removing photo: ${error.message}`);
+        } finally {
+          setIsRemovingPhoto(false);
+        }
+      }
+    });
+  };
   const clearSearch = () => {
     setSearchQuery("");
   };
@@ -675,9 +754,64 @@ export function StudentManagementTab({
                   ? 'bg-white/60'
                   : 'bg-white/80'
                 }`}>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center gap-4 mb-6 relative">
+                  {/* Photo Section */}
+                  <div className="relative group/photo">
+                    <div className={`w-20 h-20 rounded-2xl overflow-hidden border-2 flex items-center justify-center transition-all bg-white relative
+                      ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo ? 'border-amber-400' : selectedStudent.role === 'co-leader' ? 'border-purple-400' : 'border-blue-400'}
+                    `}>
+                      {selectedStudent.photoURL ? (
+                        <img 
+                          src={selectedStudent.photoURL} 
+                          alt={selectedStudent.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className={`w-full h-full flex items-center justify-center ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo ? 'bg-amber-100' : selectedStudent.role === 'co-leader' ? 'bg-purple-100' : 'bg-blue-100'}`}>
+                          <User className={`w-10 h-10 ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo ? 'text-amber-500' : selectedStudent.role === 'co-leader' ? 'text-purple-500' : 'text-blue-500'}`} />
+                        </div>
+                      )}
 
+                      {/* Upload Loading Overlay */}
+                      {isUploadingPhoto && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                          <Loader2 className="w-6 h-6 animate-spin text-white" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick Edit Button Overlay */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingPhoto}
+                      className="absolute -bottom-2 -right-2 p-1.5 bg-white rounded-lg shadow-lg border border-gray-100 text-gray-600 hover:text-blue-600 transition-all hover:scale-110 active:scale-95 z-20"
+                      title="Update Photo"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Remove Photo Button */}
+                    {selectedStudent.photoURL && (
+                      <button
+                        onClick={handleRemovePhoto}
+                        disabled={isRemovingPhoto}
+                        className="absolute -top-2 -right-2 p-1 bg-white rounded-lg shadow-md border border-gray-100 text-red-500 hover:bg-red-50 opacity-0 group-hover/photo:opacity-100 transition-all z-20"
+                        title="Remove Photo"
+                      >
+                        {isRemovingPhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                      </button>
+                    )}
+
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                    />
+                  </div>
+
+                  <div className="flex-1">
                     <div className="flex items-center gap-2">
                       {isEditingName ? (
                         <div className="flex items-center gap-2">
@@ -750,26 +884,63 @@ export function StudentManagementTab({
                       </div>
                     )}
 
-                    {/* Admission Info with DSY toggle for admin */}
-                    {selectedStudent.admissionYear && (
-                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
-                        Admission: {selectedStudent.admissionYear || 'N/A'}
-                        {isAdmin ? (
-                          <button
-                            onClick={(e) => handleToggleDSY(selectedStudent, e)}
-                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${selectedStudent.isDSY
-                              ? 'bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200'
-                              : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
-                              }`}
-                            title="Click to toggle DSY status"
-                          >
-                            {selectedStudent.isDSY ? '✓ DSY' : 'Non-DSY'}
-                          </button>
+                    {/* Admission Info with DSY toggle */}
+                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <span>Admission:</span>
+                        {isEditingYear ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={tempYear}
+                              onChange={(e) => setTempYear(e.target.value)}
+                              className="w-16 px-1 py-0.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveYear();
+                                if (e.key === 'Escape') handleCancelEditYear();
+                              }}
+                            />
+                            <button
+                              onClick={handleSaveYear}
+                              disabled={isSavingYear}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              {isSavingYear ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                            </button>
+                            <button
+                              onClick={handleCancelEditYear}
+                              disabled={isSavingYear}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
                         ) : (
-                          selectedStudent.isDSY ? ' (DSY)' : ''
+                          <div className="flex items-center gap-1 group/year">
+                            <span className="font-medium text-gray-700">{selectedStudent.admissionYear || 'N/A'}</span>
+                            <button
+                              onClick={handleStartEditYear}
+                              className="opacity-0 group-hover/year:opacity-100 p-0.5 text-gray-400 hover:text-blue-600 transition-all"
+                              title="Edit Admission Year"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                          </div>
                         )}
-                      </p>
-                    )}
+                      </div>
+                      
+                      <button
+                        onClick={(e) => handleToggleDSY(selectedStudent, e)}
+                        className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${selectedStudent.isDSY
+                          ? 'bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200'
+                          : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+                          }`}
+                        title="Click to toggle DSY status"
+                      >
+                        {selectedStudent.isDSY ? '✓ DSY' : 'Non-DSY'}
+                      </button>
+                    </div>
 
                     <div className="flex items-center gap-2 mt-2">
                       <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${getRoleDisplay(selectedStudent.role || 'student').bgColor
@@ -1084,13 +1255,31 @@ export function StudentManagementTab({
 
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-bold text-gray-900">{student.name}</h4>
-                        {React.createElement(roleDisplay.icon, {
-                          className: `w-4 h-4 ${roleDisplay.color}`
-                        })}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-10 h-10 rounded-xl overflow-hidden border flex-shrink-0 flex items-center justify-center bg-white
+                          ${selectedStudent?.rollNo === student.rollNo
+                            ? student.rollNo === ADMIN_STUDENT.rollNo ? 'border-amber-400' : 'border-blue-400'
+                            : 'border-gray-200'
+                          }
+                        `}>
+                          {student.photoURL ? (
+                            <img src={student.photoURL} alt={student.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className={`w-full h-full flex items-center justify-center ${student.rollNo === ADMIN_STUDENT.rollNo ? 'bg-amber-100' : 'bg-blue-50'}`}>
+                              <User className={`w-5 h-5 ${student.rollNo === ADMIN_STUDENT.rollNo ? 'text-amber-500' : 'text-blue-500'}`} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h4 className="font-bold text-gray-900 truncate">{student.name}</h4>
+                            {React.createElement(roleDisplay.icon, {
+                              className: `w-4 h-4 ${roleDisplay.color}`
+                            })}
+                          </div>
+                          <p className="text-sm text-gray-600">Roll: {student.rollNo}</p>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-1">Roll: {student.rollNo}</p>
 
                       {student.admissionYear && (
                         <div className="mb-2">

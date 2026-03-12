@@ -1,13 +1,29 @@
 > Pending
-1) add: [NoticeBoard] give an option to post/store/upload studymaterial/imgs/file upto 10mb as a special notice & make it (temporary) automatically delete after 48 hours, the current firebase plan (Free) doesnt support file upload/storage, so we'll have to make adjustments for that (store in database or something) 
-2)  add: [Profile] give an Ability to add or remove user profile photo to each student
-3) add: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
-4) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
-5) add: [Dashboard] add a dashboard page
-6) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
-7) 
+1) add: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
+2) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
+3) add: [Dashboard] add a dashboard page
+4) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
+5)
 
 
+
+> 13/3/26
+* Added:
+  * add: [NoticeBoard] add new notice for code snippets, that will allow students to easily one click copy the code/snippets
+  * add: [Calendar] add holidays that keeps changing every year and ability to add custom holiday(s) for perticular day/date
+  * add: [Student] option to edit the (own) admission year & dsy status to all students
+  * add: [Supabase] setup supabase for future file upload/storage while keeping the current firebase plan (Free) as it is
+  * add: [Profile] give an Ability to add or remove user profile photo to each student (store the profile photo in supabase)
+* Changed:
+  * change: [Clock] change the clock to always show the date in dd/mm/yyyy format
+* Enhanced:
+  * enhance: Hiding Supabase API Keys on GitHub Pages (Using GitHub Actions) - just like we did with the Firebase API Keys
+  * enhance: [StudyMaterialNotice] enhance the UI of the study material notice to make it look better for both phone & desktop
+  * enhance: [StudyMaterialNotice] make the notice display the file if its an image with download button if pdf or other then just file widget with download btn 
+* Fixed:
+  * fix: [Profile] fix the issue of profile photo not updating if the file extension is same as the previous one (i.e. if the previous photo was .jpg and the new photo is also .jpg, it says updated but shows the previous photo even in the supabase)
+  * fix: [StudyMaterialNotice] fix the issue of study material notice is being uploaded on the supabase but not being displayed on the noticeboard
+  * fix: [StudymaterialNotice] fix the issue of studymaterial notice not being deleted from the supabase storage when deleted from the noticeboard
 
 > 10/3/26
 * fixed:

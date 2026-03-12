@@ -109,13 +109,15 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
           {/* Header */}
           <div className="text-center mb-8 relative z-10">
             <div className={`
-              w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg transition-transform duration-500 group-hover:scale-110
+              w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg transition-transform duration-500 group-hover:scale-110 overflow-hidden
               ${selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo
                 ? 'bg-gradient-to-br from-amber-400 to-orange-600'
                 : 'bg-gradient-to-br from-blue-500 to-indigo-700'
               }
             `}>
-              {selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo ? (
+              {selectedStudentForAuth.photoURL ? (
+                <img src={selectedStudentForAuth.photoURL} alt="" className="w-full h-full object-cover" />
+              ) : selectedStudentForAuth.rollNo === ADMIN_STUDENT.rollNo ? (
                 <Crown className="w-10 h-10 text-white drop-shadow-md" />
               ) : (
                 <Lock className="w-10 h-10 text-white drop-shadow-md" />
@@ -135,8 +137,12 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
           {/* Student Info */}
           <div className={`mb-8 p-5 backdrop-blur-md rounded-[1.5rem] border ${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-100'}`}>
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-white/10' : 'bg-blue-100'}`}>
-                <User className={`w-6 h-6 ${isDark ? 'text-white' : 'text-blue-600'}`} />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden ${isDark ? 'bg-white/10' : 'bg-blue-100'}`}>
+                {selectedStudentForAuth.photoURL ? (
+                  <img src={selectedStudentForAuth.photoURL} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <User className={`w-6 h-6 ${isDark ? 'text-white' : 'text-blue-600'}`} />
+                )}
               </div>
               <div className="min-w-0">
                 <p className={`font-bold text-lg truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{selectedStudentForAuth.name}</p>
@@ -332,7 +338,7 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
               >
                 <div className="flex items-center gap-4 flex-1">
                   <div className={`
-                    w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner shrink-0 scale-95 group-hover/student:scale-100 transition-transform duration-300
+                    w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner shrink-0 scale-95 group-hover/student:scale-100 transition-transform duration-300 overflow-hidden
                     ${student.rollNo === ADMIN_STUDENT.rollNo
                       ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-amber-950 shadow-lg shadow-amber-500/20'
                       : student.isProtected
@@ -340,7 +346,9 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
                         : isDark ? 'bg-white/10 text-slate-300' : 'bg-blue-100 text-blue-600'
                     }
                   `}>
-                    {student.rollNo === ADMIN_STUDENT.rollNo ? (
+                    {student.photoURL ? (
+                      <img src={student.photoURL} alt="" className="w-full h-full object-cover" />
+                    ) : student.rollNo === ADMIN_STUDENT.rollNo ? (
                       <Crown className="w-7 h-7" />
                     ) : student.isProtected ? (
                       <Lock className="w-7 h-7" />

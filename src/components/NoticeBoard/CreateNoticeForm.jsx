@@ -17,11 +17,15 @@ import {
   EyeOff,
   Eye,
   GraduationCap,
-  Clock
+  Clock,
+  Terminal,
+  Paperclip,
+  Upload,
+  File
 } from "lucide-react";
 import { ADMIN_STUDENT, subjects } from "../../data/subjects";
 
-export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, initialData = null, semester = 5 }) {
+export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, initialData = null, semester = 5, uploadNoticeFile }) {
   const [noticeType, setNoticeType] = useState(initialData?.type || 'notice');
   const [content, setContent] = useState(initialData?.content || '');
   const [meta, setMeta] = useState(initialData?.meta || {});
@@ -30,14 +34,18 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
   const [deleteAt, setDeleteAt] = useState(() => {
     if (initialData?.deleteAt) {
       const date = initialData.deleteAt.toDate ? initialData.deleteAt.toDate() : new Date(initialData.deleteAt);
-      return date.toISOString().slice(0, 16);
+      // Format to local datetime string for datetime-local input
+      return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
     }
     // Default to 1 year from now
     const oneYearFromNow = new Date();
     oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-    return oneYearFromNow.toISOString().slice(0, 16);
+    // Format to local datetime string for datetime-local input
+    return new Date(oneYearFromNow.getTime() - (oneYearFromNow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
   });
   const [useAutoDelete, setUseAutoDelete] = useState(initialData ? !!initialData.deleteAt : true);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const isEditing = !!initialData;
 
@@ -47,7 +55,9 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
     { id: 'poll', label: 'Poll', icon: BarChart3, description: 'Survey with voting options' },
     { id: 'reminder', label: 'Reminder', icon: Bell, description: 'Time-based reminder notification' },
     { id: 'todo', label: 'Todo', icon: Calendar, description: 'Task with due date and completion tracking' },
-    { id: 'assessment', label: 'Assessment', icon: GraduationCap, description: 'Exam or assignment schedule' }
+    { id: 'assessment', label: 'Assessment', icon: GraduationCap, description: 'Exam or assignment schedule' },
+    { id: 'snippet', label: 'Code Snippet', icon: Terminal, description: 'Share code with one-click copy' },
+    { id: 'material', label: 'Study Material', icon: Paperclip, description: 'Upload files (expires in 2h)' }
   ];
 
   // Filter out admin from user selection
@@ -99,6 +109,22 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
           }]
         });
         break;
+      case 'snippet':
+        setMeta({
+          title: '',
+          code: '',
+          language: 'javascript'
+        });
+        break;
+      case 'material':
+        // Set auto-delete to 2 hours for material
+        const twoHoursFromNow = new Date();
+        twoHoursFromNow.setHours(twoHoursFromNow.getHours() + 2);
+        // Format to local datetime string for datetime-local input
+        setDeleteAt(new Date(twoHoursFromNow.getTime() - (twoHoursFromNow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
+        setUseAutoDelete(true);
+        setMeta({ fileName: '', fileUrl: '', fileSize: 0, filePath: '' });
+        break;
       default:
         setMeta({});
     }
@@ -149,11 +175,16 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (noticeType !== 'assessment' && !content.trim()) {
+    if (noticeType !== 'assessment' && noticeType !== 'material' && !content.trim()) {
       alert('Please enter content for the notice');
+      return;
+    }
+
+    if (noticeType === 'material' && !selectedFile && !isEditing) {
+      alert('Please select a file to upload');
       return;
     }
 
@@ -193,20 +224,40 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
         alert('Please add at least one complete assessment (Subject, Date)');
         return;
       }
-      // Filter out incomplete rows automatically or just send valid ones?
-      // Let's send only valid ones but update the meta to reflect that
       meta.assessments = validAssessments;
     }
 
-    onSubmit({
-      id: initialData?.id, // Pass ID for editing
-      type: noticeType,
-      content: content.trim(),
-      meta,
-      allowedUsers: isPublic ? [] : selectedUsers,
-      isPublic,
-      deleteAt: useAutoDelete ? new Date(deleteAt) : null
-    });
+    try {
+      let currentMeta = { ...meta };
+
+      // Handle file upload for material type
+      if (noticeType === 'material' && selectedFile) {
+        setIsUploading(true);
+        const uploadResult = await uploadNoticeFile(selectedFile);
+        currentMeta = {
+          ...currentMeta,
+          fileUrl: uploadResult.publicUrl,
+          fileName: uploadResult.fileName,
+          filePath: uploadResult.filePath,
+          fileSize: selectedFile.size
+        };
+      }
+
+      onSubmit({
+        id: initialData?.id,
+        type: noticeType,
+        content: content.trim(),
+        meta: currentMeta,
+        allowedUsers: isPublic ? [] : selectedUsers,
+        isPublic,
+        deleteAt: useAutoDelete ? new Date(deleteAt) : null
+      });
+    } catch (error) {
+      console.error('Submit error:', error);
+      alert('Error saving notice: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const addChecklistItem = () => {
@@ -292,6 +343,24 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
   const removeAssessmentRow = (index) => {
     const updated = (meta.assessments || []).filter((_, i) => i !== index);
     setMeta({ ...meta, assessments: updated });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds 10MB limit');
+      e.target.value = null;
+      return;
+    }
+
+    setSelectedFile(file);
+    // Auto-fill content if empty
+    if (!content.trim()) {
+      setContent(`File: ${file.name}`);
+    }
   };
 
   return (
@@ -680,6 +749,130 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
               <Plus className="w-4 h-4" />
               Add Assessment Row
             </button>
+          </div>
+        )}
+
+        {noticeType === 'snippet' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Snippet Title
+              </label>
+              <input
+                type="text"
+                value={meta.title || ''}
+                onChange={(e) => setMeta({ ...meta, title: e.target.value })}
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g. React Hook Example"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Language
+              </label>
+              <select
+                value={meta.language || 'javascript'}
+                onChange={(e) => setMeta({ ...meta, language: e.target.value })}
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="jsx">JSX / React</option>
+                <option value="css">CSS</option>
+                <option value="html">HTML</option>
+                <option value="json">JSON</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+                <option value="sql">SQL</option>
+                <option value="bash">Bash / Shell</option>
+                <option value="markdown">Markdown</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Code Snippet
+              </label>
+              <textarea
+                value={meta.code || ''}
+                onChange={(e) => setMeta({ ...meta, code: e.target.value })}
+                rows={10}
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm bg-slate-50"
+                placeholder="Paste your code here..."
+                required={noticeType === 'snippet'}
+              />
+            </div>
+            <p className="text-xs text-gray-500">
+              The "Content" field above can be used for a brief description or notes about this snippet.
+            </p>
+          </div>
+        )}
+
+        {noticeType === 'material' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Upload File (Study Material / Images / etc.)
+              </label>
+              <div className={`
+                border-2 border-dashed rounded-2xl p-8 transition-all flex flex-col items-center justify-center gap-4
+                ${selectedFile ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'}
+              `}>
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="notice-file-upload"
+                  disabled={isUploading}
+                />
+                <label
+                  htmlFor="notice-file-upload"
+                  className={`
+                    flex flex-col items-center justify-center cursor-pointer text-center
+                    ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                >
+                  {selectedFile ? (
+                    <>
+                      <File className="w-12 h-12 text-green-600 mb-2" />
+                      <p className="text-sm font-medium text-green-800 truncate max-w-xs">{selectedFile.name}</p>
+                      <p className="text-xs text-green-600 mt-1">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                      <span className="text-xs text-blue-600 mt-2 hover:underline">Click to change file</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-12 h-12 text-gray-400 mb-2" />
+                      <p className="text-sm font-medium text-gray-700">Click to upload or drag & drop</p>
+                      <p className="text-xs text-gray-500 mt-1">Max file size: 10MB</p>
+                    </>
+                  )}
+                </label>
+
+                {isUploading && (
+                  <div className="flex items-center gap-2 text-blue-600 animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm font-medium">Uploading to storage...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {initialData?.meta.fileUrl && !selectedFile && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
+                <Paperclip className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-blue-700">Currently has: <span className="font-medium">{initialData.meta.fileName}</span></span>
+              </div>
+            )}
+
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
+              <Clock className="w-5 h-5 text-orange-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-orange-900">Auto-deletion enabled</p>
+                <p className="text-xs text-orange-750">
+                  Study material notices are automatically deleted 2 hours after being posted to save storage space and keep the board clean.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

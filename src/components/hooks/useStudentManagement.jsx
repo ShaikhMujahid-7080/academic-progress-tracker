@@ -13,6 +13,7 @@ import { db } from '../../firebase';
 import { ADMIN_STUDENT } from '../../data/subjects';
 import bcrypt from 'bcryptjs';
 import { shouldDeleteStudent } from '../../utils/studentUtils';
+import { supabase } from '../../supabase';
 
 export function useStudentManagement() {
   const [students, setStudents] = useState([]);
@@ -270,6 +271,40 @@ export function useStudentManagement() {
     }
   };
 
+  // Update student admission year
+  const updateStudentAdmissionYear = async (rollNo, newYear) => {
+    try {
+      const yearNum = Number(newYear);
+      if (!Number.isInteger(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
+        throw new Error('Invalid admission year');
+      }
+
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const updatedStudent = { ...student, admissionYear: yearNum };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+
+      // Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating admission year:', error);
+      throw error;
+    }
+  };
+
   // Update YD status
   const updateStudentYD = async (rollNo, newIsYD) => {
     try {
@@ -433,6 +468,103 @@ export function useStudentManagement() {
       throw error;
     }
   };
+ 
+  // Update student profile photo using Supabase Storage
+  const updateStudentPhoto = async (rollNo, file) => {
+    try {
+      if (!file) throw new Error('No file provided');
+ 
+      // 1. Cleanup old files first to prevent duplicates (e.g., if extension changes)
+      const { data: existingFiles } = await supabase.storage
+        .from('profile-photos')
+        .list(rollNo.toString());
+
+      if (existingFiles && existingFiles.length > 0) {
+        const filesToDelete = existingFiles.map(f => `${rollNo}/${f.name}`);
+        await supabase.storage.from('profile-photos').remove(filesToDelete);
+      }
+
+      // 2. Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${rollNo}/avatar_${Date.now()}.${fileExt}`;
+ 
+      // Upload/Overwrite the file
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type
+        });
+ 
+      if (uploadError) throw uploadError;
+ 
+      // 2. Get Public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(filePath);
+ 
+      // 3. Update Firestore
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) throw new Error('Student not found');
+ 
+      const updatedStudent = { ...student, photoURL: publicUrl };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+ 
+      // 4. Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+ 
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+ 
+      return publicUrl;
+    } catch (error) {
+      console.error('Error updating photo:', error);
+      throw error;
+    }
+  };
+ 
+  // Remove student profile photo
+  const removeStudentPhoto = async (rollNo) => {
+    try {
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) throw new Error('Student not found');
+      if (!student.photoURL) return true;
+ 
+      // 1. Delete all files in the student's folder in Supabase
+      const { data: existingFiles } = await supabase.storage
+        .from('profile-photos')
+        .list(rollNo.toString());
+
+      if (existingFiles && existingFiles.length > 0) {
+        const filesToDelete = existingFiles.map(f => `${rollNo}/${f.name}`);
+        await supabase.storage.from('profile-photos').remove(filesToDelete);
+      }
+      // 2. Update Firestore
+      const updatedStudent = { ...student, photoURL: null };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+ 
+      // 3. Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+ 
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+ 
+      return true;
+    } catch (error) {
+      console.error('Error removing photo:', error);
+      throw error;
+    }
+  };
 
   // Select student - now clears previous student's local data
   const selectStudent = (student) => {
@@ -472,7 +604,10 @@ export function useStudentManagement() {
     updateCoLeaderPermissions,
     updateStudentName,
     updateStudentDSY,
+    updateStudentAdmissionYear,
     updateStudentYD,
+    updateStudentPhoto,
+    removeStudentPhoto,
     loadStudents
   };
 }

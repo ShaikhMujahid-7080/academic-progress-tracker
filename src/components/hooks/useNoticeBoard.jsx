@@ -12,6 +12,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { supabase } from '../../supabase';
 import { ADMIN_STUDENT } from '../../data/subjects';
 
 export function useNoticeBoard(currentUser, currentSemester) {
@@ -60,7 +61,7 @@ export function useNoticeBoard(currentUser, currentSemester) {
           // Filter by semester: 
           // 1. If notice has a semester field, it must match currentSemester
           // 2. If notice doesn't have a semester field (legacy), we show it to avoid data loss
-          if (noticeData.semester && noticeData.semester !== currentSemester) {
+          if (noticeData.semester && Number(noticeData.semester) !== Number(currentSemester)) {
             return;
           }
 
@@ -169,19 +170,30 @@ export function useNoticeBoard(currentUser, currentSemester) {
       const now = new Date();
       const batch = writeBatch(db);
       let hasExpired = false;
+      const expiredFilePaths = [];
 
       notices.forEach(notice => {
         if (notice.deleteAt) {
           const deleteAtDate = notice.deleteAt.toDate ? notice.deleteAt.toDate() : new Date(notice.deleteAt);
           if (deleteAtDate < now) {
             batch.delete(doc(db, 'noticeBoard', notice.id));
+            if (notice.type === 'material' && notice.meta?.filePath) {
+              expiredFilePaths.push(notice.meta.filePath);
+            }
             hasExpired = true;
           }
         }
       });
 
       if (hasExpired) {
-        batch.commit().catch(err => console.error('Cleanup error:', err));
+        batch.commit()
+          .then(() => {
+            if (expiredFilePaths.length > 0) {
+              supabase.storage.from('notices').remove(expiredFilePaths)
+                .catch(err => console.error('Error cleaning up notice files:', err));
+            }
+          })
+          .catch(err => console.error('Cleanup error:', err));
       }
     }
 
@@ -255,13 +267,15 @@ export function useNoticeBoard(currentUser, currentSemester) {
     }
   };
 
-  // Delete notice (admin and co-leaders only)
-  const deleteNotice = async (noticeId) => {
+  const deleteNotice = async (noticeId, filePath = null) => {
     if (!canManageNotices) {
       throw new Error('Only admin and co-leaders can delete notices');
     }
 
     try {
+      if (filePath) {
+        await deleteNoticeFile(filePath);
+      }
       await deleteDoc(doc(db, 'noticeBoard', noticeId));
       return true;
     } catch (error) {
@@ -269,7 +283,6 @@ export function useNoticeBoard(currentUser, currentSemester) {
       return false;
     }
   };
-
   // Update notice permissions (admin and co-leaders only)
   const updateNoticePermissions = async (noticeId, allowedUsers, isPublic) => {
     if (!canManageNotices) {
@@ -517,6 +530,47 @@ export function useNoticeBoard(currentUser, currentSemester) {
     }
   };
 
+  // Upload notice file to Supabase Storage
+  const uploadNoticeFile = async (file) => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `notices/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('notices')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('notices')
+        .getPublicUrl(filePath);
+
+      return { publicUrl, filePath, fileName: file.name };
+    } catch (error) {
+      console.error('Error uploading notice file:', error);
+      throw error;
+    }
+  };
+
+  // Delete notice file from Supabase Storage
+  const deleteNoticeFile = async (filePath) => {
+    try {
+      const { error } = await supabase.storage
+        .from('notices')
+        .remove([filePath]);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting notice file:', error);
+      return false;
+    }
+  };
+
   return {
     notices,
     isLoading,
@@ -537,6 +591,8 @@ export function useNoticeBoard(currentUser, currentSemester) {
     toggleChecklistItem,
     toggleTodo,
     toggleCompletion,
-    togglePin
+    togglePin,
+    uploadNoticeFile,
+    deleteNoticeFile
   };
 }

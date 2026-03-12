@@ -16,7 +16,9 @@ import {
   Globe,
   Lock,
   Star,
-  ArrowUpDown
+  ArrowUpDown,
+  Terminal,
+  Paperclip
 } from "lucide-react";
 import { useNoticeBoard } from "../hooks/useNoticeBoard";
 import { useStudentManagement } from "../hooks/useStudentManagement";
@@ -26,6 +28,8 @@ import { PollItem } from "../NoticeBoard/PollItem";
 import { ReminderItem } from "../NoticeBoard/ReminderItem";
 import { TodoItem } from "../NoticeBoard/TodoItem";
 import { AssessmentItem } from "../NoticeBoard/AssessmentItem";
+import { SnippetItem } from "../NoticeBoard/SnippetItem";
+import { MaterialItem } from "../NoticeBoard/MaterialItem";
 import { CreateNoticeForm } from "../NoticeBoard/CreateNoticeForm";
 import { ManagePermissionsModal } from "../NoticeBoard/ManagePermissionsModal";
 import { ReorderNoticesModal } from "../NoticeBoard/ReorderNoticesModal";
@@ -51,7 +55,9 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
     toggleChecklistItem,
     toggleTodo,
     toggleCompletion,
-    togglePin
+    togglePin,
+    uploadNoticeFile,
+    deleteNoticeFile
   } = useNoticeBoard(selectedStudent, semester);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -89,7 +95,9 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
     { id: 'poll', label: 'Polls', icon: BarChart3, count: notices.filter(n => n.type === 'poll').length },
     { id: 'reminder', label: 'Reminders', icon: Bell, count: notices.filter(n => n.type === 'reminder').length },
     { id: 'todo', label: 'Todos', icon: Calendar, count: notices.filter(n => n.type === 'todo').length },
-    { id: 'assessment', label: 'Assessments', icon: FileText, count: notices.filter(n => n.type === 'assessment').length }
+    { id: 'assessment', label: 'Assessments', icon: FileText, count: notices.filter(n => n.type === 'assessment').length },
+    { id: 'snippet', label: 'Snippets', icon: Terminal, count: notices.filter(n => n.type === 'snippet').length },
+    { id: 'material', label: 'Materials', icon: Paperclip, count: notices.filter(n => n.type === 'material').length }
   ];
 
   const showConfirm = (config) => {
@@ -160,6 +168,8 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       return;
     }
 
+    const notice = notices.find(n => n.id === noticeId);
+
     showConfirm({
       title: 'Delete Notice',
       message: 'Are you sure you want to delete this notice? This action cannot be undone.',
@@ -168,7 +178,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       confirmColor: 'red',
       icon: 'danger',
       onConfirm: async () => {
-        const success = await deleteNotice(noticeId);
+        const success = await deleteNotice(noticeId, notice?.meta?.filePath);
         if (success) {
           toast.success('✅ Notice deleted successfully!');
         } else {
@@ -283,6 +293,21 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
             {...commonProps}
             onRequestEdit={(notice) => setEditingNotice(notice)}
             onToggleCompletion={() => toggleCompletion(notice.id, selectedStudent?.rollNo)}
+          />
+        );
+      case 'snippet':
+        return (
+          <SnippetItem
+            key={notice.id}
+            {...commonProps}
+            onEdit={(notice) => setEditingNotice(notice)}
+          />
+        );
+      case 'material':
+        return (
+          <MaterialItem
+            key={notice.id}
+            {...commonProps}
           />
         );
       default:
@@ -483,6 +508,8 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
                 students={students}
                 initialData={editingNotice}
                 semester={semester}
+                uploadNoticeFile={uploadNoticeFile}
+                deleteNoticeFile={deleteNoticeFile}
               />
             </div>
           </div>

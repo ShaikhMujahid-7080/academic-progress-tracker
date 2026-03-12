@@ -17,9 +17,14 @@ import {
     FileText
 } from 'lucide-react';
 import { useNoticeBoard } from '../hooks/useNoticeBoard';
+import { useHolidays } from '../hooks/useHolidays';
+import { HolidayModal } from '../Modals/HolidayModal';
+import { toast } from 'react-toastify';
 
 export function CalendarTab({ selectedStudent, semester }) {
     const { notices } = useNoticeBoard(selectedStudent, semester);
+    const { holidays, isLoading: isHolidaysLoading, isSaving: isHolidaysSaving, canManageHolidays, addHoliday, updateHoliday, deleteHoliday } = useHolidays(selectedStudent);
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [now, setNow] = useState(new Date());
@@ -27,6 +32,10 @@ export function CalendarTab({ selectedStudent, semester }) {
     const [viewMode, setViewMode] = useState('month'); // 'month', 'list'
     const [timeOffset, setTimeOffset] = useState(0); // Offset between server time and local clock
     const [isSynced, setIsSynced] = useState(false);
+
+    // Holiday management states
+    const [showHolidayModal, setShowHolidayModal] = useState(false);
+    const [selectedHoliday, setSelectedHoliday] = useState(null);
 
     // Fetch online time from WorldTimeAPI (Asia/Kolkata = UTC+05:30)
     // Fetch online time with robust fallbacks
@@ -136,8 +145,8 @@ export function CalendarTab({ selectedStudent, semester }) {
     };
 
     const formatDate = (date) => {
-        // Enforce IST for date display
-        return date.toLocaleDateString('en-US', {
+        // Enforce IST for date display and dd/mm/yyyy format
+        return date.toLocaleDateString('en-GB', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -242,22 +251,41 @@ export function CalendarTab({ selectedStudent, semester }) {
             .filter(Boolean);
     }, [notices]);
 
-    // Fixed Holidays
-    const HOLIDAYS = [
-        { day: 25, month: 11, title: 'Christmas Day', type: 'holiday' }, // Dec (0-indexed 11)
-        { day: 26, month: 0, title: 'Republic Day', type: 'holiday' },   // Jan
-        { day: 19, month: 1, title: 'Shiv Jayanti', type: 'holiday' },   // Feb
-        { day: 14, month: 3, title: 'Ambedkar Jayanti', type: 'holiday' }, // April
-        { day: 1, month: 4, title: 'Maharashtra Day', type: 'holiday' },   // May
-        { day: 15, month: 7, title: 'Independence Day', type: 'holiday' }, // Aug
-        { day: 2, month: 9, title: 'Gandhi Jayanti', type: 'holiday' },    // Oct
-    ];
-
-    // Check if a date is a holiday
+    // Check if a date is a holiday (dynamic + hardcoded fallback/base)
     const getHoliday = (date) => {
-        return HOLIDAYS.find(h =>
-            h.day === date.getDate() && h.month === date.getMonth()
+        // First check dynamic holidays from Firestore
+        const dynamicHoliday = holidays.find(h => isSameDay(new Date(h.date), date));
+        if (dynamicHoliday) return dynamicHoliday;
+
+        // Fallback to hardcoded list (Specific holidays for 2026)
+        const HARDCODED_HOLIDAYS = [
+            // Fixed (Every Year)
+            { day: 26, month: 0, title: 'Prajaasattaak Din (Republic Day)' },
+            { day: 19, month: 1, title: 'Chhatrapati Shivaji Maharaj Jayanti' },
+            { day: 14, month: 3, title: 'Dr. Babasaheb Ambedkar Jayanti' },
+            { day: 1, month: 4, title: 'Maharashtra Din' },
+            { day: 15, month: 7, title: 'Swatantra Din (Independence Day)' },
+            { day: 17, month: 8, title: 'Marathwada Mukti Sangram Din' },
+            { day: 2, month: 9, title: 'Mahatma Gandhi Jayanti' },
+            { day: 25, month: 11, title: 'Christmas Day' },
+
+            // 2026 Specific (Dynamic)
+            { day: 3, month: 2, year: 2026, title: 'Holi (Second Day)' },
+            { day: 19, month: 2, year: 2026, title: 'Gudipaadwa' },
+            { day: 21, month: 2, year: 2026, title: 'Ramzan Eid' },
+            { day: 14, month: 8, year: 2026, title: 'Ganesh Chartuti' },
+            { day: 20, month: 9, year: 2026, title: 'Dasra (Dussehra)' },
+            { day: 8, month: 10, year: 2026, title: 'Diwali Amawasya (Lakshmipujan)' },
+            { day: 10, month: 10, year: 2026, title: 'Diwali (Balipratipada) / Padwa' },
+        ];
+
+        const staticH = HARDCODED_HOLIDAYS.find(h =>
+            h.day === date.getDate() && 
+            h.month === date.getMonth() &&
+            (!h.year || h.year === date.getFullYear())
         );
+
+        return staticH ? { ...staticH, id: `static-${date.getTime()}`, isStatic: true } : null;
     };
 
     // Process events including holidays
@@ -265,14 +293,12 @@ export function CalendarTab({ selectedStudent, semester }) {
         // Dynamic events from notices
         const noticeEvents = events;
 
-        // Generate holiday events for the current view (plus/minus a month to be safe or just for the selected/rendered days)
-        // Since getHoliday checks day/month, we can just generate them for the specific rendering or inject them into the main list?
-        // Better: We can check getHoliday during rendering for dots/color, but for the "Events List" side panel, we need them in the array.
-        // Let's create an event object for the holiday if the currently viewed/selected date matches.
+        // Include holidays in allEvents for the List view
+        const holidayEvents = [];
+        // For list view, we might want to show holidays in the current month/year
+        // For simplicity, we'll let the list view just show notice events and 
+        // rely on getEventsForDate for the detailed side panel.
 
-        // Actually, easiest is to filter HOLIDAYS that match the current month view? 
-        // Or simply, since HOLIDAYS are repeating every year, we can just map them to the current year (and maybe prev/next year if near boundary).
-        // Let's just create a function to get events for a date that includes holidays.
         return noticeEvents;
     }, [events]);
 
@@ -321,6 +347,36 @@ export function CalendarTab({ selectedStudent, semester }) {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
     };
 
+    const handleSaveHoliday = async (data) => {
+        let result;
+        if (selectedHoliday) {
+            result = await updateHoliday(selectedHoliday.id, data);
+        } else {
+            result = await addHoliday(data);
+        }
+
+        if (result.success) {
+            toast.success(selectedHoliday ? "✅ Holiday updated!" : "✅ Holiday added!");
+            setShowHolidayModal(false);
+            setSelectedHoliday(null);
+        } else {
+            toast.error("❌ " + result.error);
+        }
+    };
+
+    const handleDeleteHoliday = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this holiday?")) return;
+
+        const result = await deleteHoliday(id);
+        if (result.success) {
+            toast.success("✅ Holiday deleted!");
+            setShowHolidayModal(false);
+            setSelectedHoliday(null);
+        } else {
+            toast.error("❌ " + result.error);
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto space-y-6">
             {/* Status Bar - Mirrors PersonalNotes style */}
@@ -339,21 +395,35 @@ export function CalendarTab({ selectedStudent, semester }) {
                     </div>
 
                     {/* View Mode Toggle */}
-                    <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
-                        <button
-                            onClick={() => setViewMode('month')}
-                            className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
-                        >
-                            <CalendarIcon className="w-4 h-4" />
-                            Month
-                        </button>
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
-                        >
-                            <FileText className="w-4 h-4" />
-                            List
-                        </button>
+                    <div className="flex items-center gap-3">
+                        {canManageHolidays && (
+                            <button
+                                onClick={() => {
+                                    setSelectedHoliday(null);
+                                    setShowHolidayModal(true);
+                                }}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all text-sm font-medium shadow-sm active:scale-95"
+                            >
+                                <Star className="w-4 h-4" />
+                                Add Holiday
+                            </button>
+                        )}
+                        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 text-sm font-medium">
+                            <button
+                                onClick={() => setViewMode('month')}
+                                className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all ${viewMode === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+                            >
+                                <CalendarIcon className="w-4 h-4" />
+                                Month
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+                            >
+                                <FileText className="w-4 h-4" />
+                                List
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -541,7 +611,24 @@ export function CalendarTab({ selectedStudent, semester }) {
                                             <div className="text-xs font-bold uppercase tracking-wider opacity-70 mb-0.5">
                                                 {event.type}
                                             </div>
-                                            <h4 className="font-semibold text-gray-900 text-sm mb-1">{event.title}</h4>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-semibold text-gray-900 text-sm mb-1">{event.title}</h4>
+                                                {event.type === 'holiday' && !event.isStatic && canManageHolidays && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const h = holidays.find(h => h.id === event.id.replace('holiday-', ''));
+                                                            if (h) {
+                                                                setSelectedHoliday(h);
+                                                                setShowHolidayModal(true);
+                                                            }
+                                                        }}
+                                                        className="p-1 hover:bg-red-100 rounded-lg text-red-600 transition-colors"
+                                                    >
+                                                        <Edit3 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
                                             {event.type !== 'holiday' && (
                                                 <div className="flex items-center gap-1.5 text-xs text-gray-600">
                                                     <Clock className="w-3 h-3" />
@@ -561,6 +648,20 @@ export function CalendarTab({ selectedStudent, semester }) {
                     </div>
                 </div>
             </div>
+
+            {/* Holiday Management Modal */}
+            {showHolidayModal && (
+                <HolidayModal
+                    holiday={selectedHoliday}
+                    onSave={handleSaveHoliday}
+                    onCancel={() => {
+                        setShowHolidayModal(false);
+                        setSelectedHoliday(null);
+                    }}
+                    onDelete={handleDeleteHoliday}
+                    isLoading={isHolidaysSaving}
+                />
+            )}
         </div>
     );
 }
