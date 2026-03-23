@@ -16,12 +16,21 @@ import {
   Hash,
   Quote,
   Code,
-  Check,
-  Copy,
-  Lightbulb,
-  MoveVertical,
+  RefreshCw,
+  Shield,
+  Lock,
+  Key,
+  EyeOff,
+  Plus,
+  ExternalLink,
+  Globe,
+  User,
+  X,
   Minus,
-  RefreshCw
+  MoveVertical,
+  Lightbulb,
+  Check,
+  Copy
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -30,16 +39,20 @@ import { usePersonalNotes } from "../hooks/usePersonalNotes";
 export function PersonalNotesTab({ selectedStudent }) {
   const {
     notes,
+    credentials,
     updateNotes,
+    addCredential,
+    deleteCredential,
     clearNotes,
+    refreshNotes: fetchNotes,
     isLoading,
     isSaving,
     lastSaved,
-    error,
-    refreshNotes
+    error
   } = usePersonalNotes(selectedStudent?.rollNo);
 
   const [viewMode, setViewMode] = useState('split'); // 'edit', 'preview', 'split'
+  const [activeTab, setActiveTab] = useState('notes'); // 'notes', 'passwords'
   const [showHelp, setShowHelp] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const _viewInitialized = useRef(false);
@@ -70,13 +83,19 @@ export function PersonalNotesTab({ selectedStudent }) {
   }, [notes, viewMode]);
 
   const handleClearNotes = async () => {
+    const itemType = activeTab === 'notes' ? 'notes' : 'credentials';
     const confirmed = window.confirm(
-      '⚠️ Are you sure you want to clear all your notes? This action cannot be undone.'
+      `⚠️ Are you sure you want to clear all your ${itemType}? This action cannot be undone.`
     );
 
     if (confirmed) {
-      await clearNotes();
-      alert('✅ Notes cleared successfully!');
+      if (activeTab === 'notes') {
+        await clearNotes();
+      } else {
+        // Option for clearCredentials could be added to hook
+        credentials.forEach(c => deleteCredential(c.id));
+      }
+      alert(`✅ ${itemType.charAt(0).toUpperCase() + itemType.slice(1)} cleared successfully!`);
     }
   };
 
@@ -163,39 +182,54 @@ export function PersonalNotesTab({ selectedStudent }) {
             Personal Notes
           </h2>
           <p className="text-sm sm:text-base text-gray-600">
-            Private notes for <strong>{selectedStudent.name}</strong> ({selectedStudent.rollNo})
+            Private notes & credentials for <strong>{selectedStudent.name}</strong>
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+        <div className="flex bg-gray-100 p-1 rounded-2xl">
           <button
-            onClick={() => setShowTips(!showTips)}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all text-xs sm:text-sm whitespace-nowrap ${showTips
-              ? 'bg-yellow-100 text-yellow-700'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+            onClick={() => setActiveTab('notes')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'notes' ? 'bg-white text-yellow-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            <Lightbulb className="w-4 h-4" />
-            Tips
+            <StickyNote className="w-4 h-4" />
+            Notes
           </button>
+          <button
+            onClick={() => setActiveTab('passwords')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'passwords' ? 'bg-white text-blue-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <Shield className="w-4 h-4" />
+            Passwords
+          </button>
+        </div>
 
-          <button
-            onClick={() => setShowHelp(!showHelp)}
-            className={`px-3 sm:px-4 py-2 rounded-xl transition-all text-xs sm:text-sm whitespace-nowrap ${showHelp
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            Markdown Help
-          </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+          {activeTab === 'notes' && (
+            <>
+              <button
+                onClick={() => setShowTips(!showTips)}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all text-xs sm:text-sm whitespace-nowrap ${showTips ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                <Lightbulb className="w-4 h-4" />
+                Tips
+              </button>
+
+              <button
+                onClick={() => setShowHelp(!showHelp)}
+                className={`px-3 sm:px-4 py-2 rounded-xl transition-all text-xs sm:text-sm whitespace-nowrap ${showHelp ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Markdown Help
+              </button>
+            </>
+          )}
 
           <button
             onClick={handleClearNotes}
-            disabled={isSaving || !notes.trim()}
+            disabled={isSaving || (activeTab === 'notes' ? !notes.trim() : credentials.length === 0)}
             className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap"
           >
             <Trash2 className="w-4 h-4" />
-            Clear All
+            {activeTab === 'notes' ? 'Clear All' : 'Remove All'}
           </button>
         </div>
       </div>
@@ -205,7 +239,7 @@ export function PersonalNotesTab({ selectedStudent }) {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <button
-              onClick={refreshNotes}
+              onClick={fetchNotes}
               className="p-1.5 -ml-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
               title="Refresh notes"
             >
@@ -240,16 +274,14 @@ export function PersonalNotesTab({ selectedStudent }) {
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
             <button
               onClick={() => setViewMode('edit')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'edit' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-                }`}
+              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'edit' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
             >
               <Edit3 className="w-4 h-4" />
               Edit
             </button>
             <button
               onClick={() => setViewMode('split')}
-              className={`hidden sm:flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-                }`}
+              className={`hidden sm:flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
             >
               <div className="w-4 h-4 border border-current rounded-sm flex">
                 <div className="w-1/2 border-r border-current"></div>
@@ -259,8 +291,7 @@ export function PersonalNotesTab({ selectedStudent }) {
             </button>
             <button
               onClick={() => setViewMode('preview')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'preview' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-                }`}
+              className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-sm ${viewMode === 'preview' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
             >
               <Eye className="w-4 h-4" />
               Preview
@@ -275,8 +306,7 @@ export function PersonalNotesTab({ selectedStudent }) {
         )}
       </div>
 
-      {/* Tips */}
-      {showTips && (
+      {activeTab === 'notes' && showTips && (
         <div className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-start gap-3">
             <Lightbulb className="w-5 h-5 text-yellow-600 mt-0.5" />
@@ -296,8 +326,7 @@ export function PersonalNotesTab({ selectedStudent }) {
         </div>
       )}
 
-      {/* Markdown Help */}
-      {showHelp && (
+      {activeTab === 'notes' && showHelp && (
         <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
           <h3 className="font-bold text-blue-900 mb-4">Markdown Quick Reference</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -319,186 +348,295 @@ export function PersonalNotesTab({ selectedStudent }) {
         </div>
       )}
 
-      {/* Main Editor Area */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
-        {/* Toolbar */}
-        {(viewMode === 'edit' || (viewMode === 'split')) && (
-          <div className="sticky top-[250px] sm:top-[200px] z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 p-2 sm:p-3 rounded-t-2xl transition-all">
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-0.5">
-              {toolbarButtons.map((button, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    button.action();
-                  }}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  title={button.title}
-                >
-                  <button.icon className="w-4 h-4" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Main Content Area */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        {activeTab === 'notes' ? (
+          <>
+            {/* Toolbar */}
+            {(viewMode === 'edit' || viewMode === 'split') && (
+              <div className="sticky top-[250px] sm:top-[200px] z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 p-2 sm:p-3 rounded-t-2xl transition-all">
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-0.5">
+                  {toolbarButtons.map((button, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        button.action();
+                      }}
+                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      title={button.title}
+                    >
+                      <button.icon className="w-4 h-4" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* Content Area */}
-        <div className="flex flex-col sm:flex-row min-h-[500px] items-stretch">
-          {/* Editor */}
-          {(viewMode === 'edit' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-full sm:w-1/2 border-b sm:border-b-0 sm:border-r border-gray-200' : 'w-full'} bg-white`}>
-              <textarea
-                ref={textareaRef}
-                id="notes-textarea"
-                value={notes}
-                onChange={(e) => {
-                  // Store scroll position before state change
-                  scrollPosRef.current = window.scrollY;
-
-                  // Update notes (triggers state change)
-                  updateNotes(e.target.value);
-
-                  // Auto-resize
-                  e.target.style.height = 'auto';
-                  e.target.style.height = e.target.scrollHeight + 'px';
-
-                  // Restore scroll position after resize
-                  requestAnimationFrame(() => {
-                    window.scrollTo(0, scrollPosRef.current);
-                  });
-                }}
-                className="w-full h-full p-4 sm:p-6 border-none outline-none resize-none font-mono text-sm overflow-hidden min-h-[500px]"
-                placeholder={`Write your personal notes here, ${selectedStudent.name}...
-
-You can use Markdown syntax:
-# Headings
-**Bold** and *italic* text
-[Links](https://example.com)
-- Lists
-> Quotes
-\`code\`
-
-Your notes are automatically saved as you type.`}
-              />
-            </div>
-          )}
-
-          {/* Preview */}
-          {(viewMode === 'preview' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-full sm:w-1/2' : 'w-full'} bg-gray-50/50`}>
-              <div className="p-4 sm:p-6 prose prose-sm max-w-none">
-                {notes.trim() ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      a: ({ href, children }) => (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 underline"
-                        >
-                          {children}
-                        </a>
-                      ),
-                      h1: ({ children }) => (
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">{children}</h1>
-                      ),
-                      h2: ({ children }) => (
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">{children}</h2>
-                      ),
-                      h3: ({ children }) => (
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">{children}</h3>
-                      ),
-                      hr: () => (
-                        <hr className="my-8 border-t-2 border-gray-200" />
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="list-disc list-inside text-gray-700 mb-2 space-y-1">{children}</ul>
-                      ),
-                      ol: ({ children }) => (
-                        <ol className="list-decimal list-inside text-gray-700 mb-2 space-y-1">{children}</ol>
-                      ),
-                      li: ({ children }) => (
-                        <li className="text-gray-700">{children}</li>
-                      ),
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-4 border-gray-300 pl-4 py-1 text-gray-600 italic my-2">
-                          {children}
-                        </blockquote>
-                      ),
-                      // Use div instead of p to prevent hydration errors when block elements are nested
-                      p: ({ children }) => (
-                        <div className="mb-4 text-gray-700">{children}</div>
-                      ),
-                      code: ({ node, inline, className, children, ...props }) => {
-                        const [isCopied, setIsCopied] = useState(false);
-                        const match = /language-(\w+)/.exec(className || '');
-
-                        if (inline) {
-                          return (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-
-                        const handleCopy = () => {
-                          navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-                          setIsCopied(true);
-                          setTimeout(() => setIsCopied(false), 2000);
-                        };
-
-                        return (
-                          <div className="relative group my-4">
-                            <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={handleCopy}
-                                className="p-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 hover:text-white transition-all shadow-lg"
-                                title="Copy code"
-                              >
-                                {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                              </button>
-                            </div>
-                            <pre className="!mt-0 !mb-0 rounded-xl overflow-hidden bg-gray-900 !p-0">
-                              <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-                                <div className="flex gap-1.5">
-                                  <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                                  <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                                  <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
-                                </div>
-                                <span className="text-xs text-gray-400 font-mono">
-                                  {match ? match[1] : 'text'}
-                                </span>
-                              </div>
-                              <code className={`${className} block p-4 text-sm font-mono text-gray-300 overflow-x-auto`} {...props}>
-                                {children}
-                              </code>
-                            </pre>
-                          </div>
-                        );
-                      }
+            {/* Content Area */}
+            <div className="flex flex-col sm:flex-row min-h-[500px] items-stretch">
+              {(viewMode === 'edit' || viewMode === 'split') && (
+                <div className={`${viewMode === 'split' ? 'w-full sm:w-1/2 border-b sm:border-b-0 sm:border-r border-gray-200' : 'w-full'} bg-white`}>
+                  <textarea
+                    ref={textareaRef}
+                    id="notes-textarea"
+                    value={notes}
+                    onChange={(e) => {
+                      scrollPosRef.current = window.scrollY;
+                      updateNotes(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                      requestAnimationFrame(() => {
+                        window.scrollTo(0, scrollPosRef.current);
+                      });
                     }}
-                  >
-                    {notes.replace(/>>>/g, '\n\n&nbsp;\n\n').replace(/\n/g, '  \n')}
-                  </ReactMarkdown>
-                ) : (
-                  <div className="text-gray-500 italic">
-                    Your notes will appear here as you type...
-                    <br /><br />
-                    Try writing some <strong>Markdown</strong>:
-                    <br />
-                    # This is a heading
-                    <br />
-                    **This is bold text**
-                    <br />
-                    [This is a link](https://example.com)
+                    className="w-full h-full p-4 sm:p-6 border-none outline-none resize-none font-mono text-sm overflow-hidden min-h-[500px]"
+                    placeholder={`Write your personal notes here...`}
+                  />
+                </div>
+              )}
+
+              {(viewMode === 'preview' || viewMode === 'split') && (
+                <div className={`${viewMode === 'split' ? 'w-full sm:w-1/2' : 'w-full'} bg-gray-50/50`}>
+                  <div className="p-4 sm:p-6 prose prose-sm max-w-none">
+                    {notes.trim() ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          a: ({ href, children }) => (
+                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">{children}</a>
+                          ),
+                          h1: ({ children }) => <h1 className="text-2xl font-bold text-gray-900 mb-2">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-xl font-bold text-gray-900 mb-2">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-lg font-bold text-gray-900 mb-1">{children}</h3>,
+                          hr: () => <hr className="my-8 border-t-2 border-gray-200" />,
+                          ul: ({ children }) => <ul className="list-disc list-inside text-gray-700 mb-2 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside text-gray-700 mb-2 space-y-1">{children}</ol>,
+                          li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                          blockquote: ({ children }) => <blockquote className="border-l-4 border-gray-300 pl-4 py-1 text-gray-600 italic my-2">{children}</blockquote>,
+                          p: ({ children }) => <div className="mb-4 text-gray-700">{children}</div>,
+                          code: ({ node, inline, className, children, ...props }) => {
+                            const [isCopied, setIsCopied] = useState(false);
+                            const match = /language-(\w+)/.exec(className || '');
+                            if (inline) return <code className={className} {...props}>{children}</code>;
+                            const handleCopy = () => {
+                              navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+                              setIsCopied(true);
+                              setTimeout(() => setIsCopied(false), 2000);
+                            };
+                            return (
+                              <div className="relative group my-4">
+                                <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={handleCopy} className="p-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 hover:text-white transition-all shadow-lg">
+                                    {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                                  </button>
+                                </div>
+                                <pre className="!mt-0 !mb-0 rounded-xl overflow-hidden bg-gray-900 !p-0">
+                                  <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+                                    <div className="flex gap-1.5">
+                                      <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                                      <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                                      <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-mono">{match ? match[1] : 'text'}</span>
+                                  </div>
+                                  <code className={`${className} block p-4 text-sm font-mono text-gray-300 overflow-x-auto`} {...props}>{children}</code>
+                                </pre>
+                              </div>
+                            );
+                          }
+                        }}
+                      >
+                        {notes.replace(/>>>/g, '\n\n&nbsp;\n\n').replace(/\n/g, '  \n')}
+                      </ReactMarkdown>
+                    ) : (
+                      <div className="text-gray-500 italic">Your notes will appear here as you type...</div>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <CredentialsManager 
+            credentials={credentials} 
+            onAdd={addCredential} 
+            onDelete={deleteCredential} 
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CredentialsManager({ credentials, onAdd, onDelete }) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [newCred, setNewCred] = useState({ platform: '', username: '', password: '', website: '' });
+  const [showPass, setShowPass] = useState({});
+
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const togglePass = (id) => {
+    setShowPass(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    if (newCred.platform && newCred.username && newCred.password) {
+      onAdd(newCred);
+      setNewCred({ platform: '', username: '', password: '', website: '' });
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <div className="p-4 sm:p-8 space-y-8 bg-white">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Lock className="w-5 h-5 text-blue-600" />
+            Password Vault
+            <span className="ml-2 px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold">{credentials.length}</span>
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">Store and manage your secure login credentials</p>
+        </div>
+        <button
+          onClick={() => setIsAdding(!isAdding)}
+          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${isAdding ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'}`}
+        >
+          {isAdding ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          {isAdding ? 'Cancel' : 'Add Credential'}
+        </button>
+      </div>
+
+      {isAdding && (
+        <div className="bg-gray-50 rounded-3xl p-6 sm:p-8 border border-gray-100 animate-in zoom-in-95 duration-300">
+          <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Platform / Service Name</label>
+              <div className="relative group">
+                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  required
+                  placeholder="e.g. Google, GitHub"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:border-blue-500 outline-none"
+                  value={newCred.platform}
+                  onChange={e => setNewCred({ ...newCred, platform: e.target.value })}
+                />
               </div>
             </div>
-          )}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Website URL (Optional)</label>
+              <div className="relative group">
+                <Link className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:border-blue-500 outline-none"
+                  value={newCred.website}
+                  onChange={e => setNewCred({ ...newCred, website: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Username / ID</label>
+              <div className="relative group">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  required
+                  placeholder="Identifier"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:border-blue-500 outline-none"
+                  value={newCred.username}
+                  onChange={e => setNewCred({ ...newCred, username: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Password</label>
+              <div className="relative group">
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  required
+                  placeholder="Password"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:border-blue-500 outline-none font-mono"
+                  value={newCred.password}
+                  onChange={e => setNewCred({ ...newCred, password: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="md:col-span-2 flex justify-end">
+              <button type="submit" className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg hover:shadow-xl transition-all">
+                Save & Secure
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {credentials.length === 0 ? (
+          <div className="col-span-full py-24 text-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200">
+            <Shield className="w-12 h-12 mx-auto text-gray-200 mb-4" />
+            <h4 className="text-xl font-bold text-gray-300 uppercase">Vault is empty</h4>
+          </div>
+        ) : (
+          credentials.map(cred => (
+            <div key={cred.id} className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl transition-all relative flex flex-col border-b-4 border-b-gray-100 hover:border-b-blue-500">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-gray-900 tracking-tight text-lg truncate uppercase">{cred.platform}</h4>
+                    {cred.website && (
+                      <a href={cred.website} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-blue-500 flex items-center gap-1 mt-0.5"><ExternalLink className="w-2 h-2" /> Visit Site</a>
+                    )}
+                  </div>
+                </div>
+                <button onClick={() => onDelete(cred.id)} className="p-2 text-gray-200 hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" /></button>
+              </div>
+
+              <div className="space-y-4 flex-1">
+                <div className="p-4 bg-gray-50/50 rounded-2xl relative group/item">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Username</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold text-gray-800 truncate">{cred.username}</span>
+                    <button onClick={() => handleCopy(cred.username)} className="p-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover/item:opacity-100 transition-all"><Copy className="w-3 h-3" /></button>
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50/50 rounded-2xl relative group/item">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Password</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-sm font-mono font-bold tracking-widest ${showPass[cred.id] ? 'text-blue-600' : 'text-gray-300'}`}>
+                      {showPass[cred.id] ? cred.password : '••••••••••••'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => togglePass(cred.id)} className="p-2 text-gray-400 hover:text-blue-600 transition-all">
+                        {showPass[cred.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => handleCopy(cred.password)} className="p-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover/item:opacity-100 transition-all"><Copy className="w-3 h-3" /></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+        <Shield className="absolute right-[-20px] top-[-20px] w-48 h-48 opacity-10 rotate-12" />
+        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+          <Lock className="w-8 h-8" />
+        </div>
+        <div className="text-center md:text-left relative z-10">
+          <h4 className="font-black uppercase tracking-widest text-xs mb-1 opacity-70">Security Protocol Activated</h4>
+          <h3 className="text-xl font-bold mb-2">Your Credentials are Protected</h3>
+          <p className="text-sm text-blue-100 opacity-90 max-w-xl">This vault uses industry-standard encryption in transit and is only accessible from your private account. Masking is enabled by default for privacy.</p>
         </div>
       </div>
     </div>

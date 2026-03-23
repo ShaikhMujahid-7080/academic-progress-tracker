@@ -1,39 +1,45 @@
 import { useState, useEffect } from "react";
-import { 
-  Paperclip, 
-  Download, 
-  ExternalLink, 
-  File, 
-  Clock, 
-  User, 
-  Crown, 
-  Star, 
-  Edit3, 
-  Settings, 
-  Pin, 
-  PinOff, 
-  Trash2, 
-  Globe, 
+import {
+  Paperclip,
+  Download,
+  ExternalLink,
+  File,
+  Clock,
+  User,
+  Crown,
+  Star,
+  Edit3,
+  Settings,
+  Pin,
+  PinOff,
+  Trash2,
+  Globe,
   Lock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  X,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  RotateCcw
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-export function MaterialItem({ 
-  notice, 
-  currentUser, 
-  isAdmin, 
-  isCoLeader, 
-  canManageNotices, 
-  onDelete, 
-  onManagePermissions, 
-  onEdit, 
-  onTogglePin 
+export function MaterialItem({
+  notice,
+  currentUser,
+  isAdmin,
+  isCoLeader,
+  canManageNotices,
+  onDelete,
+  onManagePermissions,
+  onEdit,
+  onTogglePin
 }) {
   const [timeLeft, setTimeLeft] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
@@ -57,7 +63,7 @@ export function MaterialItem({
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
   };
@@ -100,9 +106,17 @@ export function MaterialItem({
               <Paperclip className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-bold text-gray-900 text-sm sm:text-base truncate">
-                Study Material
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base truncate">
+                  Study Material
+                </h3>
+                {notice.isPinned && (
+                  <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1 border border-orange-200">
+                    <Pin className="w-2.5 h-2.5 fill-orange-700" />
+                    Pinned
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2 text-[10px] sm:text-xs text-gray-500">
                 <span className="truncate flex items-center gap-1">
                   <User className="w-3 h-3" /> {notice.createdBy}
@@ -162,13 +176,20 @@ export function MaterialItem({
       {/* Main Material Display */}
       <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4">
         {isImage ? (
-          <div className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-50">
+          <div 
+            className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 cursor-zoom-in"
+            onClick={() => setShowPreview(true)}
+          >
             <img
               src={notice.meta?.fileUrl}
               alt={notice.meta?.fileName}
               className="w-full h-auto max-h-[400px] object-contain transition-transform duration-500 group-hover:scale-[1.02]"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 pointer-events-none" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+               <div className="p-3 bg-white/90 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                  <Maximize className="w-5 h-5 text-orange-600" />
+               </div>
+            </div>
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-between gap-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
               <div className="min-w-0">
                 <p className="text-xs font-medium text-white truncate drop-shadow-md">
@@ -241,6 +262,117 @@ export function MaterialItem({
             </div>
           )}
         </div>
+      </div>
+
+      {showPreview && (
+        <ImagePreview
+          imageUrl={notice.meta?.fileUrl}
+          fileName={notice.meta?.fileName}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ImagePreview({ imageUrl, fileName, onClose }) {
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  const handleZoomIn = (e) => {
+    e.stopPropagation();
+    setScale(prev => Math.min(prev + 0.5, 4));
+  };
+  
+  const handleZoomOut = (e) => {
+    e.stopPropagation();
+    setScale(prev => Math.max(prev - 0.5, 0.5));
+  };
+  
+  const handleReset = (e) => {
+    e.stopPropagation();
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e) => {
+    if (scale > 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex flex-col animate-in fade-in duration-300"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onClick={onClose}
+    >
+      <div className="flex items-center justify-between p-4 bg-black/40 border-b border-white/10" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+            <Maximize className="w-4 h-4 text-orange-600" />
+          </div>
+          <div className="min-w-0 text-white">
+            <h3 className="text-sm font-bold truncate max-w-[200px] sm:max-w-md">{fileName}</h3>
+            <p className="text-[10px] opacity-60">Zoom: {Math.round(scale * 100)}%</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-white/10 rounded-lg p-1">
+            <button onClick={handleZoomOut} className="p-1.5 hover:bg-white/10 rounded-md text-white transition-colors"><ZoomOut className="w-4 h-4" /></button>
+            <div className="w-px h-4 bg-white/10 mx-1" />
+            <button onClick={handleReset} className="p-1.5 hover:bg-white/10 rounded-md text-white transition-colors"><RotateCcw className="w-4 h-4" /></button>
+            <div className="w-px h-4 bg-white/10 mx-1" />
+            <button onClick={handleZoomIn} className="p-1.5 hover:bg-white/10 rounded-md text-white transition-colors"><ZoomIn className="w-4 h-4" /></button>
+          </div>
+          <button onClick={onClose} className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors ml-2"><X className="w-5 h-5" /></button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden relative flex items-center justify-center" onMouseDown={handleMouseDown}>
+        <img
+          src={imageUrl}
+          alt={fileName}
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+            cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
+          }}
+          className="max-w-[95%] max-h-[90%] object-contain select-none shadow-2xl"
+          draggable={false}
+          onClick={e => e.stopPropagation()}
+        />
+      </div>
+
+      <div className="p-3 bg-black/40 text-center">
+        <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium">
+          Drag to Pan • Click outside to Close • ESC to Close
+        </p>
       </div>
     </div>
   );

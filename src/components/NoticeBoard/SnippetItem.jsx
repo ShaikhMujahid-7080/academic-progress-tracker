@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Copy, Check, Terminal, User, Clock, Crown, Star, Edit3, Settings, Pin, PinOff, Trash2, Globe, Lock } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Copy, Check, Terminal, User, Clock, Crown, Star, Edit3, Settings, Pin, PinOff, Trash2, Globe, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from 'react-toastify';
 
 export function SnippetItem({ 
@@ -14,6 +14,16 @@ export function SnippetItem({
   onTogglePin 
 }) {
   const [copied, setCopied] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [shouldShowToggle, setShouldShowToggle] = useState(false);
+  const codeRef = useRef(null);
+
+  useEffect(() => {
+    if (codeRef.current) {
+      // Show toggle if height exceeds 256px
+      setShouldShowToggle(codeRef.current.scrollHeight > 256);
+    }
+  }, [notice.meta?.code, notice.content]);
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
@@ -172,16 +182,44 @@ export function SnippetItem({
           </button>
         </div>
 
-        <div className="bg-slate-900 rounded-xl overflow-hidden shadow-inner border border-slate-800">
+        <div 
+          className={`bg-slate-900 rounded-xl overflow-hidden shadow-inner border border-slate-800 transition-all duration-300 ${!isExpanded && shouldShowToggle ? 'max-h-[256px]' : 'max-h-none'}`}
+        >
           <div className="flex items-center justify-between px-4 py-2 bg-slate-800/50 border-b border-slate-700/50">
             <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
               {notice.meta?.language || 'code'}
             </span>
           </div>
-          <pre className="p-4 sm:p-6 text-xs sm:text-sm font-mono text-slate-100 overflow-x-auto custom-scrollbar whitespace-pre">
+          <pre 
+            ref={codeRef}
+            className="p-4 sm:p-6 text-xs sm:text-sm font-mono text-slate-100 overflow-x-auto custom-scrollbar whitespace-pre"
+          >
             <code>{notice.meta?.code || notice.content}</code>
           </pre>
+          
+          {!isExpanded && shouldShowToggle && (
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none" />
+          )}
         </div>
+
+        {shouldShowToggle && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-2 w-full py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors bg-slate-800/30 hover:bg-slate-800/50 rounded-lg border border-slate-700/50"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="w-3.5 h-3.5" />
+                See Less
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3.5 h-3.5" />
+                See More
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {notice.content && notice.meta?.code && (

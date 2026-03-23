@@ -548,6 +548,8 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       <PinnedNoticesSidebar
         pinnedNotices={pinnedNotices}
         onNoticeClick={handleScrollToNotice}
+        onReorder={handleReorderNotices}
+        canManageNotices={canManageNotices}
       />
 
       {/* Notice List */}

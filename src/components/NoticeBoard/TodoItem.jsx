@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Trash2, Calendar, User, Clock, Settings, Edit3, Save, X, Check } from "lucide-react";
+import { Trash2, Calendar, User, Clock, Settings, Edit3, Save, X, Check, Pin, PinOff } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, canManageNotices, onDelete, onManagePermissions, onToggle, onEdit }) {
+export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, canManageNotices, onDelete, onManagePermissions, onToggle, onEdit, onTogglePin }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(notice.content);
   const [editDueDate, setEditDueDate] = useState(notice.meta.dueDate);
@@ -168,6 +168,12 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
                   Past Due
                 </span>
               )}
+              {notice.isPinned && (
+                <span className="text-[10px] sm:text-xs bg-orange-100 text-orange-700 px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap flex items-center gap-1">
+                  <Pin className="w-2.5 h-2.5 fill-orange-700" />
+                  Pinned
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 mt-0.5">
               <div className="flex items-center gap-1">
@@ -204,6 +210,19 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
                 title="Manage Permissions"
               >
                 <Settings className="w-4 h-4" />
+              </button>
+            )}
+
+            {canManageNotices && (
+              <button
+                onClick={onTogglePin}
+                className={`p-1.5 sm:p-2 rounded-lg transition-colors ${notice.isPinned
+                  ? 'text-orange-600 hover:bg-orange-100'
+                  : 'text-gray-400 hover:bg-gray-100 hover:text-orange-600'
+                  }`}
+                title={notice.isPinned ? "Unpin Notice" : "Pin Notice"}
+              >
+                {notice.isPinned ? <PinOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Pin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
               </button>
             )}
 

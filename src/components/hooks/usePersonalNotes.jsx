@@ -9,6 +9,7 @@ import { db } from '../../firebase';
 
 export function usePersonalNotes(userId) {
   const [notes, setNotes] = useState('');
+  const [credentials, setCredentials] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
@@ -29,10 +30,13 @@ export function usePersonalNotes(userId) {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        setNotes(docSnap.data().content || '');
-        setLastSaved(docSnap.data().updatedAt ? docSnap.data().updatedAt.toDate() : null);
+        const data = docSnap.data();
+        setNotes(data.content || '');
+        setCredentials(data.credentials || []);
+        setLastSaved(data.updatedAt ? data.updatedAt.toDate() : null);
       } else {
         setNotes('');
+        setCredentials([]);
         setLastSaved(null);
       }
     } catch (err) {
@@ -59,6 +63,7 @@ export function usePersonalNotes(userId) {
         const docRef = doc(db, 'userNotes', userId);
         await setDoc(docRef, {
           content: notes,
+          credentials,
           updatedAt: serverTimestamp(),
           userId
         });
@@ -74,7 +79,15 @@ export function usePersonalNotes(userId) {
     }, 1000); // Save 1 second after last change
 
     return () => clearTimeout(saveTimeout);
-  }, [notes, userId, isLoading]);
+  }, [notes, credentials, userId, isLoading]);
+
+  const addCredential = (cred) => {
+    setCredentials(prev => [...prev, { ...cred, id: Date.now().toString() }]);
+  };
+
+  const deleteCredential = (id) => {
+    setCredentials(prev => prev.filter(c => c.id !== id));
+  };
 
   const updateNotes = (newNotes) => {
     setNotes(newNotes);
@@ -103,7 +116,10 @@ export function usePersonalNotes(userId) {
 
   return {
     notes,
+    credentials,
     updateNotes,
+    addCredential,
+    deleteCredential,
     clearNotes,
     refreshNotes: fetchNotes,
     isLoading,

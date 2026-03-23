@@ -1,4 +1,4 @@
-import { Trash2, Edit2, Calendar, Clock, GraduationCap, BookOpen, FileBadge, CheckCircle2, Circle } from "lucide-react";
+import { Trash2, Edit2, Calendar, Clock, GraduationCap, BookOpen, FileBadge, CheckCircle2, Circle, Pin, PinOff } from "lucide-react";
 import { useState } from "react";
 
 export function AssessmentItem({
@@ -6,9 +6,11 @@ export function AssessmentItem({
     currentUser,
     isAdmin,
     isCoLeader,
+    canManageNotices,
     onDelete,
     onRequestEdit,
-    onToggleCompletion
+    onToggleCompletion,
+    onTogglePin
 }) {
     const [isTogglingDone, setIsTogglingDone] = useState(false);
 
@@ -58,6 +60,12 @@ export function AssessmentItem({
                             ✓ Completed
                         </span>
                     )}
+                    {notice.isPinned && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 flex items-center gap-1">
+                            <Pin className="w-2.5 h-2.5 fill-orange-700" />
+                            Pinned
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex gap-1 items-center">
@@ -87,6 +95,18 @@ export function AssessmentItem({
                             >
                                 <Edit2 className="w-3.5 h-3.5" />
                             </button>
+                            {canManageNotices && (
+                                <button
+                                    onClick={onTogglePin}
+                                    className={`p-1.5 rounded-lg transition-colors ${notice.isPinned
+                                        ? 'text-orange-600 hover:bg-orange-100'
+                                        : 'text-gray-400 hover:bg-gray-100 hover:text-orange-600'
+                                        }`}
+                                    title={notice.isPinned ? "Unpin Notice" : "Pin Notice"}
+                                >
+                                    {notice.isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                                </button>
+                            )}
                             <button
                                 onClick={() => onDelete(notice.id)}
                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"

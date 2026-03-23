@@ -1,10 +1,33 @@
+**Add all new changes**
+git add .
+
+**Save the changes with a descriptive message**
+git commit -m "Updated the navbar"
+
+**Push your saved changes to GitHub**
+git push
+
 > Pending
 1) add: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
 2) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
 3) add: [Dashboard] add a dashboard page
 4) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
-5)
+5) fix: [profilephoto] profile photo are automatically being deleted for some student
 
+> 23/3/26
+* Added:
+  * add: [pinnedboard] add a button in the pinnedboard that would scroll the view/notices to all the way to the top notice
+  * add: [personalnotes] option to save id & passwords of different website/platforms for easier access (or option to 1 click copy & paste, also password should be private/hidden for privacy)
+* Changed:
+* Enhanced:
+  * enhance: [CodeSnippetNotice] make the codesnippetcard display a compressed card if the code is big
+  * enhance: [pinnedboard] an option to manage/reoder the pinned noitces 
+  * enhance: [noticeboard] make the images/gif of studymaterial notice viewable/enlarged/preview when clicked (also make the images zoomable when  previewing)
+  * enhance: [noticeboard] instead of 1 year from the date of being post, make all the notices to be deleted at the end of semester by default
+* Fixed:
+  * fix: [noticeboard] no option to pin the assessment notice
+  * fix: [noticeboard] pinnedboard is not supporting the markdown text (its displaying the raw text from the notices instead of displaying the markdown (output) )
+  * fix: [noticeboard] pinnedboard is underlapping the secondary navbar (TheorySubjects, Praticals, NoticeBoard, etc) move it little downward or something
 
 
 > 13/3/26

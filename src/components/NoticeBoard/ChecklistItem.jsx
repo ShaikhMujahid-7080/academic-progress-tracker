@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Trash2, CheckSquare, User, Clock, Settings, Edit3, Save, X, Plus, Check, ChevronDown, ChevronUp, Users, EyeOff, Eye } from "lucide-react";
+import { Trash2, CheckSquare, User, Clock, Settings, Edit3, Save, X, Plus, Check, ChevronDown, ChevronUp, Users, EyeOff, Eye, Pin, PinOff } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLeader, canManageNotices, onDelete, onManagePermissions, onToggleItem, onEdit }) {
+export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLeader, canManageNotices, onDelete, onManagePermissions, onToggleItem, onEdit, onTogglePin }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(notice.content);
   const [editItems, setEditItems] = useState(notice.meta.items || []);
@@ -253,6 +253,14 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
         </div>
 
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Pinned Indicator - Visible to everyone */}
+          {notice.isPinned && (
+            <div className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+              <Pin className="w-2.5 h-2.5 fill-orange-700" />
+              <span className="font-medium">Pinned</span>
+            </div>
+          )}
+
           <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500">
             <Clock className="w-3 h-3" />
             <span>{formatDate(notice.createdAt)}</span>
@@ -276,6 +284,19 @@ export function ChecklistItem({ notice, currentUser, students, isAdmin, isCoLead
                 title="Manage Permissions"
               >
                 <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+
+            {canManageNotices && (
+              <button
+                onClick={onTogglePin}
+                className={`p-1.5 sm:p-2 rounded-lg transition-colors ${notice.isPinned
+                  ? 'text-orange-600 hover:bg-orange-100'
+                  : 'text-gray-400 hover:bg-gray-100 hover:text-orange-600'
+                  }`}
+                title={notice.isPinned ? "Unpin Notice" : "Pin Notice"}
+              >
+                {notice.isPinned ? <PinOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Pin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
               </button>
             )}
 

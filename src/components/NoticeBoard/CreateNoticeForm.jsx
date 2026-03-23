@@ -31,17 +31,22 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
   const [meta, setMeta] = useState(initialData?.meta || {});
   const [isPublic, setIsPublic] = useState(initialData ? initialData.isPublic : true);
   const [selectedUsers, setSelectedUsers] = useState(initialData?.allowedUsers || []);
+  const getSemesterEndDate = (semesterNum) => {
+    const now = new Date();
+    const isOdd = [1, 3, 5, 7].includes(Number(semesterNum));
+    // Odd (1,3,5,7) -> Dec 31; Even (2,4,6,8) -> June 30
+    return new Date(now.getFullYear(), isOdd ? 11 : 5, isOdd ? 31 : 30, 23, 59, 59);
+  };
+
   const [deleteAt, setDeleteAt] = useState(() => {
     if (initialData?.deleteAt) {
       const date = initialData.deleteAt.toDate ? initialData.deleteAt.toDate() : new Date(initialData.deleteAt);
-      // Format to local datetime string for datetime-local input
       return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
     }
-    // Default to 1 year from now
-    const oneYearFromNow = new Date();
-    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-    // Format to local datetime string for datetime-local input
-    return new Date(oneYearFromNow.getTime() - (oneYearFromNow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+    
+    // Default to end of semester
+    const endDate = getSemesterEndDate(semester);
+    return new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
   });
   const [useAutoDelete, setUseAutoDelete] = useState(initialData ? !!initialData.deleteAt : true);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -126,6 +131,8 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
         setMeta({ fileName: '', fileUrl: '', fileSize: 0, filePath: '' });
         break;
       default:
+        const endDate = getSemesterEndDate(semester);
+        setDeleteAt(new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
         setMeta({});
     }
   };
