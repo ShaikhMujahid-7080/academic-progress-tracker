@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Megaphone,
   Plus,
@@ -18,7 +18,9 @@ import {
   Star,
   ArrowUpDown,
   Terminal,
-  Paperclip
+  Paperclip,
+  Sparkles,
+  History
 } from "lucide-react";
 import { useNoticeBoard } from "../hooks/useNoticeBoard";
 import { useStudentManagement } from "../hooks/useStudentManagement";
@@ -66,6 +68,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
   const [selectedNoticeForPermissions, setSelectedNoticeForPermissions] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('new');
 
   // Custom confirmation states
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -88,16 +91,68 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
     return matchesType && matchesSearch;
   });
 
+  // Sort: pinned first, then uncompleted, then completed (per student)
+  const sortedNotices = [...filteredNotices].sort((a, b) => {
+    // Pinned always on top
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+
+    // Completed notices sink to bottom
+    const aDone = a.meta?.completedBy?.includes(selectedStudent?.rollNo);
+    const bDone = b.meta?.completedBy?.includes(selectedStudent?.rollNo);
+    if (aDone && !bDone) return 1;
+    if (!aDone && bDone) return -1;
+
+    return 0; // preserve existing order
+  });
+
+  // Categorize notices for sections
+  const isRecent = (notice) => {
+    if (!notice.createdAt) return false;
+    const date = notice.createdAt.toDate ? notice.createdAt.toDate() : new Date(notice.createdAt);
+    const threshold = 48 * 60 * 60 * 1000; // 48 hours
+    return (new Date() - date) < threshold;
+  };
+
+  const sectionedNotices = {
+    pinned: sortedNotices.filter(n => n.isPinned),
+    new: sortedNotices.filter(n =>
+      isRecent(n) &&
+      !n.meta?.completedBy?.includes(selectedStudent?.rollNo)
+    ),
+    earlier: sortedNotices.filter(n =>
+      !n.isPinned &&
+      (!isRecent(n) || n.meta?.completedBy?.includes(selectedStudent?.rollNo))
+    )
+  };
+
+  // Set default tab based on availability
+  useEffect(() => {
+    if (!isLoading && notices.length > 0) {
+      if (sectionedNotices.new.length > 0) setActiveCategory('new');
+      else if (sectionedNotices.pinned.length > 0) setActiveCategory('pinned');
+      else setActiveCategory('earlier');
+    }
+  }, [isLoading, notices.length > 0]);
+
+  const categories = [
+    { id: 'new', label: 'New', icon: Sparkles, count: sectionedNotices.new.length, activeClass: 'text-blue-500', badgeClass: 'bg-blue-50 text-blue-600' },
+    { id: 'pinned', label: 'Pinned', icon: Star, count: sectionedNotices.pinned.length, activeClass: 'text-yellow-500', badgeClass: 'bg-yellow-50 text-yellow-600' },
+    { id: 'earlier', label: 'History', icon: History, count: sectionedNotices.earlier.length, activeClass: 'text-gray-500', badgeClass: 'bg-gray-200 text-gray-600' }
+  ];
+
+  const currentNotices = sectionedNotices[activeCategory] || [];
+
   const noticeTypes = [
-    { id: 'all', label: 'All', icon: FileText, count: notices.length },
-    { id: 'notice', label: 'Notices', icon: FileText, count: notices.filter(n => n.type === 'notice').length },
-    { id: 'checklist', label: 'Checklists', icon: CheckSquare, count: notices.filter(n => n.type === 'checklist').length },
-    { id: 'poll', label: 'Polls', icon: BarChart3, count: notices.filter(n => n.type === 'poll').length },
-    { id: 'reminder', label: 'Reminders', icon: Bell, count: notices.filter(n => n.type === 'reminder').length },
-    { id: 'todo', label: 'Todos', icon: Calendar, count: notices.filter(n => n.type === 'todo').length },
-    { id: 'assessment', label: 'Assessments', icon: FileText, count: notices.filter(n => n.type === 'assessment').length },
-    { id: 'snippet', label: 'Snippets', icon: Terminal, count: notices.filter(n => n.type === 'snippet').length },
-    { id: 'material', label: 'Materials', icon: Paperclip, count: notices.filter(n => n.type === 'material').length }
+    { id: 'all', label: 'All', icon: FileText, count: currentNotices.length },
+    { id: 'notice', label: 'Notices', icon: FileText, count: currentNotices.filter(n => n.type === 'notice').length },
+    { id: 'checklist', label: 'Checklists', icon: CheckSquare, count: currentNotices.filter(n => n.type === 'checklist').length },
+    { id: 'poll', label: 'Polls', icon: BarChart3, count: currentNotices.filter(n => n.type === 'poll').length },
+    { id: 'reminder', label: 'Reminders', icon: Bell, count: currentNotices.filter(n => n.type === 'reminder').length },
+    { id: 'todo', label: 'Todos', icon: Calendar, count: currentNotices.filter(n => n.type === 'todo').length },
+    { id: 'assessment', label: 'Assessments', icon: FileText, count: currentNotices.filter(n => n.type === 'assessment').length },
+    { id: 'snippet', label: 'Snippets', icon: Terminal, count: currentNotices.filter(n => n.type === 'snippet').length },
+    { id: 'material', label: 'Materials', icon: Paperclip, count: currentNotices.filter(n => n.type === 'material').length }
   ];
 
   const showConfirm = (config) => {
@@ -445,8 +500,36 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
         )
       }
 
-      {/* Filters and Search */}
+      {/* Filters and Search Container */}
       <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100">
+        {/* Category Tabs */}
+        <div className="flex p-1 bg-gray-100 rounded-xl w-fit mb-6 overflow-x-auto max-w-full scrollbar-hide">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`
+                flex items-center gap-2 px-3 py-1.5 sm:px-6 sm:py-2.5 rounded-lg transition-all text-xs sm:text-sm font-bold whitespace-nowrap
+                ${activeCategory === cat.id
+                  ? 'bg-white text-gray-900 shadow-sm scale-[1.02]'
+                  : 'text-gray-500 hover:text-gray-700'
+                }
+              `}
+            >
+              <cat.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeCategory === cat.id ? cat.activeClass : ''}`} />
+              <span>{cat.label}</span>
+              {cat.count > 0 && (
+                <span className={`
+                  px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs min-w-[20px] text-center
+                  ${activeCategory === cat.id ? cat.badgeClass : 'bg-gray-200 text-gray-500'}
+                `}>
+                  {cat.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* Type Filters */}
         <div className="flex overflow-x-auto gap-2 mb-4 pb-2 scrollbar-hide -mx-1 px-1">
           {noticeTypes.map((type) => (
@@ -553,38 +636,27 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       />
 
       {/* Notice List */}
-      <div className="space-y-4">
-        {filteredNotices.length > 0 ? (
-          filteredNotices.map(notice => (
+      <div className="space-y-4 pb-12">
+        {currentNotices.length > 0 ? (
+          currentNotices.map(notice => (
             <div
               key={notice.id}
               id={`notice-${notice.id}`}
-              className="scroll-mt-32 transition-all duration-300 rounded-2xl"
+              className="scroll-mt-32 transition-all duration-300 rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
               {renderNoticeItem(notice)}
             </div>
           ))
         ) : (
-          <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-100">
-            <Megaphone className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No notices found</h3>
-            <p className="text-gray-600 mb-4">
+          <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <Megaphone className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-bold text-gray-900 mb-1">No {activeCategory} notices</h3>
+            <p className="text-sm text-gray-500">
               {searchQuery || filterType !== 'all'
                 ? 'Try adjusting your filters or search terms'
-                : canManageNotices
-                  ? 'Create the first notice to get started!'
-                  : 'No notices have been shared with you yet.'
+                : `There are no notices in the ${activeCategory} category yet.`
               }
             </p>
-            {canManageNotices && (
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                Create First Notice
-              </button>
-            )}
           </div>
         )}
       </div>

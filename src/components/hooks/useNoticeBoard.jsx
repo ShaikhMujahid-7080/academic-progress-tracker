@@ -106,7 +106,9 @@ export function useNoticeBoard(currentUser, currentSemester) {
             return orderA - orderB;
           }
 
-          return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
+          const timeA = a.createdAt?.toMillis?.() ?? Infinity;
+          const timeB = b.createdAt?.toMillis?.() ?? Infinity;
+          return timeB - timeA;
         });
 
         setNotices(noticesList);

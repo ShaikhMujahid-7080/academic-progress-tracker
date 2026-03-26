@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { Copy, Check, Terminal, User, Clock, Crown, Star, Edit3, Settings, Pin, PinOff, Trash2, Globe, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from 'react-toastify';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-export function SnippetItem({ 
-  notice, 
-  currentUser, 
-  isAdmin, 
-  isCoLeader, 
-  canManageNotices, 
-  onDelete, 
-  onManagePermissions, 
-  onEdit, 
-  onTogglePin 
+export function SnippetItem({
+  notice,
+  currentUser,
+  isAdmin,
+  isCoLeader,
+  canManageNotices,
+  onDelete,
+  onManagePermissions,
+  onEdit,
+  onTogglePin
 }) {
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -162,8 +164,8 @@ export function SnippetItem({
             onClick={handleCopy}
             className={`
               flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shadow-lg
-              ${copied 
-                ? 'bg-green-600 text-white' 
+              ${copied
+                ? 'bg-green-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
               }
             `}
@@ -182,7 +184,7 @@ export function SnippetItem({
           </button>
         </div>
 
-        <div 
+        <div
           className={`bg-slate-900 rounded-xl overflow-hidden shadow-inner border border-slate-800 transition-all duration-300 ${!isExpanded && shouldShowToggle ? 'max-h-[256px]' : 'max-h-none'}`}
         >
           <div className="flex items-center justify-between px-4 py-2 bg-slate-800/50 border-b border-slate-700/50">
@@ -190,13 +192,13 @@ export function SnippetItem({
               {notice.meta?.language || 'code'}
             </span>
           </div>
-          <pre 
+          <pre
             ref={codeRef}
             className="p-4 sm:p-6 text-xs sm:text-sm font-mono text-slate-100 overflow-x-auto custom-scrollbar whitespace-pre"
           >
             <code>{notice.meta?.code || notice.content}</code>
           </pre>
-          
+
           {!isExpanded && shouldShowToggle && (
             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none" />
           )}
@@ -223,9 +225,29 @@ export function SnippetItem({
       </div>
 
       {notice.content && notice.meta?.code && (
-        <p className="mt-3 text-sm text-gray-600 leading-relaxed italic border-l-4 border-slate-200 pl-3">
-          {notice.content}
-        </p>
+        <div className="mt-3 text-sm text-gray-600 leading-relaxed border-l-4 border-slate-200 pl-3 prose prose-sm max-w-none">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              a: ({ href, children }) => (
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline font-medium tracking-tight whitespace-nowrap">{children}</a>
+              ),
+              p: ({ children }) => (
+                <p className="text-gray-600 leading-relaxed italic mb-1">{children}</p>
+              ),
+              strong: ({ children }) => <strong className="font-bold text-gray-900">{children}</strong>,
+              em: ({ children }) => <em className="italic">{children}</em>,
+              code: ({ children, className }) => {
+                const isInline = !className;
+                return isInline
+                  ? <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-[11px] font-mono">{children}</code>
+                  : <code className="block bg-gray-50 text-gray-800 p-2 rounded text-[11px] font-mono whitespace-pre-wrap mb-1">{children}</code>;
+              }
+            }}
+          >
+            {notice.content}
+          </ReactMarkdown>
+        </div>
       )}
     </div>
   );

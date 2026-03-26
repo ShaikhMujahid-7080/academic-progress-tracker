@@ -1,5 +1,7 @@
 import { Trash2, Edit2, Calendar, Clock, GraduationCap, BookOpen, FileBadge, CheckCircle2, Circle, Pin, PinOff } from "lucide-react";
 import { useState } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export function AssessmentItem({
     notice,
@@ -195,10 +197,39 @@ export function AssessmentItem({
                 {/* Additional Notes/Content */}
                 {notice.content && (
                     <div className="p-4 bg-yellow-50/30">
-                        <p className={`text-sm whitespace-pre-wrap ${isDone ? 'text-gray-400' : 'text-gray-700'}`}>
-                            <span className="font-semibold text-gray-900 no-underline" style={{ textDecoration: 'none' }}>Note: </span>
-                            {notice.content}
-                        </p>
+                        <span className={`font-semibold text-xs uppercase tracking-wider ${isDone ? 'text-gray-400' : 'text-gray-500'} block mb-2`}>Note</span>
+                        <div className={`prose prose-sm max-w-none ${isDone ? 'opacity-50' : ''}`}>
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    a: ({ href, children }) => (
+                                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline font-medium">{children}</a>
+                                    ),
+                                    p: ({ children }) => (
+                                        <p className="text-gray-700 leading-relaxed mb-2">{children}</p>
+                                    ),
+                                    h1: ({ children }) => <h1 className="text-xl font-bold text-gray-900 mb-2">{children}</h1>,
+                                    h2: ({ children }) => <h2 className="text-lg font-bold text-gray-900 mb-2">{children}</h2>,
+                                    h3: ({ children }) => <h3 className="text-base font-bold text-gray-900 mb-1">{children}</h3>,
+                                    ul: ({ children }) => <ul className="list-disc list-inside text-gray-700 mb-2 space-y-1">{children}</ul>,
+                                    ol: ({ children }) => <ol className="list-decimal list-inside text-gray-700 mb-2 space-y-1">{children}</ol>,
+                                    li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                                    blockquote: ({ children }) => (
+                                        <blockquote className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 text-gray-700 italic mb-2">{children}</blockquote>
+                                    ),
+                                    code: ({ children, className }) => {
+                                        const isInline = !className;
+                                        return isInline
+                                            ? <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-sm font-mono">{children}</code>
+                                            : <code className="block bg-gray-100 text-gray-800 p-3 rounded text-sm font-mono whitespace-pre-wrap mb-2">{children}</code>;
+                                    },
+                                    strong: ({ children }) => <strong className="font-bold text-gray-900">{children}</strong>,
+                                    em: ({ children }) => <em className="italic text-gray-700">{children}</em>
+                                }}
+                            >
+                                {notice.content}
+                            </ReactMarkdown>
+                        </div>
                     </div>
                 )}
             </div>

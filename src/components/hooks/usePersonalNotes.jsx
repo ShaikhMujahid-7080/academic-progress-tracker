@@ -103,7 +103,7 @@ export function usePersonalNotes(userId) {
         content: '',
         updatedAt: serverTimestamp(),
         userId
-      });
+      }, { merge: true });
       setNotes('');
       setLastSaved(new Date());
     } catch (err) {

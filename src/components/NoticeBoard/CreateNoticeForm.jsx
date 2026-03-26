@@ -43,7 +43,7 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
       const date = initialData.deleteAt.toDate ? initialData.deleteAt.toDate() : new Date(initialData.deleteAt);
       return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
     }
-    
+
     // Default to end of semester
     const endDate = getSemesterEndDate(semester);
     return new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);

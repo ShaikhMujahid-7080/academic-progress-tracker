@@ -7,12 +7,31 @@ git commit -m "Updated the navbar"
 **Push your saved changes to GitHub**
 git push
 
+**Deploy**
+npm run deploy
+
 > Pending
 1) add: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
 2) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
 3) add: [Dashboard] add a dashboard page
 4) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
 5) fix: [profilephoto] profile photo are automatically being deleted for some student
+
+
+> 26/3/26
+* Added:
+* Changed:
+* Enhanced:
+  1) enhance: [NoticeBoard] Make the AssessmentNotice markdown supported
+  2) enhance: [NoticeBoard] make the notices which are marked as done (by the student) move lower/down so the uncompleted onces can be easy to find (for each student)
+  3) enhance: [NoticeBoard] implemented a tabbed layout (New, Pinned, History) to organize notices and eliminate vertical scrolling
+  4) enhance: [Vite] optimized production build by implementing manual chunking for large dependencies (Firebase, Lucide, Supabase)
+  5) enhance: [NoticeBoard] Make the SnippetNotice markdown supported
+* Fixed:
+  1) fix: [PersonalNotes] the toolbar got stuck between the notes and is being scrolled away with the notes instead of being pinned/sticky 
+  2) fix: [PasswordVault] the passwords/crediantials stored just automatically got deleted it also got deleted from the firebase
+  3) fix: [NoticeBoard] the new notices are going down instead of showing on the top when posted.
+  4) fix: [noticeboard] if you pinned a new (posted) notice it disappears from newtab and only appears in pinnedtab, it should stay in newtab for 48hrs
 
 > 23/3/26
 * Added:

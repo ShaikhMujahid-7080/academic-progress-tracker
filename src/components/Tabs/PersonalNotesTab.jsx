@@ -349,7 +349,7 @@ export function PersonalNotesTab({ selectedStudent }) {
       )}
 
       {/* Main Content Area */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
         {activeTab === 'notes' ? (
           <>
             {/* Toolbar */}
