@@ -21,7 +21,8 @@ import {
   Terminal,
   Paperclip,
   Upload,
-  File
+  File,
+  CheckCircle2
 } from "lucide-react";
 import { ADMIN_STUDENT, subjects } from "../../data/subjects";
 
@@ -49,8 +50,9 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
     return new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
   });
   const [useAutoDelete, setUseAutoDelete] = useState(initialData ? !!initialData.deleteAt : true);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle', 'uploading', 'success'
 
   const isEditing = !!initialData;
 
@@ -62,7 +64,7 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
     { id: 'todo', label: 'Todo', icon: Calendar, description: 'Task with due date and completion tracking' },
     { id: 'assessment', label: 'Assessment', icon: GraduationCap, description: 'Exam or assignment schedule' },
     { id: 'snippet', label: 'Code Snippet', icon: Terminal, description: 'Share code with one-click copy' },
-    { id: 'material', label: 'Study Material', icon: Paperclip, description: 'Upload files (expires in 2h)' }
+    { id: 'material', label: 'Study Material', icon: Paperclip, description: 'Upload files up to 25MB (expires in 2h)' }
   ];
 
   // Filter out admin from user selection
@@ -128,7 +130,8 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
         // Format to local datetime string for datetime-local input
         setDeleteAt(new Date(twoHoursFromNow.getTime() - (twoHoursFromNow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
         setUseAutoDelete(true);
-        setMeta({ fileName: '', fileUrl: '', fileSize: 0, filePath: '' });
+        setMeta({ files: [] });
+        setSelectedFiles([]);
         break;
       default:
         const endDate = getSemesterEndDate(semester);
@@ -190,8 +193,8 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
       return;
     }
 
-    if (noticeType === 'material' && !selectedFile && !isEditing) {
-      alert('Please select a file to upload');
+    if (noticeType === 'material' && selectedFiles.length === 0 && !isEditing) {
+      alert('Please select at least one file to upload');
       return;
     }
 
@@ -238,16 +241,28 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
       let currentMeta = { ...meta };
 
       // Handle file upload for material type
-      if (noticeType === 'material' && selectedFile) {
+      if (noticeType === 'material' && selectedFiles.length > 0) {
         setIsUploading(true);
-        const uploadResult = await uploadNoticeFile(selectedFile);
+        setUploadStatus('uploading');
+
+        const uploadPromises = selectedFiles.map(file => uploadNoticeFile(file));
+        const uploadResults = await Promise.all(uploadPromises);
+
+        const newFiles = uploadResults.map((res, index) => ({
+          fileUrl: res.publicUrl,
+          fileName: res.fileName,
+          filePath: res.filePath,
+          fileSize: selectedFiles[index].size
+        }));
+
         currentMeta = {
           ...currentMeta,
-          fileUrl: uploadResult.publicUrl,
-          fileName: uploadResult.fileName,
-          filePath: uploadResult.filePath,
-          fileSize: selectedFile.size
+          files: [...(currentMeta.files || []), ...newFiles]
         };
+
+        setUploadStatus('success');
+        // Small delay to show success state before finishing
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       onSubmit({
@@ -264,6 +279,7 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
       alert('Error saving notice: ' + error.message);
     } finally {
       setIsUploading(false);
+      setUploadStatus('idle');
     }
   };
 
@@ -353,21 +369,44 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    // Validate file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size exceeds 10MB limit');
-      e.target.value = null;
-      return;
+    const validFiles = [];
+    for (const file of files) {
+      // Validate file size (25MB)
+      if (file.size > 25 * 1024 * 1024) {
+        alert(`File "${file.name}" exceeds 25MB limit and will be skipped.`);
+        continue;
+      }
+      validFiles.push(file);
     }
 
-    setSelectedFile(file);
-    // Auto-fill content if empty
-    if (!content.trim()) {
-      setContent(`File: ${file.name}`);
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles]);
+      // Auto-fill content if empty
+      if (!content.trim()) {
+        setContent(`Attached ${validFiles.length + selectedFiles.length} file(s)`);
+      }
     }
+    e.target.value = null; // Reset input
+  };
+
+  const removeSelectedFile = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    if (content.startsWith('Attached ') && content.endsWith(' file(s)')) {
+      const remainingCount = selectedFiles.length - 1;
+      if (remainingCount > 0) {
+        setContent(`Attached ${remainingCount} file(s)`);
+      } else {
+        setContent('');
+      }
+    }
+  };
+
+  const removeExistingFile = (index) => {
+    const updatedFiles = meta.files.filter((_, i) => i !== index);
+    setMeta({ ...meta, files: updatedFiles });
   };
 
   return (
@@ -822,52 +861,133 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
                 Upload File (Study Material / Images / etc.)
               </label>
               <div className={`
-                border-2 border-dashed rounded-2xl p-8 transition-all flex flex-col items-center justify-center gap-4
-                ${selectedFile ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'}
+                relative border-2 border-dashed rounded-2xl p-8 transition-all overflow-hidden
+                ${uploadStatus === 'success' ? 'border-green-500 bg-green-50 shadow-inner' :
+                    uploadStatus === 'uploading' ? 'border-blue-400 bg-blue-50' :
+                      selectedFiles.length > 0 ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'}
               `}>
                 <input
                   type="file"
                   onChange={handleFileChange}
                   className="hidden"
                   id="notice-file-upload"
-                  disabled={isUploading}
+                  disabled={isUploading || uploadStatus === 'success'}
+                  multiple
                 />
-                <label
-                  htmlFor="notice-file-upload"
-                  className={`
-                    flex flex-col items-center justify-center cursor-pointer text-center
-                    ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
-                  `}
-                >
-                  {selectedFile ? (
-                    <>
-                      <File className="w-12 h-12 text-green-600 mb-2" />
-                      <p className="text-sm font-medium text-green-800 truncate max-w-xs">{selectedFile.name}</p>
-                      <p className="text-xs text-green-600 mt-1">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-                      <span className="text-xs text-blue-600 mt-2 hover:underline">Click to change file</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-12 h-12 text-gray-400 mb-2" />
-                      <p className="text-sm font-medium text-gray-700">Click to upload or drag & drop</p>
-                      <p className="text-xs text-gray-500 mt-1">Max file size: 10MB</p>
-                    </>
-                  )}
-                </label>
 
-                {isUploading && (
-                  <div className="flex items-center gap-2 text-blue-600 animate-pulse">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm font-medium">Uploading to storage...</span>
-                  </div>
+                {/* Status-based content */}
+                <div className="flex flex-col items-center justify-center gap-4 w-full">
+                  {uploadStatus === 'idle' && (
+                    <div className="w-full">
+                      <label
+                        htmlFor="notice-file-upload"
+                        className="flex flex-col items-center justify-center cursor-pointer text-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:bg-white transition-colors"
+                      >
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
+                          <Upload className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-700">Add more files</p>
+                        <p className="text-xs text-gray-500 mt-1">Up to 25MB per file</p>
+                      </label>
+
+                      {/* Selected Files List */}
+                      {selectedFiles.length > 0 && (
+                        <div className="mt-6 space-y-2 max-h-48 overflow-y-auto px-2">
+                          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Selected Files ({selectedFiles.length})</p>
+                          {selectedFiles.map((file, idx) => (
+                            <div key={`new-${idx}`} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm animate-in slide-in-from-left-2 duration-200">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="p-2 bg-green-50 rounded-lg">
+                                  <File className="w-4 h-4 text-green-600" />
+                                </div>
+                                <div className="min-w-0 text-left">
+                                  <p className="text-xs font-bold text-gray-800 truncate max-w-[150px]">{file.name}</p>
+                                  <p className="text-[10px] text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeSelectedFile(idx)}
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {uploadStatus === 'uploading' && (
+                    <div className="w-full flex flex-col items-center py-4">
+                      <div className="relative mb-6">
+                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+                        <div className="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-20 animate-pulse" />
+                      </div>
+                      <p className="text-sm font-bold text-blue-800 mb-2">Uploading Material...</p>
+                      <div className="w-full max-w-xs h-2 bg-blue-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-600 rounded-full transition-all duration-500 marquee-linear" style={{ width: '100%' }}></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadStatus === 'success' && (
+                    <div className="flex flex-col items-center py-4 animate-in zoom-in-95 duration-300">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-green-100">
+                        <CheckCircle2 className="w-10 h-10 text-green-600 animate-in zoom-in-50 duration-500" />
+                      </div>
+                      <p className="text-sm font-bold text-green-800">File Uploaded Successfully!</p>
+                      <p className="text-xs text-green-600 mt-1 italic">Processing notice...</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Progress highlight for uploading */}
+                {uploadStatus === 'uploading' && (
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-blue-600/10 animate-pulse" />
                 )}
               </div>
+
+              {/* Added keyframes for animation in index.css if not already present, but using Tailwind classes here */}
+              <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes marquee-linear {
+                  0% { transform: translateX(-100%); }
+                  100% { transform: translateX(100%); }
+                }
+                .marquee-linear {
+                  animation: marquee-linear 1.5s infinite linear;
+                }
+              `}} />
             </div>
 
-            {initialData?.meta.fileUrl && !selectedFile && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
-                <Paperclip className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-700">Currently has: <span className="font-medium">{initialData.meta.fileName}</span></span>
+            {((initialData?.meta.files && initialData.meta.files.length > 0) || (initialData?.meta.fileUrl)) && selectedFiles.length === 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Existing Attachments</p>
+                {(initialData?.meta.files || (initialData?.meta.fileUrl ? [initialData.meta] : [])).map((file, idx) => (
+                  <div key={`existing-${idx}`} className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Paperclip className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs font-bold text-blue-800 truncate max-w-[150px]">{file.fileName}</p>
+                        <p className="text-[10px] text-blue-600">Already uploaded</p>
+                      </div>
+                    </div>
+                    {initialData?.meta.files && (
+                      <button
+                        type="button"
+                        onClick={() => removeExistingFile(idx)}
+                        className="p-1.5 text-blue-300 hover:text-red-500 hover:bg-white rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Remove existing file"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
 

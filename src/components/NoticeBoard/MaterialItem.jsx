@@ -40,6 +40,7 @@ export function MaterialItem({
   const [timeLeft, setTimeLeft] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [activePreviewFile, setActivePreviewFile] = useState(null);
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
@@ -93,9 +94,28 @@ export function MaterialItem({
     return 'File';
   };
 
+  const getFileExtension = (fileName = '') => {
+    const parts = fileName.split('.');
+    return parts.length > 1 ? parts.pop().toUpperCase() : null;
+  };
+
   const creatorRole = getCreatorRole();
-  const fileType = getFileIcon(notice.meta?.fileName);
-  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(notice.meta?.fileName?.split('.').pop()?.toLowerCase());
+
+  // Normalize files: supporting both legacy single-file meta and new meta.files array
+  const files = notice.meta?.files || (notice.meta?.fileUrl ? [{
+    fileUrl: notice.meta.fileUrl,
+    fileName: notice.meta.fileName,
+    fileSize: notice.meta.fileSize,
+    filePath: notice.meta.filePath
+  }] : []);
+
+  const images = files.filter(f => ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(f.fileName?.split('.').pop()?.toLowerCase()));
+  const docs = files.filter(f => !['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(f.fileName?.split('.').pop()?.toLowerCase()));
+
+  const handlePreview = (file) => {
+    setActivePreviewFile(file);
+    setShowPreview(true);
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all overflow-hidden border-l-4 border-l-orange-400">
@@ -175,71 +195,92 @@ export function MaterialItem({
 
       {/* Main Material Display */}
       <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4">
-        {isImage ? (
-          <div 
-            className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 cursor-zoom-in"
-            onClick={() => setShowPreview(true)}
-          >
-            <img
-              src={notice.meta?.fileUrl}
-              alt={notice.meta?.fileName}
-              className="w-full h-auto max-h-[400px] object-contain transition-transform duration-500 group-hover:scale-[1.02]"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-               <div className="p-3 bg-white/90 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                  <Maximize className="w-5 h-5 text-orange-600" />
-               </div>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-between gap-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-white truncate drop-shadow-md">
-                  {notice.meta?.fileName}
-                </p>
-                <p className="text-[10px] text-white/80 drop-shadow-md">
-                  {(notice.meta?.fileSize / (1024 * 1024)).toFixed(2)} MB
-                </p>
-              </div>
-              <a
-                href={notice.meta?.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/95 hover:bg-white text-gray-900 rounded-lg shadow-lg transition-all text-xs font-bold"
-                download={notice.meta?.fileName}
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download
-              </a>
-            </div>
+        {/* Images Grid/Gallery */}
+        {images.length > 0 && (
+          <div className={`grid gap-3 ${images.length === 1 ? 'grid-cols-1' : images.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
+            {images.map((file, idx) => {
+              const fileExt = getFileExtension(file.fileName);
+              return (
+                <div 
+                  key={idx}
+                  className="group relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 cursor-zoom-in aspect-square sm:aspect-auto"
+                  onClick={() => handlePreview(file)}
+                >
+                  <img
+                    src={file.fileUrl}
+                    alt={file.fileName}
+                    className="w-full h-48 sm:h-64 object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="p-3 bg-white/90 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      <Maximize className="w-5 h-5 text-orange-600" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
+                    <p className="text-[10px] font-bold text-white truncate drop-shadow-md">
+                      {file.fileName}
+                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[8px] text-white/80">{(file.fileSize / (1024 * 1024)).toFixed(2)} MB</span>
+                      <a
+                        href={file.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 bg-white/95 hover:bg-white text-gray-900 rounded-lg shadow-lg transition-all"
+                        download={file.fileName}
+                      >
+                        <Download className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 transition-all hover:bg-slate-100 group">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center shrink-0">
-                  <File className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500" />
-                  <span className="text-[8px] font-bold text-slate-400 uppercase">{fileType}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-900 truncate max-w-[150px] sm:max-w-md" title={notice.meta?.fileName}>
-                    {notice.meta?.fileName || 'Material File'}
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
-                    {notice.meta?.fileSize ? (notice.meta.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'Size unknown'}
-                  </p>
-                </div>
-              </div>
+        )}
 
-              <a
-                href={notice.meta?.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 shrink-0"
-                download={notice.meta?.fileName}
-              >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm font-medium">Download</span>
-              </a>
-            </div>
+        {/* Documents List */}
+        {docs.length > 0 && (
+          <div className="space-y-2">
+            {docs.map((file, idx) => {
+              const fileType = getFileIcon(file.fileName);
+              const fileExt = getFileExtension(file.fileName);
+              return (
+                <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 transition-all hover:bg-slate-100 group">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center shrink-0">
+                        <File className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500" />
+                        <span className="text-[8px] font-bold text-slate-400 uppercase">{fileType}</span>
+                      </div>
+                      <div className="min-w-0 text-left">
+                        <p className="text-sm font-bold text-slate-900 truncate max-w-[150px] sm:max-w-md" title={file.fileName}>
+                          {file.fileName || 'Material File'}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
+                          {file.fileSize ? (file.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'Size unknown'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={file.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 shrink-0"
+                      download={file.fileName}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="hidden sm:inline text-sm font-medium">Download</span>
+                      {fileExt && (
+                        <span className="px-1.5 py-0.5 bg-white/20 text-white rounded text-[9px] font-bold tracking-wider">{fileExt}</span>
+                      )}
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -264,11 +305,14 @@ export function MaterialItem({
         </div>
       </div>
 
-      {showPreview && (
+      {showPreview && activePreviewFile && (
         <ImagePreview
-          imageUrl={notice.meta?.fileUrl}
-          fileName={notice.meta?.fileName}
-          onClose={() => setShowPreview(false)}
+          imageUrl={activePreviewFile.fileUrl}
+          fileName={activePreviewFile.fileName}
+          onClose={() => {
+            setShowPreview(false);
+            setActivePreviewFile(null);
+          }}
         />
       )}
     </div>

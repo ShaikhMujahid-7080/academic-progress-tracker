@@ -17,6 +17,18 @@ npm run deploy
 4) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
 5) fix: [profilephoto] profile photo are automatically being deleted for some student
 
+6) fix: [NoticeBoard] the new notices are going down instead of showing on the top when posted.
+7) fix: [noticeboard] the reminder notice isn't showing in the newnotice tab, instead it's directly going in the history tab.
+8) add: [theorycards] add another assessment type (type of CA) called "CaseStudy/Report" and "Debate/Discussion"
+9)  enhance: [password] if a password is changed for a any perticular student make that students profile automatically logout from all the currently loggedin devices
+10) add: [calander] make the list button display all the events (upcomming as well as previous) in a list form separated by the dates, current date should be default view
+11) fix: [TheoryCard] MDM 6 CAs issue
+12) ---
+13) enhance: [StudMaterialNotice] ability to upload multiple documents in a single notice
+14) enhance: [StudMaterialNotice] increase the file size limit to 25 mb
+15) enhance: [StudMaterialNotice] make the notice display the file type/extension beside the download button
+16) enhance: [StudMaterialNotice] in StudMaterialNotice after document is selected and create notice button is clicked give a nice uploading and uploaded animation 
+
 
 > 26/3/26
 * Added:
