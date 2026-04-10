@@ -25,6 +25,10 @@ import { ADMIN_STUDENT } from "../../data/subjects";
 import { toast } from 'react-toastify';
 import { SubjectManager } from "../Admin/SubjectManager";
 import { useSubjects } from "../hooks/useSubjects";
+import { BRANCHES } from "../../data/subjects";
+import { CreateStudentForm } from "../Admin/CreateStudentForm";
+import { db } from "../../firebase";
+import { collection, getDocs, doc, writeBatch } from "firebase/firestore";
 
 // Default permissions for new co-leaders
 const DEFAULT_PERMISSIONS = {
@@ -44,11 +48,16 @@ export function AdminPrivilegesTab({
     isAdmin,
     updateStudentRole,
     updateStudentPassword,
-    updateCoLeaderPermissions
+    updateCoLeaderPermissions,
+    createStudent
   } = studentManagement;
 
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [adminBranchView, setAdminBranchView] = useState('IT');
+
   // Initialize subjects config hook scoped to Admin Tab
-  const subjectsHook = useSubjects(isAdmin, selectedStudent?.role === 'co-leader');
+  const subjectsHook = useSubjects(isAdmin, selectedStudent?.role === 'co-leader', adminBranchView);
   const { subjectsConfig } = subjectsHook;
 
   const [expandedCoLeader, setExpandedCoLeader] = useState(null);
@@ -61,6 +70,65 @@ export function AdminPrivilegesTab({
   const [showPassword, setShowPassword] = useState(false);
   const [isUpdatingPermission, setIsUpdatingPermission] = useState(null);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isMigratingNotices, setIsMigratingNotices] = useState(false);
+
+  const handleMigrateNotices = async () => {
+    if (!isAdmin) return;
+    
+    setIsMigratingNotices(true);
+    try {
+      const q = collection(db, 'noticeBoard');
+      const snapshot = await getDocs(q);
+      
+      const batch = writeBatch(db);
+      let migrationCount = 0;
+
+      snapshot.docs.forEach(document => {
+        const data = document.data();
+        const oldId = document.id;
+
+        // Skip if already migrated (starts with "Sem")
+        if (oldId.startsWith('Sem')) return;
+
+        const date = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date();
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        
+        let branchStr = 'All';
+        const targetBranches = data.targetBranches || ['All'];
+        if (targetBranches.length > 0 && !targetBranches.includes('All')) {
+          branchStr = targetBranches.join('-');
+        }
+        if (branchStr.length > 15) {
+          branchStr = branchStr.substring(0, 15) + '...';
+        }
+
+        const type = data.type || 'notice';
+        const currentSemester = data.semester || '5';
+        const timestamp = Date.now();
+        const newId = `Sem${currentSemester}_${branchStr}_${type}_${dateStr}_${timestamp}`;
+
+        const newRef = doc(db, 'noticeBoard', newId);
+        batch.set(newRef, data);
+
+        const oldRef = doc(db, 'noticeBoard', oldId);
+        batch.delete(oldRef);
+
+        migrationCount++;
+      });
+
+      if (migrationCount > 0) {
+        await batch.commit();
+        toast.success(`Migration complete! Converted ${migrationCount} notices to Semantic IDs.`);
+      } else {
+        toast.info("All notices are already using Semantic IDs!");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(`Migration failed: ${error.message}`);
+    } finally {
+      setIsMigratingNotices(false);
+    }
+  };
 
   // Check if current user is co-leader (not admin)
   const isCoLeader = selectedStudent?.role === 'co-leader' &&
@@ -168,7 +236,9 @@ export function AdminPrivilegesTab({
   const handleQuickAction = (action) => {
     switch (action) {
       case 'createUser':
-        onNavigateToTab(4, { showCreateForm: true });
+        setShowCreateForm(true);
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       case 'manageNotices':
         onNavigateToTab(2);
@@ -178,6 +248,28 @@ export function AdminPrivilegesTab({
         break;
       default:
         break;
+    }
+  };
+
+  const handleCreateStudent = async (studentData) => {
+    setIsCreating(true);
+    try {
+      await createStudent(
+        studentData.rollNo,
+        studentData.name,
+        studentData.password,
+        studentData.role,
+        studentData.admissionYear,
+        studentData.isDSY,
+        studentData.isYD,
+        studentData.branch
+      );
+      toast.success(`✅ Student ${studentData.name} created successfully!`);
+      setShowCreateForm(false);
+    } catch (error) {
+      toast.error(`❌ Failed to create student: ${error.message}`);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -274,6 +366,22 @@ export function AdminPrivilegesTab({
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+      {/* Create Student Form Section */}
+      {/* Create Student Form Modal */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 z-[60] animate-in fade-in duration-300">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <CreateStudentForm
+              onSubmit={handleCreateStudent}
+              onCancel={() => setShowCreateForm(false)}
+              isLoading={isCreating}
+              currentUser={selectedStudent}
+              canAppointCoLeaders={isAdmin || currentUserPermissions?.canAppointCoLeaders}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Password Modal */}
       {showPasswordModal && passwordModalStudent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
@@ -513,7 +621,29 @@ export function AdminPrivilegesTab({
 
       {/* Curriculum Management (Admin Only) */}
       {isAdmin && (
-        <SubjectManager subjectsConfig={subjectsConfig} subjectsHook={subjectsHook} />
+        <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Settings className="w-6 h-6 text-indigo-500" />
+              Curriculum Management
+            </h3>
+            
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-2 flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600">Select Branch:</span>
+              <select
+                value={adminBranchView}
+                onChange={(e) => setAdminBranchView(e.target.value)}
+                className="px-3 py-1.5 border border-indigo-200 rounded-lg text-sm font-bold text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              >
+                {BRANCHES.map(branch => (
+                  <option key={branch} value={branch}>{branch}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <SubjectManager subjectsConfig={subjectsConfig} subjectsHook={subjectsHook} />
+        </div>
       )}
 
       {/* Co-Leader Permissions (Admin Only) */}
@@ -611,7 +741,7 @@ export function AdminPrivilegesTab({
                         {config.label}
                       </p>
                       <p className="text-xs text-gray-500">{config.desc}</p>
-                    </div>
+
                     <div className="ml-auto">
                       {isEnabled ? (
                         <Check className="w-5 h-5 text-green-600" />
@@ -621,7 +751,8 @@ export function AdminPrivilegesTab({
                     </div>
                   </div>
                 </div>
-              );
+              </div>
+            );
             })}
           </div>
         </div>
@@ -725,6 +856,35 @@ export function AdminPrivilegesTab({
           </div>
         </div>
       )}
+
+      {/* Migration Panel for Organising NoticeBoard */}
+      {isAdmin && (
+         <div className="bg-orange-50 rounded-3xl border border-orange-200 p-6 overflow-hidden relative shadow-lg mt-8">
+           <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                 <h3 className="text-xl font-bold text-orange-900 mb-2">NoticeBoard Data Migration</h3>
+                 <p className="text-orange-700 text-sm mb-4">
+                   Click below to automatically reorganize the Notice Board data inside Firestore. This changes the internal document IDs so that they are easily searchable (like <code>Sem5_IT_notice_2024-04-10</code>) without breaking any existing files.
+                 </p>
+                 <button
+                   onClick={handleMigrateNotices}
+                   disabled={isMigratingNotices}
+                   className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow font-semibold transition-all flex items-center gap-2"
+                 >
+                   {isMigratingNotices ? (
+                     <><Loader2 className="w-5 h-5 animate-spin" /> Processing Migration...</>
+                   ) : (
+                     "Migrate Random IDs to Semantic IDs"
+                   )}
+                 </button>
+              </div>
+           </div>
+         </div>
+      )}
+
     </div>
   );
 }

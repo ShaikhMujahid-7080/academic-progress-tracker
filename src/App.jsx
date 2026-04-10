@@ -36,7 +36,7 @@ export default function App() {
 
   // Subjects configuration
   const isCoLeader = selectedStudent?.role === 'co-leader' && selectedStudent?.rollNo !== ADMIN_STUDENT.rollNo;
-  const { subjectsConfig, isLoading: subjectsLoading } = useSubjects(studentManagement.isAdmin, isCoLeader);
+  const { subjectsConfig, isLoading: subjectsLoading } = useSubjects(studentManagement.isAdmin, isCoLeader, selectedStudent?.branch);
 
   // This key ensures local storage is always per selected student
   const studentKey = selectedStudent ? `academic-data-${selectedStudent.rollNo}` : 'academic-data-temp';

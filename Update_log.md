@@ -14,20 +14,49 @@ npm run deploy
 1) add: [Calendar] add schedule button in the statusbar which will (when clicked) display the schedule/timetable (along with an edit option) entered by the admin/co-leader 
 2) enhance: [app] make the theme of entire app similar to light login page theme and add a dark theme similar to dark login page theme
 3) add: [Dashboard] add a dashboard page
-4) add: [Student & Semester Management] add field class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
-5) fix: [profilephoto] profile photo are automatically being deleted for some student
+4) fix: [profilephoto] profile photo are automatically being deleted for some student
+5) fix: [NoticeBoard] the new notices are going down instead of showing on the top when posted.
+6) fix: [noticeboard] the reminder notice isn't showing in the newnotice tab, instead it's directly going in the history tab.
+7)  enhance: [password] if a password is changed for a any perticular student make that students profile automatically logout from all the currently loggedin devices
+8)  fix: [TheoryCard] MDM 6 CAs issue
+9)  add: [StudMaterialNotice] add option to edit the details of uploaded files
+10) fix: [Supabase] the some notices or files are not being deleted from the supabase even after its being deleted or expired from the site
 
-6) fix: [NoticeBoard] the new notices are going down instead of showing on the top when posted.
-7) fix: [noticeboard] the reminder notice isn't showing in the newnotice tab, instead it's directly going in the history tab.
-8) add: [theorycards] add another assessment type (type of CA) called "CaseStudy/Report" and "Debate/Discussion"
-9)  enhance: [password] if a password is changed for a any perticular student make that students profile automatically logout from all the currently loggedin devices
-10) add: [calander] make the list button display all the events (upcomming as well as previous) in a list form separated by the dates, current date should be default view
-11) fix: [TheoryCard] MDM 6 CAs issue
-12) ---
-13) enhance: [StudMaterialNotice] ability to upload multiple documents in a single notice
-14) enhance: [StudMaterialNotice] increase the file size limit to 25 mb
-15) enhance: [StudMaterialNotice] make the notice display the file type/extension beside the download button
-16) enhance: [StudMaterialNotice] in StudMaterialNotice after document is selected and create notice button is clicked give a nice uploading and uploaded animation 
+11) enhance: [ProfilePage] enhance the UI/UX and features of the profile card
+12) enhance: [ProfilePage] add the Data Retention Notice below the profile card
+13) enhance: [loginPage] enhance the UI/UX and working according to the new branch/class update
+14) enhance: [ProfilePage] instead of viewing the profile of other students in a card make it viewable in a popup window
+
+> 10/4/26
+1)  fix: [NoticeBoard - Firestore] the NoticeBoard data in the firebase is being stored in a very unorganized way, make it organized, so that it can be easy to find the data if searched in the firebase
+2) fix: [StudMaterialNotice] when you click the download button it downloads the file but changes the filename to something else, make it download the file with the correct name (i.e. the file name which was of the file while uploading)
+3) fix: [StudMaterialNotice] when you click the download button there is a huge delay between clicking the button and the file actually downloading, also add some animation for proper feedback
+4)  enhance: [StudMaterialNotice] enhance the uploading and uplaoded animation when the create notice button is clicked change the animation from the Create New Notice window to new window or something
+5) add: [Calendar] make the list button display all the events (upcoming as well as previous) in a list form separated by the dates, current date is the default view and automatically scrolled to.
+6) add: [theorycards & AssessmentNotice] add another assessment type (type of CA) called "CaseStudy/Report" and "Debate/Discussion"
+7) fix: [AssessmentNotice] instead of below, make the note display above the assissment table
+8) add: [Student & Semester Management] add  field/ability to separate students into different class/branch to differentiate/classify students & display them appropriate subjects, practicals,notices,clander,etc of their respective class/branch (e.g. IT, AIML, DS, etc)
+9) enhance: [NoticeBoard] move the Tab menu (New, Pinned & History) to the GlobalNoticeBoard header
+10) enhance: [Student & Semester Management] instead of Manage Button make it accessable when clicked on the profile or name icon in the header
+11) enhance: [Student & Semester Management] enhance the Student & Semester Management add more features like bio or something and improve the UI 
+12) enhance: [Student & Semester Management] enhance the UI and working of Select Student card to display only the student of particular branch (his own branch) and change its behaviour from switching the student/user to viewing the profile of (selected) others/students
+13) enhance: [PinnedBoard] make the notice tabs menu (new, pinned, history) automatically switch to Pinned notices when clicked any of the pinned notices from the pinned board
+14) change: [HeaderTabMenuBar] interchange position or location of the PersonalNotes tab and Calander tab with one another
+15) change: [Student & Semester Management] change the Student & Semester Management to Profile Page 
+16) enhance: [AddStudent] enhance the UI and working of the new student creation form/window and move it to the AdminPrivileges tab
+17) fix: [Create Student Profile] remove the add student button from the profile page and make the create student profile form in a popup window instead of card 
+18) fix: [AddStudent] remove the option of Role selection from the new student creation form/window from the coleaders who dont have the privillage of Appointing Co-Leaders
+19) fix: [CreateNewStudent] when seleted role from student to co-leader the student is automatically being created right after selecting the role
+20) enhance: [ProfilePage] for the all students of any branch display the admin (general branch) as well in the Classmates & Peers of profile page 
+21) enhance: [ProfilePage] for the coleader of particular branch display only the student of particular branch (his own branch)
+22) enhance: [NoticeBoard] make the co-leader of any branch/class to be able to post notices in that (his own) branch only, accept the admin (general branch) with the ability to post in any, selective or all branches
+23) enhance: [AddStudent] change default branch to AIML when creating new student and remove the general branch option for coleaders (make only admin to be able to create student in general or any other branch)
+
+> 9/4/26
+1) enhance: [StudMaterialNotice] ability to upload multiple documents in a single notice
+2) enhance: [StudMaterialNotice] increase the file size limit to 25 mb
+3) enhance: [StudMaterialNotice] make the notice display the file type/extension beside the download button
+4) enhance: [StudMaterialNotice] in StudMaterialNotice after document is selected and create notice button is clicked give a nice uploading and uploaded animation 
 
 
 > 26/3/26

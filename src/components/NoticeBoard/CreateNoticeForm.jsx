@@ -22,16 +22,25 @@ import {
   Paperclip,
   Upload,
   File,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from "lucide-react";
-import { ADMIN_STUDENT, subjects } from "../../data/subjects";
+import { ADMIN_STUDENT, subjects, caOptions, BRANCHES } from "../../data/subjects";
 
-export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, initialData = null, semester = 5, uploadNoticeFile }) {
+export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, currentUser, initialData = null, semester = 5, uploadNoticeFile }) {
+  const isAdmin = currentUser?.rollNo === ADMIN_STUDENT.rollNo;
+  const isCoLeader = currentUser?.role === 'co-leader' && !isAdmin;
+
   const [noticeType, setNoticeType] = useState(initialData?.type || 'notice');
   const [content, setContent] = useState(initialData?.content || '');
   const [meta, setMeta] = useState(initialData?.meta || {});
   const [isPublic, setIsPublic] = useState(initialData ? initialData.isPublic : true);
   const [selectedUsers, setSelectedUsers] = useState(initialData?.allowedUsers || []);
+  const [targetBranches, setTargetBranches] = useState(() => {
+    if (initialData?.targetBranches) return initialData.targetBranches;
+    if (isCoLeader && currentUser?.branch) return [currentUser.branch];
+    return ['All'];
+  });
   const getSemesterEndDate = (semesterNum) => {
     const now = new Date();
     const isOdd = [1, 3, 5, 7].includes(Number(semesterNum));
@@ -177,6 +186,23 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
     }
   };
 
+  const handleBranchToggle = (branch) => {
+    if (branch === 'All') {
+      setTargetBranches(['All']);
+      return;
+    }
+
+    let newBranches = targetBranches.filter(b => b !== 'All');
+    if (newBranches.includes(branch)) {
+      newBranches = newBranches.filter(b => b !== branch);
+      if (newBranches.length === 0) newBranches = ['All'];
+    } else {
+      newBranches.push(branch);
+      if (newBranches.length === BRANCHES.length) newBranches = ['All'];
+    }
+    setTargetBranches(newBranches);
+  };
+
   const handleSelectAll = () => {
     if (selectedUsers.length === availableUsers.length) {
       setSelectedUsers([]);
@@ -272,6 +298,7 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
         meta: currentMeta,
         allowedUsers: isPublic ? [] : selectedUsers,
         isPublic,
+        targetBranches,
         deleteAt: useAutoDelete ? new Date(deleteAt) : null
       });
     } catch (error) {
@@ -410,506 +437,501 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 max-h-[90vh] overflow-y-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">{isEditing ? 'Edit Notice' : 'Create New Notice'}</h2>
-        <button
-          onClick={onCancel}
-          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+    <>
+      <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">{isEditing ? 'Edit Notice' : 'Create New Notice'}</h2>
+          <button
+            onClick={onCancel}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Notice Type Selection - Disabled in Edit Mode? Or allowed? Usually allowed but tricky. */}
-        {/* Let's keep it visible so they can see type, but maybe warn if changed? Logic already added above. */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Notice Type
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {noticeTypes.map((type) => (
-              <button
-                key={type.id}
-                type="button"
-                onClick={() => handleTypeChange(type.id)}
-                className={`
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Notice Type Selection - Disabled in Edit Mode? Or allowed? Usually allowed but tricky. */}
+          {/* Let's keep it visible so they can see type, but maybe warn if changed? Logic already added above. */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Notice Type
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {noticeTypes.map((type) => (
+                <button
+                  key={type.id}
+                  type="button"
+                  onClick={() => handleTypeChange(type.id)}
+                  className={`
                   p-4 rounded-xl border-2 transition-all text-left
                   ${noticeType === type.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-blue-300'
-                  }
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-blue-300'
+                    }
                 `}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <type.icon className={`w-5 h-5 ${noticeType === type.id ? 'text-blue-600' : 'text-gray-600'
-                    }`} />
-                  <span className="font-medium text-gray-900">{type.label}</span>
-                </div>
-                <p className="text-xs text-gray-600">{type.description}</p>
-              </button>
-            ))}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <type.icon className={`w-5 h-5 ${noticeType === type.id ? 'text-blue-600' : 'text-gray-600'
+                      }`} />
+                    <span className="font-medium text-gray-900">{type.label}</span>
+                  </div>
+                  <p className="text-xs text-gray-600">{type.description}</p>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            {noticeType === 'poll' ? 'Poll Question' : 'Content'}
-          </label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
-            className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder={
-              noticeType === 'poll'
-                ? 'What question would you like to ask?'
-                : noticeType === 'reminder'
-                  ? 'What should people be reminded about?'
-                  : noticeType === 'todo'
-                    ? 'What task needs to be completed?'
-                    : noticeType === 'assessment'
-                      ? 'Any additional notes (syllabus, venue, etc.)?'
-                      : 'Enter your notice content...'
-            }
-            required={noticeType !== 'assessment'}
-          />
-        </div>
-
-        {/* Type-specific fields */}
-        {noticeType === 'checklist' && (
+          {/* Content */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Checklist Items
+              {noticeType === 'poll' ? 'Poll Question' : 'Content'}
             </label>
-
-            <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-xl">
-              <span className="text-sm text-gray-600">Anonymous completion:</span>
-              <button
-                type="button"
-                onClick={toggleChecklistAnonymous}
-                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${meta.isAnonymous
-                  ? 'bg-orange-100 text-orange-700'
-                  : 'bg-gray-100 text-gray-600'
-                  }`}
-              >
-                {meta.isAnonymous ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-                <span className="text-xs font-medium">
-                  {meta.isAnonymous ? 'Anonymous' : 'Show names'}
-                </span>
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {meta.items?.map((item, index) => (
-                <div key={index} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={item.text}
-                    onChange={(e) => updateChecklistItem(index, e.target.value)}
-                    className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={`Item ${index + 1}`}
-                  />
-                  {meta.items.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeChecklistItem(index)}
-                      className="p-3 text-red-500 hover:bg-red-100 rounded-xl transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addChecklistItem}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add Item
-              </button>
-            </div>
-          </div>
-        )}
-
-        {noticeType === 'poll' && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-semibold text-gray-700">
-                Poll Options
-              </label>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Multiple selections:</span>
-                  <button
-                    type="button"
-                    onClick={togglePollMultiSelect}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${meta.allowMultiple
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
-                      }`}
-                  >
-                    {meta.allowMultiple ? (
-                      <ToggleRight className="w-4 h-4" />
-                    ) : (
-                      <ToggleLeft className="w-4 h-4" />
-                    )}
-                    <span className="text-xs font-medium">
-                      {meta.allowMultiple ? 'Multi-select' : 'Single choice'}
-                    </span>
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Anonymous voting:</span>
-                  <button
-                    type="button"
-                    onClick={togglePollAnonymous}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${meta.isAnonymous
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'bg-gray-100 text-gray-600'
-                      }`}
-                  >
-                    {meta.isAnonymous ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                    <span className="text-xs font-medium">
-                      {meta.isAnonymous ? 'Anonymous' : 'Show names'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {meta.options?.map((option, index) => (
-                <div key={index} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={option.text}
-                    onChange={(e) => updatePollOption(index, e.target.value)}
-                    className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={`Option ${index + 1}`}
-                  />
-                  {meta.options.length > 2 && (
-                    <button
-                      type="button"
-                      onClick={() => removePollOption(index)}
-                      className="p-3 text-red-500 hover:bg-red-100 rounded-xl transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addPollOption}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add Option
-              </button>
-            </div>
-          </div>
-        )}
-
-        {noticeType === 'reminder' && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Reminder Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              value={meta.reminderDate}
-              onChange={(e) => setMeta({ ...meta, reminderDate: e.target.value })}
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={3}
               className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder={
+                noticeType === 'poll'
+                  ? 'What question would you like to ask?'
+                  : noticeType === 'reminder'
+                    ? 'What should people be reminded about?'
+                    : noticeType === 'todo'
+                      ? 'What task needs to be completed?'
+                      : noticeType === 'assessment'
+                        ? 'Any additional notes (syllabus, venue, etc.)?'
+                        : 'Enter your notice content...'
+              }
+              required={noticeType !== 'assessment'}
             />
           </div>
-        )}
 
-        {noticeType === 'todo' && (
-          <div className="space-y-4">
+          {/* Type-specific fields */}
+          {noticeType === 'checklist' && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Due Date & Time
+                Checklist Items
+              </label>
+
+              <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-xl">
+                <span className="text-sm text-gray-600">Anonymous completion:</span>
+                <button
+                  type="button"
+                  onClick={toggleChecklistAnonymous}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${meta.isAnonymous
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'bg-gray-100 text-gray-600'
+                    }`}
+                >
+                  {meta.isAnonymous ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                  <span className="text-xs font-medium">
+                    {meta.isAnonymous ? 'Anonymous' : 'Show names'}
+                  </span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {meta.items?.map((item, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={item.text}
+                      onChange={(e) => updateChecklistItem(index, e.target.value)}
+                      className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder={`Item ${index + 1}`}
+                    />
+                    {meta.items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeChecklistItem(index)}
+                        className="p-3 text-red-500 hover:bg-red-100 rounded-xl transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addChecklistItem}
+                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Item
+                </button>
+              </div>
+            </div>
+          )}
+
+          {noticeType === 'poll' && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Poll Options
+                </label>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Multiple selections:</span>
+                    <button
+                      type="button"
+                      onClick={togglePollMultiSelect}
+                      className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${meta.allowMultiple
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-600'
+                        }`}
+                    >
+                      {meta.allowMultiple ? (
+                        <ToggleRight className="w-4 h-4" />
+                      ) : (
+                        <ToggleLeft className="w-4 h-4" />
+                      )}
+                      <span className="text-xs font-medium">
+                        {meta.allowMultiple ? 'Multi-select' : 'Single choice'}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Anonymous voting:</span>
+                    <button
+                      type="button"
+                      onClick={togglePollAnonymous}
+                      className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${meta.isAnonymous
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-gray-100 text-gray-600'
+                        }`}
+                    >
+                      {meta.isAnonymous ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                      <span className="text-xs font-medium">
+                        {meta.isAnonymous ? 'Anonymous' : 'Show names'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {meta.options?.map((option, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={option.text}
+                      onChange={(e) => updatePollOption(index, e.target.value)}
+                      className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder={`Option ${index + 1}`}
+                    />
+                    {meta.options.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removePollOption(index)}
+                        className="p-3 text-red-500 hover:bg-red-100 rounded-xl transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addPollOption}
+                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Option
+                </button>
+              </div>
+            </div>
+          )}
+
+          {noticeType === 'reminder' && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Reminder Date & Time
               </label>
               <input
                 type="datetime-local"
-                value={meta.dueDate}
-                onChange={(e) => setMeta({ ...meta, dueDate: e.target.value })}
+                value={meta.reminderDate}
+                onChange={(e) => setMeta({ ...meta, reminderDate: e.target.value })}
                 className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+          )}
 
-            {/* Optional: Link to Practical Lab */}
-            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
-              <label className="block text-sm font-semibold text-green-800 mb-3">
-                🔗 Link to Practical Lab (Optional)
-              </label>
-              <p className="text-xs text-green-600 mb-3">
-                If this TODO is for a practical lab, select the subject and lab number.
-                When students mark this as complete, the lab will auto-mark in their Practical tab.
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Practical Subject</label>
-                  <select
-                    value={meta.practicalSubject || ''}
-                    onChange={(e) => setMeta({ ...meta, practicalSubject: e.target.value, labNumber: [] })}
-                    className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
-                  >
-                    <option value="">-- Select Subject --</option>
-                    {subjects[semester]?.practical?.map((subj) => (
-                      <option key={subj} value={subj}>{subj}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Lab Number</label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => {
-                      const isSelected = Array.isArray(meta.labNumber)
-                        ? meta.labNumber.includes(num.toString()) || meta.labNumber.includes(num)
-                        : meta.labNumber == num;
-
-                      return (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() => {
-                            const currentLabs = Array.isArray(meta.labNumber) ? [...meta.labNumber] : (meta.labNumber ? [meta.labNumber] : []);
-                            const strNum = num.toString();
-
-                            let newLabs;
-                            if (currentLabs.some(l => l.toString() === strNum)) {
-                              newLabs = currentLabs.filter(l => l.toString() !== strNum);
-                            } else {
-                              newLabs = [...currentLabs, num];
-                            }
-                            setMeta({ ...meta, labNumber: newLabs });
-                          }}
-                          disabled={!meta.practicalSubject}
-                          className={`
-                            p-2 rounded-lg text-xs font-medium border transition-all
-                            ${!meta.practicalSubject
-                              ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 border-gray-200'
-                              : isSelected
-                                ? 'bg-green-100 border-green-500 text-green-700'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-green-50 hover:border-green-300'
-                            }
-                          `}
-                        >
-                          {num}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+          {noticeType === 'todo' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Due Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={meta.dueDate}
+                  onChange={(e) => setMeta({ ...meta, dueDate: e.target.value })}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
-            </div>
-          </div>
-        )}
 
-        {noticeType === 'assessment' && (
-          <div className="space-y-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Assessments
-            </label>
-
-            {meta.assessments?.map((assessment, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-xl border border-gray-200 relative">
-                {meta.assessments.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeAssessmentRow(index)}
-                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Optional: Link to Practical Lab */}
+              <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                <label className="block text-sm font-semibold text-green-800 mb-3">
+                  🔗 Link to Practical Lab (Optional)
+                </label>
+                <p className="text-xs text-green-600 mb-3">
+                  If this TODO is for a practical lab, select the subject and lab number.
+                  When students mark this as complete, the lab will auto-mark in their Practical tab.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <input
-                      type="text"
-                      value={assessment.subject}
-                      onChange={(e) => updateAssessmentRow(index, 'subject', e.target.value)}
-                      className="w-full p-2 border border-gray-200 rounded-lg text-sm"
-                      placeholder="Subject (e.g. Mathematics)"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      value={assessment.assessmentName}
-                      onChange={(e) => updateAssessmentRow(index, 'assessmentName', e.target.value)}
-                      className="w-full p-2 border border-gray-200 rounded-lg text-sm"
-                      placeholder="Exam Name (e.g. Unit Test)"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Practical Subject</label>
                     <select
-                      value={assessment.assessmentType}
-                      onChange={(e) => updateAssessmentRow(index, 'assessmentType', e.target.value)}
+                      value={meta.practicalSubject || ''}
+                      onChange={(e) => setMeta({ ...meta, practicalSubject: e.target.value, labNumber: [] })}
                       className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
                     >
-                      <option value="CA-1">CA-1</option>
-                      <option value="CA-2">CA-2</option>
-                      <option value="CA-3">CA-3</option>
-                      <option value="CA-4">CA-4</option>
-                      <option value="Mid-Sem">Mid-Sem</option>
-                      <option value="End-Sem">End-Sem</option>
+                      <option value="">-- Select Subject --</option>
+                      {subjects[semester]?.practical?.map((subj) => (
+                        <option key={subj} value={subj}>{subj}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <input
-                      type="datetime-local"
-                      value={assessment.date}
-                      onChange={(e) => updateAssessmentRow(index, 'date', e.target.value)}
-                      className="w-full p-2 border border-gray-200 rounded-lg text-sm"
-                    />
+                    <label className="block text-xs text-gray-600 mb-1">Lab Number</label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => {
+                        const isSelected = Array.isArray(meta.labNumber)
+                          ? meta.labNumber.includes(num.toString()) || meta.labNumber.includes(num)
+                          : meta.labNumber == num;
+
+                        return (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => {
+                              const currentLabs = Array.isArray(meta.labNumber) ? [...meta.labNumber] : (meta.labNumber ? [meta.labNumber] : []);
+                              const strNum = num.toString();
+
+                              let newLabs;
+                              if (currentLabs.some(l => l.toString() === strNum)) {
+                                newLabs = currentLabs.filter(l => l.toString() !== strNum);
+                              } else {
+                                newLabs = [...currentLabs, num];
+                              }
+                              setMeta({ ...meta, labNumber: newLabs });
+                            }}
+                            disabled={!meta.practicalSubject}
+                            className={`
+                            p-2 rounded-lg text-xs font-medium border transition-all
+                            ${!meta.practicalSubject
+                                ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 border-gray-200'
+                                : isSelected
+                                  ? 'bg-green-100 border-green-500 text-green-700'
+                                  : 'bg-white border-gray-200 text-gray-600 hover:bg-green-50 hover:border-green-300'
+                              }
+                          `}
+                          >
+                            {num}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={addAssessmentRow}
-              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Assessment Row
-            </button>
-          </div>
-        )}
-
-        {noticeType === 'snippet' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Snippet Title
-              </label>
-              <input
-                type="text"
-                value={meta.title || ''}
-                onChange={(e) => setMeta({ ...meta, title: e.target.value })}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g. React Hook Example"
-              />
             </div>
-            <div>
+          )}
+
+          {noticeType === 'assessment' && (
+            <div className="space-y-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Language
+                Assessments
               </label>
-              <select
-                value={meta.language || 'javascript'}
-                onChange={(e) => setMeta({ ...meta, language: e.target.value })}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+
+              {meta.assessments?.map((assessment, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-xl border border-gray-200 relative">
+                  {meta.assessments.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeAssessmentRow(index)}
+                      className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <input
+                        type="text"
+                        value={assessment.subject}
+                        onChange={(e) => updateAssessmentRow(index, 'subject', e.target.value)}
+                        className="w-full p-2 border border-gray-200 rounded-lg text-sm"
+                        placeholder="Subject (e.g. Mathematics)"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        list="ca-options-list"
+                        value={assessment.assessmentName}
+                        onChange={(e) => updateAssessmentRow(index, 'assessmentName', e.target.value)}
+                        className="w-full p-2 border border-gray-200 rounded-lg text-sm"
+                        placeholder="Exam Name (e.g. Unit Test)"
+                      />
+                      <datalist id="ca-options-list">
+                        {caOptions.map((opt) => (
+                          <option key={opt} value={opt} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <select
+                        value={assessment.assessmentType}
+                        onChange={(e) => updateAssessmentRow(index, 'assessmentType', e.target.value)}
+                        className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                      >
+                        <option value="CA-1">CA-1</option>
+                        <option value="CA-2">CA-2</option>
+                        <option value="CA-3">CA-3</option>
+                        <option value="CA-4">CA-4</option>
+                        <option value="Mid-Sem">Mid-Sem</option>
+                        <option value="End-Sem">End-Sem</option>
+                      </select>
+                    </div>
+                    <div>
+                      <input
+                        type="datetime-local"
+                        value={assessment.date}
+                        onChange={(e) => updateAssessmentRow(index, 'date', e.target.value)}
+                        className="w-full p-2 border border-gray-200 rounded-lg text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addAssessmentRow}
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
               >
-                <option value="javascript">JavaScript</option>
-                <option value="typescript">TypeScript</option>
-                <option value="jsx">JSX / React</option>
-                <option value="css">CSS</option>
-                <option value="html">HTML</option>
-                <option value="json">JSON</option>
-                <option value="python">Python</option>
-                <option value="java">Java</option>
-                <option value="cpp">C++</option>
-                <option value="sql">SQL</option>
-                <option value="bash">Bash / Shell</option>
-                <option value="markdown">Markdown</option>
-              </select>
+                <Plus className="w-4 h-4" />
+                Add Assessment Row
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Code Snippet
-              </label>
-              <textarea
-                value={meta.code || ''}
-                onChange={(e) => setMeta({ ...meta, code: e.target.value })}
-                rows={10}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm bg-slate-50"
-                placeholder="Paste your code here..."
-                required={noticeType === 'snippet'}
-              />
-            </div>
-            <p className="text-xs text-gray-500">
-              The "Content" field above can be used for a brief description or notes about this snippet.
-            </p>
-          </div>
-        )}
+          )}
 
-        {noticeType === 'material' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Upload File (Study Material / Images / etc.)
-              </label>
-              <div className={`
-                relative border-2 border-dashed rounded-2xl p-8 transition-all overflow-hidden
-                ${uploadStatus === 'success' ? 'border-green-500 bg-green-50 shadow-inner' :
-                    uploadStatus === 'uploading' ? 'border-blue-400 bg-blue-50' :
-                      selectedFiles.length > 0 ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'}
-              `}>
+          {noticeType === 'snippet' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Snippet Title
+                </label>
                 <input
-                  type="file"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="notice-file-upload"
-                  disabled={isUploading || uploadStatus === 'success'}
-                  multiple
+                  type="text"
+                  value={meta.title || ''}
+                  onChange={(e) => setMeta({ ...meta, title: e.target.value })}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. React Hook Example"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Language
+                </label>
+                <select
+                  value={meta.language || 'javascript'}
+                  onChange={(e) => setMeta({ ...meta, language: e.target.value })}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="typescript">TypeScript</option>
+                  <option value="jsx">JSX / React</option>
+                  <option value="css">CSS</option>
+                  <option value="html">HTML</option>
+                  <option value="json">JSON</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                  <option value="sql">SQL</option>
+                  <option value="bash">Bash / Shell</option>
+                  <option value="markdown">Markdown</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Code Snippet
+                </label>
+                <textarea
+                  value={meta.code || ''}
+                  onChange={(e) => setMeta({ ...meta, code: e.target.value })}
+                  rows={10}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm bg-slate-50"
+                  placeholder="Paste your code here..."
+                  required={noticeType === 'snippet'}
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                The "Content" field above can be used for a brief description or notes about this snippet.
+              </p>
+            </div>
+          )}
 
-                {/* Status-based content */}
-                <div className="flex flex-col items-center justify-center gap-4 w-full">
-                  {uploadStatus === 'idle' && (
+          {noticeType === 'material' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Upload File (Study Material / Images / etc.)
+                </label>
+                <div className={`relative border-2 border-dashed rounded-2xl p-8 transition-all ${selectedFiles.length > 0 ? 'border-orange-300 bg-orange-50' : 'border-gray-300 bg-gray-50 hover:border-orange-400 hover:bg-orange-50'
+                  }`}>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="notice-file-upload"
+                    multiple
+                  />
+                  <div className="flex flex-col items-center justify-center gap-4 w-full">
                     <div className="w-full">
                       <label
                         htmlFor="notice-file-upload"
                         className="flex flex-col items-center justify-center cursor-pointer text-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:bg-white transition-colors"
                       >
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
-                          <Upload className="w-6 h-6 text-blue-600" />
+                        <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3">
+                          <Upload className="w-6 h-6 text-orange-600" />
                         </div>
-                        <p className="text-sm font-medium text-gray-700">Add more files</p>
+                        <p className="text-sm font-medium text-gray-700">{selectedFiles.length > 0 ? 'Add more files' : 'Click to select files'}</p>
                         <p className="text-xs text-gray-500 mt-1">Up to 25MB per file</p>
                       </label>
 
-                      {/* Selected Files List */}
                       {selectedFiles.length > 0 && (
-                        <div className="mt-6 space-y-2 max-h-48 overflow-y-auto px-2">
+                        <div className="mt-4 space-y-2 max-h-48 overflow-y-auto px-2">
                           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Selected Files ({selectedFiles.length})</p>
                           {selectedFiles.map((file, idx) => (
-                            <div key={`new-${idx}`} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm animate-in slide-in-from-left-2 duration-200">
+                            <div key={`new-${idx}`} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
                               <div className="flex items-center gap-3 min-w-0">
-                                <div className="p-2 bg-green-50 rounded-lg">
-                                  <File className="w-4 h-4 text-green-600" />
+                                <div className="p-2 bg-orange-50 rounded-lg">
+                                  <File className="w-4 h-4 text-orange-600" />
                                 </div>
                                 <div className="min-w-0 text-left">
                                   <p className="text-xs font-bold text-gray-800 truncate max-w-[150px]">{file.name}</p>
                                   <p className="text-[10px] text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                                 </div>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => removeSelectedFile(idx)}
-                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              >
+                              <button type="button" onClick={() => removeSelectedFile(idx)}
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -917,237 +939,383 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, init
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
+                </div>
+              </div>
 
-                  {uploadStatus === 'uploading' && (
-                    <div className="w-full flex flex-col items-center py-4">
-                      <div className="relative mb-6">
-                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-                        <div className="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-20 animate-pulse" />
+              {((initialData?.meta.files && initialData.meta.files.length > 0) || (initialData?.meta.fileUrl)) && selectedFiles.length === 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Existing Attachments</p>
+                  {(initialData?.meta.files || (initialData?.meta.fileUrl ? [initialData.meta] : [])).map((file, idx) => (
+                    <div key={`existing-${idx}`} className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Paperclip className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs font-bold text-blue-800 truncate max-w-[150px]">{file.fileName}</p>
+                          <p className="text-[10px] text-blue-600">Already uploaded</p>
+                        </div>
                       </div>
-                      <p className="text-sm font-bold text-blue-800 mb-2">Uploading Material...</p>
-                      <div className="w-full max-w-xs h-2 bg-blue-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-600 rounded-full transition-all duration-500 marquee-linear" style={{ width: '100%' }}></div>
-                      </div>
+                      {initialData?.meta.files && (
+                        <button
+                          type="button"
+                          onClick={() => removeExistingFile(idx)}
+                          className="p-1.5 text-blue-300 hover:text-red-500 hover:bg-white rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Remove existing file"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
-                  )}
+                  ))}
+                </div>
+              )}
 
-                  {uploadStatus === 'success' && (
-                    <div className="flex flex-col items-center py-4 animate-in zoom-in-95 duration-300">
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-green-100">
-                        <CheckCircle2 className="w-10 h-10 text-green-600 animate-in zoom-in-50 duration-500" />
-                      </div>
-                      <p className="text-sm font-bold text-green-800">File Uploaded Successfully!</p>
-                      <p className="text-xs text-green-600 mt-1 italic">Processing notice...</p>
-                    </div>
-                  )}
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
+                <Clock className="w-5 h-5 text-orange-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-orange-900">Auto-deletion enabled</p>
+                  <p className="text-xs text-orange-750">
+                    Study material notices are automatically deleted 2 hours after being posted to save storage space and keep the board clean.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Visibility Settings */}
+          <div className="border-t pt-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Who can see this notice?
+            </label>
+
+            {/* Public/Private Toggle */}
+            <div className="mb-4">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    checked={isPublic}
+                    onChange={() => setIsPublic(true)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <Globe className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">Public (Everyone can see)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    checked={!isPublic}
+                    onChange={() => setIsPublic(false)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <Lock className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium">Private (Selected users only)</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Target Branches Selection (For both Public and Private) */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Target Class / Branch
+                {isCoLeader && <span className="ml-2 text-[10px] text-purple-600 font-black uppercase tracking-widest">(Restricted to your branch)</span>}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => handleBranchToggle('All')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${targetBranches.includes('All')
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                  >
+                    All Branches
+                  </button>
+                )}
+                
+                {BRANCHES.map(branch => {
+                  const isVisible = isAdmin || (isCoLeader && branch === currentUser?.branch);
+                  if (!isVisible && isCoLeader) return null; // Hide other branches for Co-Leaders
+
+                  return (
+                    <button
+                      key={branch}
+                      type="button"
+                      disabled={isCoLeader} // Locked for Co-Leaders
+                      onClick={() => handleBranchToggle(branch)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${(!targetBranches.includes('All') && targetBranches.includes(branch)) || (isCoLeader && branch === currentUser?.branch)
+                          ? 'bg-green-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        } ${isCoLeader ? 'cursor-default opacity-100' : ''}`}
+                    >
+                      {branch}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* User Selection (if private) */}
+            {!isPublic && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-700">Select Students:</span>
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    {selectedUsers.length === availableUsers.length ? 'Deselect All' : 'Select All'}
+                  </button>
                 </div>
 
-                {/* Progress highlight for uploading */}
-                {uploadStatus === 'uploading' && (
-                  <div className="absolute inset-x-0 bottom-0 h-1 bg-blue-600/10 animate-pulse" />
+                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3 space-y-2">
+                  {availableUsers.map((user) => (
+                    <label
+                      key={user.rollNo}
+                      className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.rollNo)}
+                        onChange={() => handleUserToggle(user.rollNo)}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900">{user.name}</span>
+                        <span className="text-xs text-gray-500">({user.rollNo})</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+
+                {selectedUsers.length > 0 && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    {selectedUsers.length} student{selectedUsers.length > 1 ? 's' : ''} selected
+                  </p>
                 )}
               </div>
+            )}
+          </div>
 
-              {/* Added keyframes for animation in index.css if not already present, but using Tailwind classes here */}
-              <style dangerouslySetInnerHTML={{
-                __html: `
-                @keyframes marquee-linear {
-                  0% { transform: translateX(-100%); }
-                  100% { transform: translateX(100%); }
-                }
-                .marquee-linear {
-                  animation: marquee-linear 1.5s infinite linear;
-                }
-              `}} />
+          {/* Auto-Delete Settings */}
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-orange-500" />
+                Auto-delete Notice
+              </label>
+              <button
+                type="button"
+                onClick={() => setUseAutoDelete(!useAutoDelete)}
+                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${useAutoDelete
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'bg-gray-100 text-gray-600'
+                  }`}
+              >
+                {useAutoDelete ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                <span className="text-xs font-medium">{useAutoDelete ? 'Enabled' : 'Disabled'}</span>
+              </button>
             </div>
 
-            {((initialData?.meta.files && initialData.meta.files.length > 0) || (initialData?.meta.fileUrl)) && selectedFiles.length === 0 && (
+            {useAutoDelete && (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Existing Attachments</p>
-                {(initialData?.meta.files || (initialData?.meta.fileUrl ? [initialData.meta] : [])).map((file, idx) => (
-                  <div key={`existing-${idx}`} className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between group">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Paperclip className="w-4 h-4 text-blue-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs font-bold text-blue-800 truncate max-w-[150px]">{file.fileName}</p>
-                        <p className="text-[10px] text-blue-600">Already uploaded</p>
-                      </div>
-                    </div>
-                    {initialData?.meta.files && (
-                      <button
-                        type="button"
-                        onClick={() => removeExistingFile(idx)}
-                        className="p-1.5 text-blue-300 hover:text-red-500 hover:bg-white rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                        title="Remove existing file"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                <p className="text-xs text-gray-500 mb-2">
+                  This notice will be automatically deleted at the specified time.
+                  Default is set to 1 year from now.
+                </p>
+                <input
+                  type="datetime-local"
+                  value={deleteAt}
+                  onChange={(e) => setDeleteAt(e.target.value)}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
               </div>
             )}
-
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
-              <Clock className="w-5 h-5 text-orange-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-orange-900">Auto-deletion enabled</p>
-                <p className="text-xs text-orange-750">
-                  Study material notices are automatically deleted 2 hours after being posted to save storage space and keep the board clean.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Visibility Settings */}
-        <div className="border-t pt-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Who can see this notice?
-          </label>
-
-          {/* Public/Private Toggle */}
-          <div className="mb-4">
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="visibility"
-                  checked={isPublic}
-                  onChange={() => setIsPublic(true)}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <Globe className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium">Public (Everyone can see)</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="visibility"
-                  checked={!isPublic}
-                  onChange={() => setIsPublic(false)}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <Lock className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium">Private (Selected users only)</span>
-              </label>
-            </div>
           </div>
 
-          {/* User Selection (if private) */}
-          {!isPublic && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-700">Select Students:</span>
-                <button
-                  type="button"
-                  onClick={handleSelectAll}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  {selectedUsers.length === availableUsers.length ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-
-              <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3 space-y-2">
-                {availableUsers.map((user) => (
-                  <label
-                    key={user.rollNo}
-                    className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.rollNo)}
-                      onChange={() => handleUserToggle(user.rollNo)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900">{user.name}</span>
-                      <span className="text-xs text-gray-500">({user.rollNo})</span>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              {selectedUsers.length > 0 && (
-                <p className="text-sm text-gray-600 mt-2">
-                  {selectedUsers.length} student{selectedUsers.length > 1 ? 's' : ''} selected
-                </p>
+          {/* Submit buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{isEditing ? 'Save Changes' : 'Create Notice'}</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>{isEditing ? 'Save Changes' : 'Create Notice'}</span>
+                </>
               )}
-            </div>
-          )}
-        </div>
+            </button>
 
-        {/* Auto-Delete Settings */}
-        <div className="border-t pt-6">
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-orange-500" />
-              Auto-delete Notice
-            </label>
             <button
               type="button"
-              onClick={() => setUseAutoDelete(!useAutoDelete)}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${useAutoDelete
-                ? 'bg-orange-100 text-orange-700'
-                : 'bg-gray-100 text-gray-600'
-                }`}
+              onClick={onCancel}
+              disabled={isLoading}
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all disabled:opacity-50"
             >
-              {useAutoDelete ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-              <span className="text-xs font-medium">{useAutoDelete ? 'Enabled' : 'Disabled'}</span>
+              Cancel
             </button>
           </div>
+        </form>
+      </div>
 
-          {useAutoDelete && (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 mb-2">
-                This notice will be automatically deleted at the specified time.
-                Default is set to 1 year from now.
-              </p>
-              <input
-                type="datetime-local"
-                value={deleteAt}
-                onChange={(e) => setDeleteAt(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
+      {/* Fullscreen upload overlay — shown outside the scrollable form */}
+      {(isUploading || uploadStatus === 'success') && (
+        <UploadProgressOverlay
+          status={uploadStatus}
+          files={selectedFiles}
+        />
+      )}
+    </>
+  );
+}
+
+function UploadProgressOverlay({ status, files }) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center"
+      style={{
+        background: 'radial-gradient(ellipse at 60% 40%, rgba(99,102,241,0.18) 0%, rgba(15,23,42,0.97) 100%)'
+      }}
+    >
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @keyframes up-orbit {
+          from { transform: rotate(0deg) translateX(52px) rotate(0deg); }
+          to   { transform: rotate(360deg) translateX(52px) rotate(-360deg); }
+        }
+        @keyframes up-orbit2 {
+          from { transform: rotate(120deg) translateX(72px) rotate(-120deg); }
+          to   { transform: rotate(480deg) translateX(72px) rotate(-480deg); }
+        }
+        @keyframes up-orbit3 {
+          from { transform: rotate(240deg) translateX(92px) rotate(-240deg); }
+          to   { transform: rotate(600deg) translateX(92px) rotate(-600deg); }
+        }
+        @keyframes up-bar {
+          0%   { width: 0%; }
+          20%  { width: 35%; }
+          50%  { width: 65%; }
+          80%  { width: 88%; }
+          100% { width: 95%; }
+        }
+        @keyframes up-fadein {
+          from { opacity: 0; transform: translateY(32px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+        @keyframes up-pop {
+          0%   { transform: scale(0.4); opacity: 0; }
+          60%  { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); }
+        }
+        @keyframes up-float {
+          0%, 100% { transform: translateY(0px); }
+          50%      { transform: translateY(-8px); }
+        }
+        @keyframes up-spin-slow {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes up-sparkle {
+          0%   { opacity: 0; transform: scale(0) rotate(0deg); }
+          50%  { opacity: 1; transform: scale(1.3) rotate(20deg); }
+          100% { opacity: 0; transform: scale(0) rotate(40deg) translateY(-20px); }
+        }
+        .up-fadein  { animation: up-fadein 0.5s cubic-bezier(.22,1,.36,1) both; }
+        .up-pop     { animation: up-pop 0.6s cubic-bezier(.22,1,.36,1) both; }
+        .up-float   { animation: up-float 2.4s ease-in-out infinite; }
+        .up-bar     { animation: up-bar 12s cubic-bezier(.4,0,.2,1) forwards; }
+        .up-spin-slow { animation: up-spin-slow 8s linear infinite; }
+        .up-orbit1  { animation: up-orbit  2.2s linear infinite; position:absolute; }
+        .up-orbit2  { animation: up-orbit2 3.1s linear infinite; position:absolute; }
+        .up-orbit3  { animation: up-orbit3 4.0s linear infinite; position:absolute; }
+        .up-sparkle { animation: up-sparkle 1.2s ease-out forwards; }
+      ` }} />
+
+      <div className="up-fadein flex flex-col items-center gap-8 px-6 w-full max-w-sm">
+
+        {status === 'uploading' ? (
+          <>
+            {/* Animated icon cluster */}
+            <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
+              {/* Outer slow-spinning ring */}
+              <div className="absolute inset-0 up-spin-slow rounded-full"
+                style={{ border: '1.5px dashed rgba(139,92,246,0.35)' }} />
+              {/* Orbiting dots */}
+              <div className="up-orbit1">
+                <div className="w-3 h-3 rounded-full bg-violet-400 shadow-lg shadow-violet-400/60" />
+              </div>
+              <div className="up-orbit2">
+                <div className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-lg shadow-orange-400/60" />
+              </div>
+              <div className="up-orbit3">
+                <div className="w-2 h-2 rounded-full bg-sky-400 shadow-lg shadow-sky-400/60" />
+              </div>
+              {/* Center icon */}
+              <div className="up-float relative z-10 w-20 h-20 rounded-2xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg,#6366f1,#a855f7)', boxShadow: '0 0 48px 12px rgba(139,92,246,0.35)' }}>
+                <Upload className="w-9 h-9 text-white" />
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Submit buttons */}
-        <div className="flex gap-3 pt-4">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{isEditing ? 'Save Changes' : 'Create Notice'}</span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                <span>{isEditing ? 'Save Changes' : 'Create Notice'}</span>
-              </>
-            )}
-          </button>
+            {/* Labels */}
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white tracking-tight mb-1">Uploading…</p>
+              <p className="text-sm text-white/50">
+                {files.length === 1 ? files[0].name : `${files.length} files`}
+              </p>
+            </div>
 
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+            {/* Progress bar */}
+            <div className="w-full">
+              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div className="up-bar h-full rounded-full"
+                  style={{ background: 'linear-gradient(90deg,#6366f1,#a855f7,#ec4899)' }} />
+              </div>
+              <p className="text-center text-[11px] text-white/30 mt-2 uppercase tracking-widest">Please wait</p>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Success state */}
+            <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
+              {/* Sparkle particles */}
+              {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+                <div key={i} className="absolute" style={{
+                  transform: `rotate(${deg}deg) translateX(70px)`,
+                  animationDelay: `${i * 0.08}s`
+                }}>
+                  <Sparkles className="up-sparkle w-4 h-4 text-yellow-400" style={{ animationDelay: `${i * 0.1}s` }} />
+                </div>
+              ))}
+              {/* Center success icon */}
+              <div className="up-pop up-float relative z-10 w-24 h-24 rounded-3xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg,#22c55e,#16a34a)', boxShadow: '0 0 60px 16px rgba(34,197,94,0.35)' }}>
+                <CheckCircle2 className="w-12 h-12 text-white" />
+              </div>
+            </div>
+
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white tracking-tight mb-1">Uploaded!</p>
+              <p className="text-sm text-white/50">Saving your notice…</p>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

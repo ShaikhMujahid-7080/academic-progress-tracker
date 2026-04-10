@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Paperclip,
   Download,
+  Loader2,
   ExternalLink,
   File,
   Clock,
@@ -41,6 +42,7 @@ export function MaterialItem({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [activePreviewFile, setActivePreviewFile] = useState(null);
+  const [downloadingFiles, setDownloadingFiles] = useState(new Set());
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
@@ -115,6 +117,31 @@ export function MaterialItem({
   const handlePreview = (file) => {
     setActivePreviewFile(file);
     setShowPreview(true);
+  };
+
+  const handleDownload = async (e, file) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const key = file.fileUrl;
+    if (downloadingFiles.has(key)) return; // prevent double-click
+    setDownloadingFiles(prev => new Set(prev).add(key));
+    try {
+      const response = await fetch(file.fileUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = file.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Download failed:', err);
+      window.open(file.fileUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloadingFiles(prev => { const next = new Set(prev); next.delete(key); return next; });
+    }
   };
 
   return (
@@ -222,16 +249,18 @@ export function MaterialItem({
                     </p>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-[8px] text-white/80">{(file.fileSize / (1024 * 1024)).toFixed(2)} MB</span>
-                      <a
-                        href={file.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 bg-white/95 hover:bg-white text-gray-900 rounded-lg shadow-lg transition-all"
-                        download={file.fileName}
+                      {(() => { const isLoading = downloadingFiles.has(file.fileUrl); return (
+                      <button
+                        onClick={(e) => handleDownload(e, file)}
+                        disabled={isLoading}
+                        className={`p-1.5 rounded-lg shadow-lg transition-all ${isLoading ? 'bg-white/60 cursor-not-allowed' : 'bg-white/95 hover:bg-white text-gray-900'}`}
+                        title={isLoading ? 'Downloading…' : `Download ${file.fileName}`}
                       >
-                        <Download className="w-3 h-3" />
-                      </a>
+                        {isLoading
+                          ? <Loader2 className="w-3 h-3 text-orange-600 animate-spin" />
+                          : <Download className="w-3 h-3" />}
+                      </button>
+                      ); })()}
                     </div>
                   </div>
                 </div>
@@ -264,19 +293,28 @@ export function MaterialItem({
                       </div>
                     </div>
 
-                    <a
-                      href={file.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 shrink-0"
-                      download={file.fileName}
+                    {(() => { const isLoading = downloadingFiles.has(file.fileUrl); return (
+                    <button
+                      onClick={(e) => handleDownload(e, file)}
+                      disabled={isLoading}
+                      className={`flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all shadow-md shrink-0 ${
+                        isLoading
+                          ? 'bg-blue-400 cursor-not-allowed shadow-blue-100'
+                          : 'bg-blue-600 hover:bg-blue-700 shadow-blue-100'
+                      } text-white`}
+                      title={isLoading ? 'Downloading…' : `Download ${file.fileName}`}
                     >
-                      <Download className="w-4 h-4" />
-                      <span className="hidden sm:inline text-sm font-medium">Download</span>
-                      {fileExt && (
+                      {isLoading
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Download className="w-4 h-4" />}
+                      <span className="hidden sm:inline text-sm font-medium">
+                        {isLoading ? 'Downloading…' : 'Download'}
+                      </span>
+                      {!isLoading && fileExt && (
                         <span className="px-1.5 py-0.5 bg-white/20 text-white rounded text-[9px] font-bold tracking-wider">{fileExt}</span>
                       )}
-                    </a>
+                    </button>
+                    ); })()}
                   </div>
                 </div>
               );

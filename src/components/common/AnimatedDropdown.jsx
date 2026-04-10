@@ -65,6 +65,7 @@ export function AnimatedDropdown({ options, value, onChange, label, placeholder 
                         return (
                             <button
                                 key={option.value}
+                                type="button"
                                 onClick={() => {
                                     onChange(option.value);
                                     setIsOpen(false);

@@ -40,6 +40,8 @@ export const caOptions = [
   "Quiz",
   "Certificate",
   "Project",
+  "CaseStudy/Report",
+  "Debate/Discussion",
   "Other"
 ];
 
@@ -48,6 +50,18 @@ export const ADMIN_STUDENT = {
   rollNo: "2405225",
   name: "Shaikh Mujahid",
   // Defaults used when admin is bootstrapped
-  admissionYear: 2024,
-  isDSY: false
+  admissionYear: 2023,
+  isDSY: false,
+  isYD: false,
+  branch: "General"
 };
+
+export const BRANCHES = [
+  "AIML",
+  "IT",
+  "DS",
+  "Computer Engineering",
+  "Civil",
+  "Mechanical",
+  "General"
+];

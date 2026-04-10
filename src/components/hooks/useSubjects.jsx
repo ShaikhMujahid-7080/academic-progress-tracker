@@ -9,15 +9,19 @@ export const DEFAULT_PRACTICAL_LAB_COUNT = 10;
 
 /**
  * Hook to manage dynamic subjects across the app.
- * Reads/writes from `appConfig/subjects` document in Firestore.
+ * Reads/writes from `appConfig/subjects_[branch]` document in Firestore.
  */
-export function useSubjects(isAdmin, isCoLeader) {
+export function useSubjects(isAdmin, isCoLeader, branch = 'IT') {
     const [subjectsData, setSubjectsData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        const docRef = doc(db, "appConfig", "subjects");
+        if (!branch) return;
+
+        // Use 'subjects' for IT to maintain backwards compatibility with existing db
+        const docId = branch === 'IT' ? 'subjects' : `subjects_${branch}`;
+        const docRef = doc(db, "appConfig", docId);
 
         const unsubscribe = onSnapshot(docRef, async (snapshot) => {
             if (snapshot.exists()) {
@@ -72,13 +76,14 @@ export function useSubjects(isAdmin, isCoLeader) {
         });
 
         return () => unsubscribe();
-    }, [isAdmin, isCoLeader]);
+    }, [isAdmin, isCoLeader, branch]);
 
     const saveSubjects = async (newData) => {
         if (!isAdmin && !isCoLeader) throw new Error("Permission denied");
         setIsSaving(true);
         try {
-            const docRef = doc(db, "appConfig", "subjects");
+            const docId = branch === 'IT' ? 'subjects' : `subjects_${branch}`;
+            const docRef = doc(db, "appConfig", docId);
             await setDoc(docRef, newData);
             return true;
         } catch (error) {

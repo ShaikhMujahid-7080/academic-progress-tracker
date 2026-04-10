@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
-import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check, ShieldAlert, Camera, Image as ImageIcon } from "lucide-react";
-import { subjects, ADMIN_STUDENT } from "../../data/subjects";
+import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check, ShieldAlert, Camera, Image as ImageIcon, Mail, Phone, Github, Linkedin, Globe, ChevronRight, Quote, Info, GraduationCap, Calendar, Code, ShieldCheck, Copy, ExternalLink, Brain, BarChart3, Cpu, Construction, Settings, BadgeCheck } from "lucide-react";
+import { subjects, ADMIN_STUDENT, BRANCHES } from "../../data/subjects";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
 import { AnimatedDropdown } from "../common/AnimatedDropdown";
@@ -26,8 +26,10 @@ export function StudentManagementTab({
     updateStudentDSY,
     updateStudentAdmissionYear,
     updateStudentYD,
+    updateStudentBranch,
     updateStudentPhoto,
-    removeStudentPhoto
+    removeStudentPhoto,
+    updateStudentProfile
   } = studentManagement;
 
   // Check if current user is a co-leader with permissions
@@ -39,11 +41,6 @@ export function StudentManagementTab({
   const canCreateUsers = isAdmin || (isCoLeader && coLeaderPermissions.canCreateUsers);
   const canAppointCoLeaders = isAdmin || (isCoLeader && coLeaderPermissions.canAppointCoLeaders);
 
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newStudent, setNewStudent] = useState({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false, isYD: false });
-  const [passwordProtected, setPasswordProtected] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,10 +55,20 @@ export function StudentManagementTab({
   const [tempYear, setTempYear] = useState("");
   const [isSavingYear, setIsSavingYear] = useState(false);
 
+  // Branch edit states
+  const [isEditingBranch, setIsEditingBranch] = useState(false);
+  const [tempBranch, setTempBranch] = useState("");
+  const [isSavingBranch, setIsSavingBranch] = useState(false);
+
   // Photo management states
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Profile editing states
+  const [editingField, setEditingField] = useState(null); // 'bio', 'email', 'phone', 'github', 'linkedin', 'website'
+  const [tempValue, setTempValue] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   // Admin authentication states
   const [showAdminAuth, setShowAdminAuth] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
@@ -94,16 +101,63 @@ export function StudentManagementTab({
 
   const ADMIN_PASSWORD = "admin123"; // Should match the one in StudentSelectionScreen
 
-  // Filter students based on search query
+  // Profile views management
+  const [viewedStudent, setViewedStudent] = useState(selectedStudent);
+
+  // Branch icons mapping
+  const getBranchIcon = (branch) => {
+    switch (branch) {
+      case 'AIML': return Brain;
+      case 'IT': return Code;
+      case 'DS': return BarChart3;
+      case 'Computer Engineering': return Cpu;
+      case 'Civil': return Construction;
+      case 'Mechanical': return Settings;
+      default: return Globe;
+    }
+  };
+
+  const copyToClipboard = (text, label) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    toast.success(`Copied ${label} to clipboard!`, {
+      position: "bottom-right",
+      autoClose: 2000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: false,
+      draggable: false,
+      theme: "dark",
+    });
+  };
+
+  // Keep viewed student in sync when the session student changes (e.g. from header)
+  React.useEffect(() => {
+    if (selectedStudent && (!viewedStudent || (viewedStudent.rollNo === selectedStudent.rollNo))) {
+      setViewedStudent(selectedStudent);
+    }
+  }, [selectedStudent]);
+
+  // Filter students based on search query and branch
   const filteredStudents = useMemo(() => {
-    if (!searchQuery.trim()) return students;
+    let result = students;
+
+    // show only own branch for non-admins, but ALWAYS include the Super Admin (General branch)
+    if (!isAdmin && selectedStudent?.branch) {
+      result = result.filter(s =>
+        s.branch === selectedStudent.branch ||
+        s.rollNo === ADMIN_STUDENT.rollNo
+      );
+    }
+
+    if (!searchQuery.trim()) return result;
 
     const query = searchQuery.toLowerCase();
-    return students.filter(student =>
+    return result.filter(student =>
       student.name.toLowerCase().includes(query) ||
       student.rollNo.toLowerCase().includes(query)
     );
-  }, [students, searchQuery]);
+  }, [students, searchQuery, isAdmin, isCoLeader, selectedStudent?.branch]);
 
   const handleStartEditName = () => {
     setTempName(selectedStudent.name);
@@ -146,7 +200,7 @@ export function StudentManagementTab({
   const handleSaveYear = async () => {
     const yearNum = Number(tempYear);
     const currentYear = new Date().getFullYear();
-    
+
     if (!tempYear || !Number.isInteger(yearNum) || yearNum < 2000 || yearNum > currentYear) {
       toast.error("Please enter a valid admission year");
       return;
@@ -164,6 +218,59 @@ export function StudentManagementTab({
     }
   };
 
+  const handleStartEditBranch = () => {
+    setTempBranch(selectedStudent.branch || "General");
+    setIsEditingBranch(true);
+  };
+
+  const handleCancelEditBranch = () => {
+    setIsEditingBranch(false);
+    setTempBranch("");
+  };
+
+  const handleSaveBranch = async () => {
+    if (!tempBranch.trim()) {
+      toast.error("Branch cannot be empty");
+      return;
+    }
+    try {
+      setIsSavingBranch(true);
+      await updateStudentBranch(selectedStudent.rollNo, tempBranch);
+      toast.success("✅ Branch updated successfully!");
+      setIsEditingBranch(false);
+    } catch (error) {
+      toast.error(`❌ Error updating branch: ${error.message}`);
+    } finally {
+      setIsSavingBranch(false);
+    }
+  };
+
+  const handleStartEditProfile = (field, value) => {
+    setEditingField(field);
+    setTempValue(value || "");
+  };
+
+  const handleCancelEditProfile = () => {
+    setEditingField(null);
+    setTempValue("");
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editingField) return;
+
+    try {
+      setIsSavingProfile(true);
+      await updateStudentProfile(selectedStudent.rollNo, { [editingField]: tempValue.trim() });
+      toast.success(`✅ ${editingField.charAt(0).toUpperCase() + editingField.slice(1)} updated!`);
+      setEditingField(null);
+      setTempValue("");
+    } catch (error) {
+      toast.error(`❌ Error updating ${editingField}: ${error.message}`);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   const showConfirm = (config) => {
     setConfirmConfig(config);
     setConfirmOpen(true);
@@ -178,7 +285,18 @@ export function StudentManagementTab({
     setConfirmOpen(false);
   };
 
+  const handleViewProfile = (student) => {
+    setViewedStudent(student);
+    // Smooth scroll to profile board
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleStudentClick = async (student) => {
+    // Now just viewing
+    handleViewProfile(student);
+  };
+
+  const handleSwitchAccount = async (student) => {
     // Check if trying to select admin student and current user is not admin
     if (student.rollNo === ADMIN_STUDENT.rollNo && selectedStudent?.rollNo !== ADMIN_STUDENT.rollNo) {
       setShowAdminAuth(true);
@@ -198,6 +316,7 @@ export function StudentManagementTab({
 
     // Proceed with selection
     selectStudent(student);
+    toast.success(`Logged in as ${student.name}`);
   };
 
   const handleAdminAuth = async (e) => {
@@ -271,50 +390,7 @@ export function StudentManagementTab({
     setAuthError("");
   };
 
-  const handleCreateStudent = async (e) => {
-    e.preventDefault();
 
-    if (!newStudent.rollNo.trim() || !newStudent.name.trim()) {
-      toast.error('Please fill in both roll number and name');
-      return;
-    }
-
-    if (passwordProtected && !newStudent.password.trim()) {
-      toast.error('Please enter a password or uncheck password protection');
-      return;
-    }
-
-    try {
-      setIsCreating(true);
-
-      const admissionYearNum = Number(newStudent.admissionYear);
-      const currentYear = new Date().getFullYear();
-      if (!Number.isInteger(admissionYearNum) || admissionYearNum < 2000 || admissionYearNum > currentYear) {
-        toast.error('Please enter a valid admission year');
-        setIsCreating(false);
-        return;
-      }
-
-      await createStudent(
-        newStudent.rollNo.trim(),
-        newStudent.name.trim(),
-        passwordProtected ? newStudent.password.trim() : '',
-        newStudent.role,
-        admissionYearNum,
-        newStudent.isDSY,
-        newStudent.isYD
-      );
-
-      setNewStudent({ rollNo: '', name: '', password: '', role: 'student', admissionYear: new Date().getFullYear(), isDSY: false, isYD: false });
-      setPasswordProtected(false);
-      setShowCreateForm(false);
-      toast.success('✅ Student created successfully!');
-    } catch (error) {
-      toast.error(`❌ Error creating student: ${error.message}`);
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   const handleDeleteStudent = async (rollNo, name) => {
     if (rollNo === ADMIN_STUDENT.rollNo) {
@@ -436,6 +512,17 @@ export function StudentManagementTab({
       toast.success(`✅ ${student.name} marked as ${newVal ? 'Year Drop' : 'no Year Drop'}`);
     } catch (error) {
       toast.error(`❌ Error updating YD: ${error.message}`);
+    }
+  };
+
+  const handleToggleDSY = async (student, e) => {
+    e.stopPropagation();
+    try {
+      const newVal = !student.isDSY;
+      await updateStudentDSY(student.rollNo, newVal);
+      toast.success(`✅ ${student.name} marked as ${newVal ? 'DSY' : 'non-DSY'}`);
+    } catch (error) {
+      toast.error(`❌ Error updating DSY: ${error.message}`);
     }
   };
 
@@ -725,269 +812,498 @@ export function StudentManagementTab({
 
       {/* Header */}
       <div className="text-center px-4">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Student & Semester Management</h2>
-        <p className="text-sm sm:text-base text-gray-600">Manage students, roles, and select current semester</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Profile Page</h2>
+        <p className="text-sm sm:text-base text-gray-600">Personal Academic Portfolio & Institutional Identity</p>
       </div>
 
-      {/* Current Student & Semester */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Current Student */}
-        <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Current Student
-            {selectedStudent?.rollNo === ADMIN_STUDENT.rollNo && (
-              <Crown className="w-4 h-4 text-yellow-500" />
-            )}
-          </h3>
+      {/* Full Premium Profile Board Grid Wrapper */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
+        {/* Left Column: Session and Status Sidebar */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 flex flex-col gap-6">
+            {/* Session User Info */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">Active Session</h3>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Identity Management</p>
+                </div>
+              </div>
 
-          {selectedStudent && (
-            <div className={`relative overflow-hidden rounded-2xl p-0.5 shadow-lg transition-all hover:shadow-xl ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
-              ? 'bg-gradient-to-br from-amber-200 via-yellow-100 to-orange-100'
-              : selectedStudent.role === 'co-leader'
-                ? 'bg-gradient-to-br from-purple-200 via-fuchsia-100 to-pink-100'
-                : 'bg-gradient-to-br from-blue-200 via-sky-100 to-indigo-100'
-              }`}>
-              <div className={`relative rounded-[14px] p-4 backdrop-blur-sm ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
-                ? 'bg-white/60'
-                : selectedStudent.role === 'co-leader'
-                  ? 'bg-white/60'
-                  : 'bg-white/80'
-                }`}>
-                <div className="flex items-center gap-4 mb-6 relative">
-                  {/* Photo Section */}
-                  <div className="relative group/photo">
-                    <div className={`w-20 h-20 rounded-2xl overflow-hidden border-2 flex items-center justify-center transition-all bg-white relative
-                      ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo ? 'border-amber-400' : selectedStudent.role === 'co-leader' ? 'border-purple-400' : 'border-blue-400'}
-                    `}>
-                      {selectedStudent.photoURL ? (
-                        <img 
-                          src={selectedStudent.photoURL} 
-                          alt={selectedStudent.name} 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className={`w-full h-full flex items-center justify-center ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo ? 'bg-amber-100' : selectedStudent.role === 'co-leader' ? 'bg-purple-100' : 'bg-blue-100'}`}>
-                          <User className={`w-10 h-10 ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo ? 'text-amber-500' : selectedStudent.role === 'co-leader' ? 'text-purple-500' : 'text-blue-500'}`} />
-                        </div>
-                      )}
-
-                      {/* Upload Loading Overlay */}
-                      {isUploadingPhoto && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                          <Loader2 className="w-6 h-6 animate-spin text-white" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Quick Edit Button Overlay */}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploadingPhoto}
-                      className="absolute -bottom-2 -right-2 p-1.5 bg-white rounded-lg shadow-lg border border-gray-100 text-gray-600 hover:text-blue-600 transition-all hover:scale-110 active:scale-95 z-20"
-                      title="Update Photo"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* Remove Photo Button */}
-                    {selectedStudent.photoURL && (
-                      <button
-                        onClick={handleRemovePhoto}
-                        disabled={isRemovingPhoto}
-                        className="absolute -top-2 -right-2 p-1 bg-white rounded-lg shadow-md border border-gray-100 text-red-500 hover:bg-red-50 opacity-0 group-hover/photo:opacity-100 transition-all z-20"
-                        title="Remove Photo"
-                      >
-                        {isRemovingPhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
-                      </button>
-                    )}
-
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                    />
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedStudent?.rollNo === ADMIN_STUDENT.rollNo ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+                    <User size={16} />
                   </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">Logged In As</p>
+                    <p className="text-xs font-bold text-gray-900 truncate">{selectedStudent?.name}</p>
+                  </div>
+                </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      {isEditingName ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={tempName}
-                            onChange={(e) => setTempName(e.target.value)}
-                            className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-900"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveName();
-                              if (e.key === 'Escape') handleCancelEditName();
-                            }}
-                          />
-                          <button
-                            onClick={handleSaveName}
-                            disabled={isSavingName}
-                            className="p-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-all"
-                            title="Save Name"
-                          >
-                            {isSavingName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={handleCancelEditName}
-                            disabled={isSavingName}
-                            className="p-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all"
-                            title="Cancel"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 group">
-                          <p className={`font-bold ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
-                            ? 'text-yellow-900'
-                            : selectedStudent.role === 'co-leader'
-                              ? 'text-purple-900'
-                              : 'text-blue-900'
-                            }`}>
-                            {selectedStudent.name}
-                          </p>
-                          <button
-                            onClick={handleStartEditName}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-600 transition-all"
-                            title="Edit Name"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <p className={`text-sm ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
-                      ? 'text-yellow-700'
-                      : selectedStudent.role === 'co-leader'
-                        ? 'text-purple-700'
-                        : 'text-blue-700'
-                      }`}>
-                      Roll No: {selectedStudent.rollNo}
+                <div className="flex items-start gap-3 pt-2 border-t border-gray-200">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedStudent?.isProtected ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-500'}`}>
+                    <Lock size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">Account Security</p>
+                    <p className={`text-xs font-bold ${selectedStudent?.isProtected ? 'text-emerald-600' : 'text-orange-500'}`}>
+                      {selectedStudent?.isProtected ? 'Password Protected' : 'No Password Set'}
                     </p>
-                    {selectedStudent.admissionYear && (
-                      <div className="mt-1">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${selectedStudent.rollNo === ADMIN_STUDENT.rollNo
-                          ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
-                          : selectedStudent.role === 'co-leader'
-                            ? 'text-purple-700 bg-purple-50 border-purple-200'
-                            : 'text-blue-700 bg-blue-50 border-blue-200'
-                          }`}>
-                          {getStudentYear(selectedStudent)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Admission Info with DSY toggle */}
-                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <span>Admission:</span>
-                        {isEditingYear ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              value={tempYear}
-                              onChange={(e) => setTempYear(e.target.value)}
-                              className="w-16 px-1 py-0.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveYear();
-                                if (e.key === 'Escape') handleCancelEditYear();
-                              }}
-                            />
-                            <button
-                              onClick={handleSaveYear}
-                              disabled={isSavingYear}
-                              className="text-green-600 hover:text-green-700"
-                            >
-                              {isSavingYear ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                            </button>
-                            <button
-                              onClick={handleCancelEditYear}
-                              disabled={isSavingYear}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 group/year">
-                            <span className="font-medium text-gray-700">{selectedStudent.admissionYear || 'N/A'}</span>
-                            <button
-                              onClick={handleStartEditYear}
-                              className="opacity-0 group-hover/year:opacity-100 p-0.5 text-gray-400 hover:text-blue-600 transition-all"
-                              title="Edit Admission Year"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <button
-                        onClick={(e) => handleToggleDSY(selectedStudent, e)}
-                        className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${selectedStudent.isDSY
-                          ? 'bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200'
-                          : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
-                          }`}
-                        title="Click to toggle DSY status"
-                      >
-                        {selectedStudent.isDSY ? '✓ DSY' : 'Non-DSY'}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${getRoleDisplay(selectedStudent.role || 'student').bgColor
-                        }`}>
-                        {React.createElement(getRoleDisplay(selectedStudent.role || 'student').icon, {
-                          className: `w-3 h-3 ${getRoleDisplay(selectedStudent.role || 'student').color}`
-                        })}
-                        <span className={getRoleDisplay(selectedStudent.role || 'student').color}>
-                          {getRoleDisplay(selectedStudent.role || 'student').name}
-                        </span>
-                      </div>
-                      {selectedStudent.isProtected && (
-                        <div className="flex items-center gap-1">
-                          <Lock className="w-3 h-3 text-blue-600" />
-                          <span className="text-xs text-blue-600 font-medium">Protected</span>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Data Retention Warning */}
-          <div className="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-200 shadow-sm transition-all hover:bg-amber-100/50">
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
-                <ShieldAlert className="w-5 h-5 text-amber-600" />
+            {/* Branch Identity */}
+            <div className="p-4 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl text-white shadow-lg shadow-blue-200 overflow-hidden relative group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8" />
+              <div className="relative z-10">
+                <div className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center mb-3">
+                  <Shield size={16} className="text-white" />
+                </div>
+                <p className="text-[9px] font-black uppercase tracking-wider text-blue-100 mb-1">Branch / Collective</p>
+                <h4 className="text-sm font-bold truncate leading-tight">{selectedStudent?.branch || 'General Branch'}</h4>
               </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-bold text-amber-900 mb-1 flex items-center gap-2">
-                  Data Retention Notice
-                </h4>
-                <p className="text-xs text-amber-800 leading-relaxed font-medium">
-                  To maintain data privacy and system performance, student profiles and all associated data (Academic Progress, Notes) are automatically deleted <span className="text-amber-900 font-bold underline">1 year after graduation</span>.
-                </p>
+            </div>
+
+            {/* Quick Stats Helper */}
+            <div className="p-4 bg-gray-900 rounded-2xl text-white">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">Security Audit</span>
+                <span className="text-[8px] font-bold px-1.5 py-0.5 bg-green-500 rounded uppercase">Live</span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-400">Identity Mode</span>
+                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">{selectedStudent?.role || 'Student'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-400">Privacy Status</span>
+                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Encrypted</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Current Semester */}
-        <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Current Semester</h3>
+        {/* Full Premium Profile Board (Col-span 2) */}
+        <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden relative group/profile">
+          {/* Cover Gradient Section */}
+          <div className={`h-32 sm:h-40 w-full relative overflow-hidden ${viewedStudent?.rollNo === ADMIN_STUDENT.rollNo
+            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500'
+            : viewedStudent?.role === 'co-leader'
+              ? 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500'
+              : 'bg-gradient-to-r from-blue-600 via-indigo-500 to-sky-500'
+            }`}>
+            {/* Abstract Pattern Overlay */}
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+          </div>
 
-          <div className="relative"> {/* Removed z-20 to prevent header overlap */}
+          {/* Card Content */}
+          <div className="relative z-10 p-6 sm:p-8 pt-0">
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Left Column: Avatar and Quick Info */}
+              <div className="lg:w-1/3 flex flex-col items-center -mt-16 sm:-mt-20">
+                {/* Avatar Container */}
+                <div className={`
+                w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] p-1.5 shadow-2xl transition-all duration-500 hover:scale-[1.05] relative z-20 group/photo
+                ${viewedStudent?.rollNo === ADMIN_STUDENT.rollNo
+                    ? 'bg-gradient-to-br from-amber-400 via-yellow-200 to-orange-400'
+                    : viewedStudent?.role === 'co-leader'
+                      ? 'bg-gradient-to-br from-purple-400 via-fuchsia-200 to-pink-400'
+                      : 'bg-gradient-to-br from-blue-400 via-sky-200 to-indigo-400'
+                  }
+              `}>
+                  <div className="w-full h-full bg-white rounded-[2.2rem] overflow-hidden flex items-center justify-center relative bg-gray-50">
+                    {viewedStudent?.photoURL ? (
+                      <img src={viewedStudent.photoURL} alt={viewedStudent.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <User className="w-16 h-16 text-gray-200" />
+                      </div>
+                    )}
+
+                    {/* Photo Action Overlay */}
+                    {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-all flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-2.5 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-xl text-white transition-all transform hover:scale-110 border border-white/30"
+                          title="Change Photo"
+                        >
+                          <Camera className="w-5 h-5" />
+                        </button>
+                        {viewedStudent?.photoURL && (
+                          <button
+                            onClick={handleRemovePhoto}
+                            className="p-2.5 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-xl text-white transition-all transform hover:scale-110 border border-red-500/30"
+                            title="Remove Photo"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {isUploadingPhoto && (
+                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-30">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+
+                {/* Name & Role Section */}
+                <div className="text-center w-full space-y-3 mt-6">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-center gap-2 group/name">
+                      {isEditingName && (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) ? (
+                        <div className="flex items-center gap-2 max-w-xs mx-auto">
+                          <input
+                            type="text"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            className="px-3 py-1.5 text-xl font-black border-2 border-primary-100 rounded-xl focus:ring-4 focus:ring-primary-50 focus:border-primary-500 text-center w-full transition-all"
+                            autoFocus
+                          />
+                          <button onClick={handleSaveName} className="p-2 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200 hover:bg-green-600 transition-all">
+                            <Check className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 border border-gray-100 mb-1">
+                            {viewedStudent?.rollNo === ADMIN_STUDENT.rollNo ? (
+                              <div className="flex items-center gap-1.5 text-amber-600">
+                                <BadgeCheck className="w-3.5 h-3.5 fill-amber-100" />
+                                <span className="text-[10px] font-black uppercase tracking-tighter">Verified Admin</span>
+                              </div>
+                            ) : (
+                              <div className={`flex items-center gap-1.5 ${viewedStudent?.role === 'co-leader' ? 'text-purple-600' : 'text-blue-600'}`}>
+                                <Shield size={12} />
+                                <span className="text-[10px] font-black uppercase tracking-tighter">{viewedStudent?.role || 'Student'}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
+                              {viewedStudent?.name}
+                            </h2>
+                            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                              <button onClick={handleStartEditName} className="p-1.5 text-gray-400 hover:text-blue-600 opacity-0 group-hover/name:opacity-100 transition-all hover:bg-blue-50 rounded-lg">
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <p className="text-gray-400 font-mono text-xs uppercase tracking-widest font-bold">
+                        ID: {viewedStudent?.rollNo}
+                      </p>
+                      <button
+                        onClick={() => copyToClipboard(viewedStudent?.rollNo, 'ID')}
+                        className="p-1.5 text-gray-300 hover:text-blue-500 transition-colors opacity-0 group-hover/profile:opacity-100"
+                        title="Copy ID"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Profile Action Buttons */}
+                  <div className="flex flex-col gap-2.5 w-full pt-4">
+                    {selectedStudent?.rollNo === viewedStudent?.rollNo ? (
+                      <div className="flex items-center justify-center gap-2.5 py-3 px-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-black text-[10px] uppercase tracking-widest shadow-sm">
+                        <Check className="w-4 h-4" />
+                        Your Active Profile
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleSwitchAccount(viewedStudent)}
+                          className="group/btn relative flex items-center justify-center gap-3 w-full py-4 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all shadow-xl shadow-gray-200 font-black text-xs uppercase tracking-widest overflow-hidden"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+                          <Lock className="w-4 h-4 relative z-10" />
+                          <span className="relative z-10">Access Control Panel</span>
+                        </button>
+
+                        <button
+                          onClick={() => setViewedStudent(selectedStudent)}
+                          className="flex items-center justify-center gap-2 w-full py-3 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest leading-none"
+                        >
+                          <ChevronRight className="w-4 h-4 rotate-180" />
+                          <span className="truncate">Return to Dashboard</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Verified Badge / Online Status */}
+                <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-100 w-full justify-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Live Sync Always Enabled</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Information & Connections */}
+              <div className="flex-1 space-y-8 lg:pt-8">
+                {/* Academic Identity Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {[
+                    { label: 'Academic Year', value: getStudentYear(viewedStudent), icon: GraduationCap, color: 'blue' },
+                    { label: 'Admission', value: viewedStudent?.admissionYear, icon: Calendar, color: 'indigo' },
+                    { label: 'Specialization', value: viewedStudent?.branch || 'General', icon: getBranchIcon(viewedStudent?.branch), color: 'emerald' }
+                  ].map((stat, idx) => (
+                    <div key={idx} className={`bg-${stat.color}-50/50 p-4 rounded-3xl border border-${stat.color}-100/50 group/stat transition-all hover:bg-${stat.color}-50 hover:shadow-lg hover:shadow-${stat.color}-500/5`}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-8 h-8 rounded-xl bg-white border border-${stat.color}-100 flex items-center justify-center text-${stat.color}-600 shadow-sm transition-transform group-hover/stat:scale-110`}>
+                          <stat.icon size={16} />
+                        </div>
+                        <span className={`text-[10px] font-bold text-${stat.color}-600 uppercase tracking-wider`}>{stat.label}</span>
+                      </div>
+                      <p className={`text-base font-black text-${stat.color}-900 ml-1`}>{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bio Section */}
+                <div className="relative group/bio bg-gray-50/50 rounded-[2rem] p-6 border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                      <Quote className="w-4 h-4 text-primary-500" />
+                      Student Biography
+                    </h3>
+                    {!editingField && (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                      <button
+                        onClick={() => handleStartEditProfile('bio', viewedStudent?.bio)}
+                        className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary-600 hover:bg-white rounded-full transition-all border border-primary-100"
+                      >
+                        <Edit3 className="w-3 h-3 inline mr-1" /> Edit
+                      </button>
+                    )}
+                  </div>
+
+                  {editingField === 'bio' ? (
+                    <div className="space-y-4">
+                      <textarea
+                        value={tempValue}
+                        onChange={(e) => setTempValue(e.target.value)}
+                        placeholder="Share your academic mission or interests..."
+                        className="w-full p-5 bg-white border-2 border-primary-100 rounded-2xl focus:ring-4 focus:ring-primary-50 focus:border-primary-500 transition-all text-sm font-medium min-h-[120px]"
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button onClick={handleCancelEditProfile} className="px-5 py-2 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-xl transition-all">Discard</button>
+                        <button
+                          onClick={handleSaveProfile}
+                          disabled={isSavingProfile}
+                          className="px-6 py-2 text-xs font-black uppercase tracking-widest bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-xl shadow-primary-200 flex items-center gap-2"
+                        >
+                          {isSavingProfile && <Loader2 className="w-3 h-3 animate-spin" />}
+                          Commit Changes
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`leading-relaxed text-sm font-medium ${viewedStudent?.bio ? 'text-gray-700' : 'text-gray-400 italic'}`}>
+                      {viewedStudent?.bio || (selectedStudent?.rollNo === viewedStudent?.rollNo ? "Your story haven't been shared yet. Use the edit button above to add a bio!" : "No information shared yet.")}
+                    </div>
+                  )}
+                </div>
+
+                {/* Connections Grid */}
+                <div className="grid grid-cols-1 gap-8">
+                  {/* Contact Coordinates */}
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-rose-500" />
+                        Contact Data
+                      </h3>
+                    </div>
+
+                    <div className="space-y-3">
+                      {[
+                        { id: 'email', icon: Mail, label: 'Institution Email', value: viewedStudent?.email, color: 'rose' },
+                        { id: 'phone', icon: Phone, label: 'Primary Contact', value: viewedStudent?.phone, color: 'emerald' }
+                      ].map(field => (
+                        <div key={field.id} className="group/field relative">
+                          <div className={`flex items-center gap-4 p-4 rounded-3xl border transition-all ${field.value ? 'bg-white border-gray-100 hover:border-gray-200 shadow-sm' : 'bg-gray-50 border-dashed border-gray-200'
+                            }`}>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${field.value ? `bg-${field.color}-50 text-${field.color}-600` : 'bg-gray-100 text-gray-300'}`}>
+                              <field.icon className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-0.5 truncate">{field.label}</p>
+                              <p className={`text-sm font-bold truncate ${field.value ? 'text-gray-900' : 'text-gray-400'}`}>
+                                {field.value || 'Data not provided'}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {field.value && (
+                                <button
+                                  onClick={() => copyToClipboard(field.value, field.id)}
+                                  className="p-2 text-gray-300 hover:text-blue-500 transition-colors opacity-0 group-hover/field:opacity-100"
+                                >
+                                  <Copy size={14} />
+                                </button>
+                              )}
+                              {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                                <button
+                                  onClick={() => handleStartEditProfile(field.id, field.value)}
+                                  className="p-2 text-gray-300 hover:text-emerald-600 transition-colors opacity-0 group-hover/field:opacity-100"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Professional Vectors */}
+                  <div className="space-y-5">
+                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-indigo-500" />
+                      Digital Footprint
+                    </h3>
+
+                    <div className="grid gap-3">
+                      {[
+                        { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', value: viewedStudent?.linkedin, color: 'blue' },
+                        { id: 'github', icon: Github, label: 'GitHub', value: viewedStudent?.github, color: 'gray' },
+                        { id: 'website', icon: Globe, label: 'Portfolio', value: viewedStudent?.website, color: 'indigo' }
+                      ].map(field => (
+                        <div key={field.id} className="group/vector">
+                          {field.value ? (
+                            <div className="flex items-center gap-3 p-3.5 bg-white border border-gray-100 rounded-2xl hover:border-primary-200 transition-all hover:shadow-md">
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50 text-gray-600 group-hover/vector:bg-primary-50 group-hover/vector:text-primary-600 transition-colors`}>
+                                <field.icon size={18} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{field.label}</p>
+                                <a
+                                  href={field.value.startsWith('http') ? field.value : `https://${field.value}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs font-bold text-gray-900 hover:text-primary-600 truncate flex items-center gap-1.5"
+                                >
+                                  {field.value.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                                  <ExternalLink size={10} className="shrink-0" />
+                                </a>
+                              </div>
+                              {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                                <button
+                                  onClick={() => handleStartEditProfile(field.id, field.value)}
+                                  className="p-2 text-gray-300 hover:text-primary-600 opacity-0 group-hover/vector:opacity-100"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                              <button
+                                onClick={() => handleStartEditProfile(field.id, field.value)}
+                                className="w-full flex items-center gap-3 p-3 border-2 border-dashed border-gray-100 rounded-2xl hover:border-gray-200 hover:bg-gray-50 transition-all text-left"
+                              >
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50 text-gray-300">
+                                  <Plus size={18} />
+                                </div>
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Link Your {field.label}</span>
+                              </button>
+                            )
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Editing Overlay Modal for Small Fields */}
+      {editingField && editingField !== 'bio' && (
+        <div className="absolute inset-0 z-50 bg-white/40 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl border border-blue-50 p-6 sm:p-8 transform transition-all scale-100">
+            <h4 className="text-xl font-black text-gray-900 mb-2 capitalize">Edit {editingField}</h4>
+            <p className="text-sm text-gray-500 mb-6">Enter your {editingField === 'website' ? 'URL' : editingField} details below.</p>
+
+            <div className="space-y-6">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  {editingField === 'email' && <Mail className="w-5 h-5 text-blue-500" />}
+                  {editingField === 'phone' && <Phone className="w-5 h-5 text-blue-500" />}
+                  {editingField === 'github' && <Github className="w-5 h-5 text-blue-500" />}
+                  {editingField === 'linkedin' && <Linkedin className="w-5 h-5 text-blue-500" />}
+                  {editingField === 'website' && <Globe className="w-5 h-5 text-blue-500" />}
+                </div>
+                <input
+                  type={editingField === 'email' ? 'email' : editingField === 'phone' ? 'tel' : 'text'}
+                  value={tempValue}
+                  onChange={(e) => setTempValue(e.target.value)}
+                  placeholder={`Enter ${editingField}...`}
+                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl focus:outline-none focus:bg-white transition-all font-bold text-gray-900"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveProfile();
+                    if (e.key === 'Escape') handleCancelEditProfile();
+                  }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelEditProfile}
+                  className="flex-1 py-4 text-sm font-black text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={isSavingProfile}
+                  className="flex-1 py-4 text-sm font-black bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2"
+                >
+                  {isSavingProfile && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Update
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Semester Management Section */}
+      <div className="bg-white rounded-[2rem] shadow-xl p-8 border border-gray-100">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
+            <GraduationCap className="w-6 h-6 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-gray-900">Academic Progression</h3>
+            <p className="text-sm text-gray-500 font-medium">Select your current semester to view specific subjects.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
             <AnimatedDropdown
               options={(selectedStudent?.isDSY ? [3, 4, 5, 6, 7, 8] : [1, 2, 3, 4, 5, 6, 7, 8]).map(sem => ({
                 value: sem,
@@ -1002,44 +1318,37 @@ export function StudentManagementTab({
               placeholder="Select Semester"
             />
           </div>
-
-          <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
-            <div className="flex items-start gap-3">
-              <Star className="w-4 h-4 text-blue-600 mt-1" />
+          <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex flex-col justify-center">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-black">
+                {semester}
+              </div>
               <div>
-                <h4 className="font-medium text-blue-900 text-sm">Semester {semester} Overview</h4>
-                <p className="text-xs text-blue-700">
-                  {subjects[semester].theory.length} theory subjects and {subjects[semester].practical.length} practical labs
-                </p>
+                <p className="text-xs font-black text-blue-900 uppercase tracking-tighter">Current Sync</p>
+                <p className="text-[10px] text-blue-700 font-bold">{subjects[semester].theory.length} Theory • {subjects[semester].practical.length} Lab</p>
               </div>
             </div>
           </div>
-
-          {selectedStudent?.isDSY && (
-            <div className="mt-4 p-3 bg-yellow-50 rounded-xl border border-yellow-200 text-sm text-yellow-700">
-              Note: DSY students start from Semester 3 — Semesters 1 & 2 are hidden for DSY students.
-            </div>
-          )}
         </div>
       </div>
 
       {/* Student Selection */}
       <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Select Student ({students.length} total)
-          </h3>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-gray-900">
+                {isAdmin || isCoLeader ? `Student Directory (${filteredStudents.length})` : `Classmates & Peers`}
+              </h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                {isAdmin || isCoLeader ? 'Managing All Branches' : `Branch: ${selectedStudent?.branch || 'General'}`}
+              </p>
+            </div>
+          </div>
 
-          {canCreateUsers && (
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              Add Student
-            </button>
-          )}
         </div>
 
         {/* Search Bar */}
@@ -1049,7 +1358,7 @@ export function StudentManagementTab({
           </div>
           <input
             type="text"
-            placeholder="Search students by name or roll number..."
+            placeholder={isAdmin || isCoLeader ? "Search students globally..." : `Search classmates in ${selectedStudent?.branch || 'General'}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1064,149 +1373,6 @@ export function StudentManagementTab({
           )}
         </div>
 
-        {/* Create Student Form */}
-        {showCreateForm && canCreateUsers && (
-          <form onSubmit={handleCreateStudent} className="mb-6 p-4 bg-green-50 rounded-2xl border border-green-200">
-            <h4 className="font-medium text-green-900 mb-3">Create New Student</h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-              <input
-                type="text"
-                placeholder="Roll Number (e.g., 2405226)"
-                value={newStudent.rollNo}
-                onChange={(e) => setNewStudent({ ...newStudent, rollNo: e.target.value })}
-                className="p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={newStudent.name}
-                onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                className="p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-            </div>
-
-            {/* Role Selection */}
-            <div className="mb-3 relative"> {/* Removed z-10 to prevent header overlap */}
-              <label className="block text-sm font-medium text-green-900 mb-2">Role</label>
-              <AnimatedDropdown
-                options={[
-                  { value: 'student', label: 'Student', icon: User, iconColor: 'text-blue-500', iconBg: 'bg-blue-50', description: 'Standard access' },
-                  { value: 'co-leader', label: 'Co-Leader', icon: Star, iconColor: 'text-purple-500', iconBg: 'bg-purple-50', description: 'Can manage certain notices' }
-                ]}
-                value={newStudent.role}
-                onChange={(val) => setNewStudent({ ...newStudent, role: val })}
-                placeholder="Select Role"
-              />
-            </div>
-
-            {/* Admission Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-              <div>
-                <label className="block text-sm font-medium text-green-900 mb-2">Admission Year</label>
-                <input
-                  type="number"
-                  min="2000"
-                  max={new Date().getFullYear()}
-                  value={newStudent.admissionYear}
-                  onChange={(e) => setNewStudent({ ...newStudent, admissionYear: e.target.value })}
-                  className="w-full p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-green-900 mb-2">Direct Second Year</label>
-                <div className="flex bg-gray-50 border border-gray-200 p-3 rounded-xl items-center gap-2">
-                  <input
-                    id="is-dsy"
-                    type="checkbox"
-                    checked={newStudent.isDSY}
-                    onChange={(e) => setNewStudent({ ...newStudent, isDSY: e.target.checked })}
-                    className="w-4 h-4 text-green-600 bg-white border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <label htmlFor="is-dsy" className="text-sm font-medium text-gray-700">Is DSY</label>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-green-900 mb-2">Year Drop (YD)</label>
-                <div className="flex bg-gray-50 border border-gray-200 p-3 rounded-xl items-center gap-2">
-                  <input
-                    id="is-yd"
-                    type="checkbox"
-                    checked={newStudent.isYD}
-                    onChange={(e) => setNewStudent({ ...newStudent, isYD: e.target.checked })}
-                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
-                  />
-                  <label htmlFor="is-yd" className="text-sm font-medium text-gray-700">Has YD</label>
-                </div>
-              </div>
-            </div>
-
-            {/* Password Protection Toggle */}
-            <div className="mb-3">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={passwordProtected}
-                  onChange={(e) => setPasswordProtected(e.target.checked)}
-                  className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
-                />
-                <span className="text-sm font-medium text-green-900 flex items-center gap-1">
-                  <Shield className="w-4 h-4" />
-                  Password protect this account
-                </span>
-              </label>
-            </div>
-
-            {/* Password Field */}
-            {passwordProtected && (
-              <div className="relative mb-3">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                  <Lock className="w-5 h-5 text-gray-400" />
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={newStudent.password}
-                  onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
-                  className="w-full pl-10 pr-10 p-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                  required={passwordProtected}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4 text-gray-400" />
-                  ) : (
-                    <Eye className="w-4 h-4 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={isCreating}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all disabled:opacity-50"
-              >
-                {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                {isCreating ? 'Creating...' : 'Create Student'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCreateForm(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
 
         {/* Co-Leader note about limited creation permissions */}
         {isCoLeader && canCreateUsers && !isAdmin && (
@@ -1228,71 +1394,62 @@ export function StudentManagementTab({
                 <div
                   key={student.rollNo}
                   className={`
-                    p-4 rounded-2xl border-2 transition-all cursor-pointer relative
+                    p-5 rounded-[2rem] border-2 transition-all cursor-pointer relative group/item overflow-hidden
                     ${selectedStudent?.rollNo === student.rollNo
                       ? student.rollNo === ADMIN_STUDENT.rollNo
-                        ? 'border-yellow-500 bg-yellow-50'
+                        ? 'border-amber-400 bg-amber-50 shadow-xl shadow-amber-500/10'
                         : student.role === 'co-leader'
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-blue-500 bg-blue-50'
-                      : student.rollNo === ADMIN_STUDENT.rollNo
-                        ? 'border-yellow-200 bg-yellow-50 hover:border-yellow-300'
-                        : student.role === 'co-leader'
-                          ? 'border-purple-200 bg-purple-50 hover:border-purple-300'
-                          : student.isProtected
-                            ? 'border-blue-200 bg-blue-50 hover:border-blue-300'
-                            : 'border-gray-200 bg-gray-50 hover:border-blue-300'
+                          ? 'border-purple-400 bg-purple-50 shadow-xl shadow-purple-500/10'
+                          : 'border-blue-400 bg-blue-50 shadow-xl shadow-blue-500/10'
+                      : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-500/5 hover:-translate-y-1'
                     }
                   `}
-                  onClick={() => handleStudentClick(student)}
+                  onClick={() => handleViewProfile(student)}
                 >
-                  {/* Protection indicator */}
-                  {student.isProtected && (
-                    <div className="absolute top-2 right-2">
-                      <Lock className="w-4 h-4 text-blue-600" />
+                  {/* Selection Indicator */}
+                  {selectedStudent?.rollNo === student.rollNo && (
+                    <div className="absolute top-4 right-4 z-20">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50" />
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between relative z-10">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-10 h-10 rounded-xl overflow-hidden border flex-shrink-0 flex items-center justify-center bg-white
-                          ${selectedStudent?.rollNo === student.rollNo
-                            ? student.rollNo === ADMIN_STUDENT.rollNo ? 'border-amber-400' : 'border-blue-400'
-                            : 'border-gray-200'
-                          }
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 flex-shrink-0 flex items-center justify-center p-0.5 transition-transform group-hover/item:scale-105
+                          ${student.rollNo === ADMIN_STUDENT.rollNo ? 'border-amber-300' : student.role === 'co-leader' ? 'border-purple-300' : 'border-blue-300'}
+                          ${selectedStudent?.rollNo === student.rollNo ? 'bg-white' : 'bg-gray-50'}
                         `}>
                           {student.photoURL ? (
-                            <img src={student.photoURL} alt={student.name} className="w-full h-full object-cover" />
+                            <img src={student.photoURL} alt={student.name} className="w-full h-full object-cover rounded-[14px]" />
                           ) : (
-                            <div className={`w-full h-full flex items-center justify-center ${student.rollNo === ADMIN_STUDENT.rollNo ? 'bg-amber-100' : 'bg-blue-50'}`}>
-                              <User className={`w-5 h-5 ${student.rollNo === ADMIN_STUDENT.rollNo ? 'text-amber-500' : 'text-blue-500'}`} />
+                            <div className={`w-full h-full flex items-center justify-center rounded-[14px] ${student.rollNo === ADMIN_STUDENT.rollNo ? 'bg-amber-50' : 'bg-blue-50'}`}>
+                              <User className={`w-6 h-6 ${student.rollNo === ADMIN_STUDENT.rollNo ? 'text-amber-500' : 'text-blue-500'}`} />
                             </div>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h4 className="font-bold text-gray-900 truncate">{student.name}</h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-black text-gray-900 truncate leading-tight">{student.name}</h4>
                             {React.createElement(roleDisplay.icon, {
-                              className: `w-4 h-4 ${roleDisplay.color}`
+                              className: `w-3.5 h-3.5 ${roleDisplay.color} drop-shadow-sm`
                             })}
                           </div>
-                          <p className="text-sm text-gray-600">Roll: {student.rollNo}</p>
+                          <p className="text-[10px] font-black text-gray-400 font-mono tracking-widest uppercase mb-1">ID: {student.rollNo}</p>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${student.rollNo === ADMIN_STUDENT.rollNo
+                              ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
+                              : student.role === 'co-leader'
+                                ? 'text-purple-700 bg-purple-50 border-purple-200'
+                                : 'text-blue-700 bg-blue-50 border-blue-200'
+                              }`}>
+                              {getStudentYear(student)}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {student.admissionYear && (
-                        <div className="mb-2">
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${student.rollNo === ADMIN_STUDENT.rollNo
-                            ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
-                            : student.role === 'co-leader'
-                              ? 'text-purple-700 bg-purple-50 border-purple-200'
-                              : 'text-blue-700 bg-blue-50 border-blue-200'
-                            }`}>
-                            {getStudentYear(student)}
-                          </span>
-                        </div>
-                      )}
+
 
                       {/* Role Badge */}
                       <div className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${roleDisplay.bgColor} mb-1 block w-fit`}>
@@ -1326,12 +1483,28 @@ export function StudentManagementTab({
                         </div>
                       )}
 
-                      <div className="mt-2">
+                      <div className="mt-1 flex flex-wrap gap-1.5 min-h-[1.5rem]">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-lg border bg-blue-50/50 text-blue-600 border-blue-100 uppercase tracking-tighter">
+                          {student.branch || 'General'}
+                        </span>
+                        {student.isProtected && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-lg border bg-indigo-50 text-indigo-600 border-indigo-100 uppercase tracking-tighter">
+                            <Lock className="w-2.5 h-2.5" /> Locked
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-3">
                         {selectedStudent?.rollNo === student.rollNo ? (
-                          <p className="text-xs text-blue-600 font-medium">Currently Selected</p>
-                        ) : student.isProtected ? (
-                          <p className="text-xs text-blue-600 font-medium">Password Protected</p>
-                        ) : null}
+                          <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-100/50 px-2 py-1 rounded-lg w-fit">
+                            <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" />
+                            Active Now
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-gray-400 font-bold truncate max-w-[150px]">
+                            {student.bio || "No bio set..."}
+                          </p>
+                        )}
                       </div>
                     </div>
 

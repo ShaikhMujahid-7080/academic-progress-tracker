@@ -9,7 +9,8 @@ import {
   serverTimestamp,
   orderBy,
   query,
-  writeBatch
+  writeBatch,
+  setDoc
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { supabase } from '../../supabase';
@@ -79,19 +80,24 @@ export function useNoticeBoard(currentUser, currentSemester) {
           const isCreator = noticeData.createdByRoll === currentUser.rollNo;
           const isAllowedUser = allowedUsers.includes(currentUser.rollNo);
 
+          // Filter by target branch (legacy notices default to 'All')
+          const targetBranches = noticeData.targetBranches || ['All'];
+          const userBranch = currentUser.branch || 'IT';
+          const isBranchMatch = targetBranches.includes('All') || targetBranches.includes(userBranch);
+
           // Admin can see all notices
           if (isAdmin) {
             noticesList.push(noticeData);
           }
           // Co-leaders can see: public notices, notices they created, or notices they're allowed to view
           else if (isCoLeader) {
-            if (isPublic || isCreator || isAllowedUser) {
+            if (isCreator || ((isPublic || isAllowedUser) && isBranchMatch)) {
               noticesList.push(noticeData);
             }
           }
-          // Regular users can see: public notices or notices they're explicitly allowed to view
+          // Regular users can see: public notices or notices they're explicitly allowed to view (if branch matches)
           else {
-            if (isPublic || isAllowedUser) {
+            if ((isPublic || isAllowedUser) && isBranchMatch) {
               noticesList.push(noticeData);
             }
           }
@@ -203,18 +209,36 @@ export function useNoticeBoard(currentUser, currentSemester) {
   }, [canManageNotices, notices.length]); // Track notices.length to trigger cleanup 
 
   // Create new notice (admin and co-leaders only)
-  const createNotice = async (type, content, meta = {}, allowedUsers = [], isPublic = false, deleteAt = null) => {
+  const createNotice = async (type, content, meta = {}, allowedUsers = [], isPublic = false, deleteAt = null, targetBranches = ['All']) => {
     if (!canManageNotices) {
       throw new Error('Only admin and co-leaders can create notices');
     }
 
     try {
       setIsSaving(true);
-      await addDoc(collection(db, 'noticeBoard'), {
+      
+      const date = new Date();
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      
+      let branchStr = 'All';
+      if (targetBranches && targetBranches.length > 0 && !targetBranches.includes('All')) {
+        branchStr = targetBranches.join('-');
+      }
+      
+      // Keep it reasonably short
+      if (branchStr.length > 15) {
+        branchStr = branchStr.substring(0, 15) + '...';
+      }
+
+      const timestamp = Date.now();
+      const noticeId = `Sem${currentSemester}_${branchStr}_${type}_${dateStr}_${timestamp}`;
+
+      await setDoc(doc(db, 'noticeBoard', noticeId), {
         type,
         content,
         meta,
         semester: currentSemester, // Include current semester
+        targetBranches, // Include target branches
         createdBy: currentUser.name,
         createdByRoll: currentUser.rollNo,
         allowedUsers: allowedUsers,

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -21,6 +21,27 @@ import { useHolidays } from '../hooks/useHolidays';
 import { HolidayModal } from '../Modals/HolidayModal';
 import { toast } from 'react-toastify';
 
+const HARDCODED_HOLIDAYS = [
+    // Fixed (Every Year)
+    { day: 26, month: 0, title: 'Prajaasattaak Din (Republic Day)' },
+    { day: 19, month: 1, title: 'Chhatrapati Shivaji Maharaj Jayanti' },
+    { day: 14, month: 3, title: 'Dr. Babasaheb Ambedkar Jayanti' },
+    { day: 1, month: 4, title: 'Maharashtra Din' },
+    { day: 15, month: 7, title: 'Swatantra Din (Independence Day)' },
+    { day: 17, month: 8, title: 'Marathwada Mukti Sangram Din' },
+    { day: 2, month: 9, title: 'Mahatma Gandhi Jayanti' },
+    { day: 25, month: 11, title: 'Christmas Day' },
+
+    // 2026 Specific (Dynamic)
+    { day: 3, month: 2, year: 2026, title: 'Holi (Second Day)' },
+    { day: 19, month: 2, year: 2026, title: 'Gudipaadwa' },
+    { day: 21, month: 2, year: 2026, title: 'Ramzan Eid' },
+    { day: 14, month: 8, year: 2026, title: 'Ganesh Chartuti' },
+    { day: 20, month: 9, year: 2026, title: 'Dasra (Dussehra)' },
+    { day: 8, month: 10, year: 2026, title: 'Diwali Amawasya (Lakshmipujan)' },
+    { day: 10, month: 10, year: 2026, title: 'Diwali (Balipratipada) / Padwa' },
+];
+
 export function CalendarTab({ selectedStudent, semester }) {
     const { notices } = useNoticeBoard(selectedStudent, semester);
     const { holidays, isLoading: isHolidaysLoading, isSaving: isHolidaysSaving, canManageHolidays, addHoliday, updateHoliday, deleteHoliday } = useHolidays(selectedStudent);
@@ -32,6 +53,8 @@ export function CalendarTab({ selectedStudent, semester }) {
     const [viewMode, setViewMode] = useState('month'); // 'month', 'list'
     const [timeOffset, setTimeOffset] = useState(0); // Offset between server time and local clock
     const [isSynced, setIsSynced] = useState(false);
+    
+    const listContainerRef = useRef(null);
 
     // Holiday management states
     const [showHolidayModal, setShowHolidayModal] = useState(false);
@@ -257,28 +280,7 @@ export function CalendarTab({ selectedStudent, semester }) {
         const dynamicHoliday = holidays.find(h => isSameDay(new Date(h.date), date));
         if (dynamicHoliday) return dynamicHoliday;
 
-        // Fallback to hardcoded list (Specific holidays for 2026)
-        const HARDCODED_HOLIDAYS = [
-            // Fixed (Every Year)
-            { day: 26, month: 0, title: 'Prajaasattaak Din (Republic Day)' },
-            { day: 19, month: 1, title: 'Chhatrapati Shivaji Maharaj Jayanti' },
-            { day: 14, month: 3, title: 'Dr. Babasaheb Ambedkar Jayanti' },
-            { day: 1, month: 4, title: 'Maharashtra Din' },
-            { day: 15, month: 7, title: 'Swatantra Din (Independence Day)' },
-            { day: 17, month: 8, title: 'Marathwada Mukti Sangram Din' },
-            { day: 2, month: 9, title: 'Mahatma Gandhi Jayanti' },
-            { day: 25, month: 11, title: 'Christmas Day' },
-
-            // 2026 Specific (Dynamic)
-            { day: 3, month: 2, year: 2026, title: 'Holi (Second Day)' },
-            { day: 19, month: 2, year: 2026, title: 'Gudipaadwa' },
-            { day: 21, month: 2, year: 2026, title: 'Ramzan Eid' },
-            { day: 14, month: 8, year: 2026, title: 'Ganesh Chartuti' },
-            { day: 20, month: 9, year: 2026, title: 'Dasra (Dussehra)' },
-            { day: 8, month: 10, year: 2026, title: 'Diwali Amawasya (Lakshmipujan)' },
-            { day: 10, month: 10, year: 2026, title: 'Diwali (Balipratipada) / Padwa' },
-        ];
-
+        // Fallback to hardcoded list 
         const staticH = HARDCODED_HOLIDAYS.find(h =>
             h.day === date.getDate() && 
             h.month === date.getMonth() &&
@@ -290,17 +292,105 @@ export function CalendarTab({ selectedStudent, semester }) {
 
     // Process events including holidays
     const allEvents = useMemo(() => {
-        // Dynamic events from notices
-        const noticeEvents = events;
-
-        // Include holidays in allEvents for the List view
-        const holidayEvents = [];
-        // For list view, we might want to show holidays in the current month/year
-        // For simplicity, we'll let the list view just show notice events and 
-        // rely on getEventsForDate for the detailed side panel.
-
-        return noticeEvents;
+        return events;
     }, [events]);
+
+    const listEventsByDate = useMemo(() => {
+        const groups = {};
+        
+        events.forEach(event => {
+            const normDate = new Date(event.date.getFullYear(), event.date.getMonth(), event.date.getDate());
+            const dateStr = normDate.toDateString();
+            if (!groups[dateStr]) groups[dateStr] = { date: normDate, events: [] };
+            groups[dateStr].events.push(event);
+        });
+
+        // Add dynamic holidays
+        holidays.forEach(holiday => {
+            const date = new Date(holiday.date);
+            const normDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const dateStr = normDate.toDateString();
+            if (!groups[dateStr]) groups[dateStr] = { date: normDate, events: [] };
+            
+            if (!groups[dateStr].events.some(e => e.type === 'holiday' && e.title === holiday.title)) {
+                groups[dateStr].events.push({
+                    id: holiday.id || `holiday-${date.getTime()}`,
+                    type: 'holiday',
+                    title: holiday.title,
+                    date: normDate,
+                    color: 'bg-red-600',
+                    icon: Star,
+                    isStatic: false
+                });
+            }
+        });
+
+        // Add hardcoded holidays
+        const year = currentDate.getFullYear();
+        const yearsToInclude = [year - 1, year, year + 1]; // Provide surrounding context
+        
+        yearsToInclude.forEach(y => {
+            HARDCODED_HOLIDAYS.forEach(h => {
+                if (h.year && h.year !== y) return;
+
+                const date = new Date(y, h.month, h.day);
+                const dateStr = date.toDateString();
+                if (!groups[dateStr]) groups[dateStr] = { date, events: [] };
+
+                if (!groups[dateStr].events.some(e => e.type === 'holiday' && e.title === h.title)) {
+                    groups[dateStr].events.push({
+                        id: `static-${date.getTime()}`,
+                        type: 'holiday',
+                        title: h.title,
+                        date: date,
+                        color: 'bg-red-600',
+                        icon: Star,
+                        isStatic: true
+                    });
+                }
+            });
+        });
+
+        // Always include TODAY
+        const todayDate = new Date(Date.now() + timeOffset);
+        const normToday = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+        const todayStr = normToday.toDateString();
+        if (!groups[todayStr]) {
+            groups[todayStr] = { date: normToday, events: [] };
+        }
+
+        return Object.values(groups).sort((a, b) => a.date - b.date);
+    }, [events, holidays, currentDate.getFullYear(), timeOffset]);
+
+    // Scroll to current date logic when in List View
+    useEffect(() => {
+        if (viewMode === 'list' && listContainerRef.current) {
+            const todayDate = new Date(Date.now() + timeOffset);
+            const normToday = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+            const todayStr = normToday.toDateString();
+            
+            const scrollToToday = () => {
+                const el = document.getElementById(`list-date-${todayStr}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    const items = Array.from(document.querySelectorAll('[id^="list-date-"]'));
+                    const futureItems = items.filter(item => {
+                        const dStr = item.id.replace('list-date-', '');
+                        return new Date(dStr) >= normToday;
+                    });
+                    if (futureItems.length > 0) {
+                        futureItems[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else if (items.length > 0) {
+                        items[items.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            };
+
+            // Needs a slight delay to allow rendering if switching from month view
+            setTimeout(scrollToToday, 100);
+        }
+    }, [viewMode, timeOffset]);
 
     const getEventsForDate = (date) => {
         const dayEvents = allEvents.filter(e => isSameDay(e.date, date));
@@ -431,7 +521,9 @@ export function CalendarTab({ selectedStudent, semester }) {
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Calendar Section */}
                 <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    {/* Header */}
+                    {viewMode === 'month' ? (
+                        <>
+                            {/* Header */}
                     <div className="p-6 border-b border-gray-100 flex items-center justify-between">
                         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                             <CalendarIcon className="w-6 h-6 text-blue-600" />
@@ -541,9 +633,120 @@ export function CalendarTab({ selectedStudent, semester }) {
                             })}
                         </div>
                     </div>
+                </>
+            ) : (
+                <div className="flex flex-col h-[600px] bg-gray-50/30">
+                    <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm">
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <ListTodo className="w-6 h-6 text-blue-600" />
+                            All Events
+                        </h2>
+                        <button 
+                            onClick={() => {
+                                const todayDate = new Date(Date.now() + timeOffset);
+                                const normToday = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+                                const todayStr = normToday.toDateString();
+                                const el = document.getElementById(`list-date-${todayStr}`);
+                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }} 
+                            className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-100 bg-blue-50 px-4 py-2 rounded-xl transition-all shadow-sm active:scale-95"
+                        >
+                            Jump to Today
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 scroll-smooth" ref={listContainerRef}>
+                        {listEventsByDate.map((group) => {
+                            const dateStr = group.date.toDateString();
+                            const todayDate = new Date(Date.now() + timeOffset);
+                            const normToday = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+                            
+                            const isToday = isSameDay(group.date, normToday);
+                            const isPast = group.date < normToday;
+                            
+                            return (
+                                <div key={dateStr} id={`list-date-${dateStr}`} className={`relative ${isPast && !isToday ? 'opacity-60 saturate-50' : ''}`}>
+                                    <div className="sticky top-0 bg-gray-50/95 backdrop-blur z-10 py-2 mb-4 flex items-center gap-3">
+                                        <div className={`w-3 h-3 rounded-full shadow-sm ${isToday ? 'bg-blue-600 ring-4 ring-blue-100' : 'bg-gray-300'}`} />
+                                        <h3 className={`font-bold text-lg ${isToday ? 'text-blue-600' : 'text-gray-800'}`}>
+                                            {isToday ? 'Today' : group.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                                        </h3>
+                                        <div className="flex-1 h-px bg-gray-200 ml-4"></div>
+                                    </div>
+                                    <div className="space-y-3 pl-8 border-l-2 border-gray-100 ml-1">
+                                        {group.events.length > 0 ? group.events.map(event => (
+                                            <div
+                                                key={event.id}
+                                                className={`
+                                                  p-4 rounded-xl border flex gap-4 shadow-sm hover:shadow-md transition-all
+                                                  ${event.type === 'assessment' ? 'bg-white border-purple-100 hover:border-purple-300' :
+                                                    event.type === 'todo' ? 'bg-white border-blue-100 hover:border-blue-300' :
+                                                    event.type === 'holiday' ? 'bg-red-50/50 border-red-100 hover:border-red-300' :
+                                                    'bg-white border-yellow-100 hover:border-yellow-300'}
+                                                  ${event.isDone ? 'opacity-60' : ''}
+                                                `}
+                                            >
+                                                <div className={`
+                                                   w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm
+                                                   ${event.type === 'assessment' ? 'bg-purple-100 text-purple-600' :
+                                                     event.type === 'todo' ? 'bg-blue-100 text-blue-600' :
+                                                     event.type === 'holiday' ? 'bg-red-100 text-red-600' :
+                                                     'bg-yellow-100 text-yellow-600'}
+                                                 `}>
+                                                    <event.icon className="w-5 h-5" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1 flex items-center gap-2">
+                                                        {event.type}
+                                                        {event.isDone && (
+                                                            <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-[10px]">
+                                                                <CheckCircle2 className="w-3 h-3" />
+                                                                Completed
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                        <h4 className="font-semibold text-gray-900 text-base">{event.title}</h4>
+                                                        {event.type === 'holiday' && !event.isStatic && canManageHolidays && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const h = holidays.find(h => h.id === event.id.replace('holiday-', ''));
+                                                                    if (h) {
+                                                                        setSelectedHoliday(h);
+                                                                        setShowHolidayModal(true);
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 hover:bg-red-100 rounded-lg text-red-600 transition-colors shrink-0 self-start sm:self-auto"
+                                                                title="Edit Holiday"
+                                                            >
+                                                                <Edit3 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    {event.type !== 'holiday' && (
+                                                        <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-2">
+                                                            <Clock className="w-4 h-4" />
+                                                            {event.date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )) : (
+                                            <div className="text-gray-400 text-sm italic py-4 flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                                                No planned events or holidays for this day.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
+            )}
+        </div>
 
-                {/* Info Panel / Side Panel */}
+        {/* Info Panel / Side Panel */}
                 <div className="lg:w-80 w-full flex flex-col gap-6">
                     {/* Real-time Date-Time Card */}
                     <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-2xl shadow-xl p-6 text-white overflow-hidden relative z-0 group">

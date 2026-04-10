@@ -46,7 +46,8 @@ export function useStudentManagement() {
           isProtected: true,
           role: 'admin',
           admissionYear: ADMIN_STUDENT.admissionYear || new Date().getFullYear(),
-          isDSY: ADMIN_STUDENT.isDSY || false
+          isDSY: ADMIN_STUDENT.isDSY || false,
+          branch: ADMIN_STUDENT.branch || 'IT'
         };
         studentsList.push(adminWithPassword);
         // Save admin to Firestore
@@ -105,7 +106,8 @@ export function useStudentManagement() {
         role: 'admin',
         admissionYear: ADMIN_STUDENT.admissionYear || new Date().getFullYear(),
         isDSY: ADMIN_STUDENT.isDSY || false,
-        isYD: ADMIN_STUDENT.isYD || false
+        isYD: ADMIN_STUDENT.isYD || false,
+        branch: ADMIN_STUDENT.branch || 'IT'
       };
       setStudents([adminWithPassword]);
       setHasInitialized(true);
@@ -115,7 +117,7 @@ export function useStudentManagement() {
   };
 
   // Create new student with optional password and role + admission data
-  const createStudent = async (rollNo, name, password = '', role = 'student', admissionYear = (new Date()).getFullYear(), isDSY = false, isYD = false) => {
+  const createStudent = async (rollNo, name, password = '', role = 'student', admissionYear = (new Date()).getFullYear(), isDSY = false, isYD = false, branch = 'IT') => {
     try {
       const yearNum = Number(admissionYear);
       if (!Number.isInteger(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
@@ -131,9 +133,16 @@ export function useStudentManagement() {
         admissionYear: yearNum,
         isDSY,
         isYD,
+        branch,
         isProtected: !!password,
         password: password ? bcrypt.hashSync(password, 10) : null,
-        role: role
+        role: role,
+        bio: '',
+        email: '',
+        phone: '',
+        github: '',
+        linkedin: '',
+        website: ''
       };
 
       // Check if student already exists
@@ -267,6 +276,39 @@ export function useStudentManagement() {
       return true;
     } catch (error) {
       console.error('Error updating isDSY:', error);
+      throw error;
+    }
+  };
+
+  // Update student branch
+  const updateStudentBranch = async (rollNo, newBranch) => {
+    try {
+      if (!newBranch || !newBranch.trim()) {
+        throw new Error('Branch cannot be empty');
+      }
+
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const updatedStudent = { ...student, branch: newBranch.trim() };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+
+      // Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating branch:', error);
       throw error;
     }
   };
@@ -432,6 +474,33 @@ export function useStudentManagement() {
       return true;
     } catch (error) {
       console.error('Error updating password:', error);
+      throw error;
+    }
+  };
+
+  // Update student profile fields (bio, contact, links, etc.)
+  const updateStudentProfile = async (rollNo, updates) => {
+    try {
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) throw new Error('Student not found');
+
+      const updatedStudent = { ...student, ...updates };
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+
+      // Update local state
+      setStudents(students.map(s =>
+        s.rollNo === rollNo ? updatedStudent : s
+      ));
+
+      // Update selected student if it's the current one
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating profile:', error);
       throw error;
     }
   };
@@ -604,10 +673,12 @@ export function useStudentManagement() {
     updateCoLeaderPermissions,
     updateStudentName,
     updateStudentDSY,
+    updateStudentBranch,
     updateStudentAdmissionYear,
     updateStudentYD,
     updateStudentPhoto,
     removeStudentPhoto,
+    updateStudentProfile,
     loadStudents
   };
 }

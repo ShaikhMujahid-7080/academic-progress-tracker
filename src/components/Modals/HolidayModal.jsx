@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { X, Calendar, Star, Loader2, Save, Trash2 } from "lucide-react";
+import { BRANCHES } from "../../data/subjects";
 
 export function HolidayModal({ holiday = null, onSave, onCancel, onDelete, isLoading }) {
   const [formData, setFormData] = useState({
     title: "",
     date: "",
     description: "",
+    targetBranches: ["All"]
   });
 
   useEffect(() => {
@@ -18,6 +20,7 @@ export function HolidayModal({ holiday = null, onSave, onCancel, onDelete, isLoa
         title: holiday.title || "",
         date: holidayDate,
         description: holiday.description || "",
+        targetBranches: holiday.targetBranches || ["All"],
       });
     }
   }, [holiday]);
@@ -96,6 +99,47 @@ export function HolidayModal({ holiday = null, onSave, onCancel, onDelete, isLoa
               className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm rows-3"
               placeholder="Additional details about the holiday..."
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Target Class / Branch</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, targetBranches: ["All"] }));
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${formData.targetBranches.includes("All")
+                    ? "bg-red-600 text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+              >
+                All Branches
+              </button>
+              {BRANCHES.map(branch => (
+                <button
+                  key={branch}
+                  type="button"
+                  onClick={() => {
+                    let newBranches = formData.targetBranches.filter(b => b !== "All");
+                    if (newBranches.includes(branch)) {
+                      newBranches = newBranches.filter(b => b !== branch);
+                      if (newBranches.length === 0) newBranches = ["All"];
+                    } else {
+                      newBranches.push(branch);
+                      if (newBranches.length === BRANCHES.length) newBranches = ["All"];
+                    }
+                    setFormData(prev => ({ ...prev, targetBranches: newBranches }));
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${!formData.targetBranches.includes("All") && formData.targetBranches.includes(branch)
+                      ? "bg-red-600 text-white shadow-md"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                >
+                  {branch}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="pt-4 flex items-center gap-3">

@@ -30,12 +30,21 @@ export function useHolidays(currentUser) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const holidayList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        // Convert Firestore timestamp to Date if needed, though we'll likely store as string or specific format
-        date: doc.data().date?.toDate ? doc.data().date.toDate() : new Date(doc.data().date)
-      }));
+      const holidayList = [];
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const targetBranches = data.targetBranches || ['All'];
+        const userBranch = currentUser?.branch || 'IT';
+        
+        // Admins and co-leaders see all to manage them. Others see only their branch.
+        if (canManageHolidays || targetBranches.includes('All') || targetBranches.includes(userBranch)) {
+          holidayList.push({
+            id: doc.id,
+            ...data,
+            date: data.date?.toDate ? data.date.toDate() : new Date(data.date)
+          });
+        }
+      });
       setHolidays(holidayList);
       setIsLoading(false);
     }, (error) => {

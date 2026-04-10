@@ -5,8 +5,8 @@ const baseTabs = [
   { id: 0, label: "Theory Subjects", icon: BookOpen },
   { id: 1, label: "Practicals", icon: FlaskConical },
   { id: 2, label: "Notice Board", icon: Megaphone },
-  { id: 3, label: "Personal Notes", icon: StickyNote },
-  { id: 7, label: "Calendar", icon: Calendar }
+  { id: 7, label: "Calendar", icon: Calendar },
+  { id: 3, label: "Personal Notes", icon: StickyNote }
 ];
 
 export function TabNavigation({
