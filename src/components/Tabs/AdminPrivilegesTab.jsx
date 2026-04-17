@@ -19,7 +19,11 @@ import {
   Eye,
   EyeOff,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  UserX,
+  UserCog,
+  Filter,
+  Sparkles
 } from "lucide-react";
 import { ADMIN_STUDENT } from "../../data/subjects";
 import { toast } from 'react-toastify';
@@ -71,6 +75,11 @@ export function AdminPrivilegesTab({
   const [isUpdatingPermission, setIsUpdatingPermission] = useState(null);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isMigratingNotices, setIsMigratingNotices] = useState(false);
+  const [showAppointModal, setShowAppointModal] = useState(false);
+  const [appointSearchQuery, setAppointSearchQuery] = useState("");
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');
+  const [isAppointingCoLeader, setIsAppointingCoLeader] = useState(false);
+  const [isRemovingCoLeader, setIsRemovingCoLeader] = useState(null);
 
   const handleMigrateNotices = async () => {
     if (!isAdmin) return;
@@ -150,6 +159,30 @@ export function AdminPrivilegesTab({
     );
   }, [students]);
 
+  // Get students eligible for co-leader appointment
+  const eligibleStudents = useMemo(() => {
+    let filtered = students.filter(s => 
+      s.role === 'student' && s.rollNo !== ADMIN_STUDENT.rollNo
+    );
+
+    // Filter by branch
+    if (selectedBranchFilter !== 'All') {
+      filtered = filtered.filter(s => s.branch === selectedBranchFilter);
+    }
+
+    // Filter by search query
+    if (appointSearchQuery.trim()) {
+      const query = appointSearchQuery.toLowerCase();
+      filtered = filtered.filter(s =>
+        s.name.toLowerCase().includes(query) ||
+        s.rollNo.toLowerCase().includes(query) ||
+        s.branch.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered.sort((a, b) => a.name.localeCompare(b.name));
+  }, [students, selectedBranchFilter, appointSearchQuery]);
+
   // Filter students for password management
   // Co-leaders should not be able to manage admin's password
   const filteredStudentsForPassword = useMemo(() => {
@@ -168,10 +201,53 @@ export function AdminPrivilegesTab({
     );
   }, [students, passwordSearchQuery, isCoLeader, isAdmin]);
 
+  // Appoint co-leader handler
+  const handleAppointCoLeader = async (student) => {
+    if (!isAdmin && !currentUserPermissions?.canAppointCoLeaders) {
+      toast.error('Only admin or co-leaders with Appointment privilege can appoint co-leaders');
+      return;
+    }
+
+    setIsAppointingCoLeader(student.rollNo);
+    try {
+      await updateStudentRole(student.rollNo, 'co-leader');
+      toast.success(`✅ ${student.name} has been appointed as Co-Leader!`);
+      setShowAppointModal(false);
+      setAppointSearchQuery("");
+    } catch (error) {
+      toast.error(`❌ Failed to appoint co-leader: ${error.message}`);
+    } finally {
+      setIsAppointingCoLeader(false);
+    }
+  };
+
+  // Remove co-leader handler
+  const handleRemoveCoLeader = async (coLeader) => {
+    if (!isAdmin && !currentUserPermissions?.canAppointCoLeaders) {
+      toast.error('Only admin or co-leaders with Appointment privilege can remove co-leaders');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to remove ${coLeader.name} as Co-Leader? They will lose all permissions.`)) {
+      return;
+    }
+
+    setIsRemovingCoLeader(coLeader.rollNo);
+    try {
+      await updateStudentRole(coLeader.rollNo, 'student');
+      toast.success(`✅ ${coLeader.name} has been removed as Co-Leader`);
+      setExpandedCoLeader(null);
+    } catch (error) {
+      toast.error(`❌ Failed to remove co-leader: ${error.message}`);
+    } finally {
+      setIsRemovingCoLeader(null);
+    }
+  };
+
   // Permission toggle handler
   const handlePermissionToggle = async (rollNo, permissionKey, currentValue) => {
-    if (!isAdmin) {
-      toast.error('Only admin can modify co-leader permissions');
+    if (!isAdmin && !currentUserPermissions?.canAppointCoLeaders) {
+      toast.error('Only admin or co-leaders with Appointment privilege can modify permissions');
       return;
     }
 
@@ -307,32 +383,47 @@ export function AdminPrivilegesTab({
     return (
       <div
         key={permKey}
-        className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
+        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+          isEnabled 
+            ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+        }`}
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isEnabled ? 'bg-green-100' : 'bg-gray-200'
-            }`}>
-            <PermIcon className={`w-4 h-4 ${isEnabled ? 'text-green-600' : 'text-gray-500'}`} />
+        <div className="flex items-center gap-3 flex-1">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${
+            isEnabled ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-gray-300 to-gray-400'
+          }`}>
+            <PermIcon className="w-5 h-5 text-white" />
           </div>
-          <div>
-            <p className="font-medium text-gray-900 text-sm">{permissionLabels[permKey].label}</p>
-            <p className="text-xs text-gray-500">{permissionLabels[permKey].desc}</p>
+          <div className="flex-1">
+            <p className={`font-semibold text-sm ${isEnabled ? 'text-green-900' : 'text-gray-700'}`}>
+              {permissionLabels[permKey].label}
+            </p>
+            <p className="text-xs text-gray-600 mt-0.5">{permissionLabels[permKey].desc}</p>
           </div>
         </div>
 
         <button
           onClick={() => handlePermissionToggle(coLeader.rollNo, permKey, isEnabled)}
-          disabled={isLoading || !isAdmin}
-          className={`relative w-12 h-6 rounded-full transition-all ${isEnabled ? 'bg-green-500' : 'bg-gray-300'
-            } ${!isAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          disabled={isLoading || (!isAdmin && !currentUserPermissions?.canAppointCoLeaders)}
+          className={`relative w-14 h-7 rounded-full transition-all shadow-inner ${
+            isEnabled ? 'bg-green-500' : 'bg-gray-300'
+          } ${(!isAdmin && !currentUserPermissions?.canAppointCoLeaders) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}`}
         >
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2 className="w-4 h-4 animate-spin text-white" />
             </div>
           ) : (
-            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${isEnabled ? 'left-6' : 'left-0.5'
-              }`} />
+            <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all flex items-center justify-center ${
+              isEnabled ? 'left-7' : 'left-0.5'
+            }`}>
+              {isEnabled ? (
+                <Check className="w-3 h-3 text-green-600" />
+              ) : (
+                <X className="w-3 h-3 text-gray-400" />
+              )}
+            </div>
           )}
         </button>
       </div>
@@ -646,65 +737,124 @@ export function AdminPrivilegesTab({
         </div>
       )}
 
-      {/* Co-Leader Permissions (Admin Only) */}
-      {isAdmin && (
-        <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-purple-500" />
-            Co-Leader Permissions
-            <span className="text-sm font-normal text-gray-500 ml-2">
-              ({coLeaders.length} co-leader{coLeaders.length !== 1 ? 's' : ''})
-            </span>
-          </h3>
+      {/* Co-Leader Permissions (Admin + Privileged Co-Leaders) */}
+      {(isAdmin || currentUserPermissions?.canAppointCoLeaders) && (
+        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-3xl shadow-lg p-6 border border-purple-200">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <Star className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  Co-Leader Management
+                  <Sparkles className="w-5 h-5 text-purple-500" />
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {coLeaders.length} active co-leader{coLeaders.length !== 1 ? 's' : ''} • Manage permissions & roles
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAppointModal(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl hover:from-purple-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium"
+            >
+              <UserPlus className="w-4 h-4" />
+              Appoint Co-Leader
+            </button>
+          </div>
 
           {coLeaders.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 rounded-2xl">
-              <Star className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-600 mb-2">No co-leaders appointed yet</p>
-              <p className="text-sm text-gray-500">
-                Go to Student & Settings to promote students to co-leader role
+            <div className="text-center py-12 bg-white rounded-2xl border-2 border-dashed border-purple-200">
+              <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UserCog className="w-10 h-10 text-purple-400" />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">No Co-Leaders Yet</h4>
+              <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                Appoint trusted students as co-leaders to help manage the system with customizable permissions
               </p>
+              <button
+                onClick={() => setShowAppointModal(true)}
+                className="px-6 py-2.5 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-all inline-flex items-center gap-2 font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Appoint Your First Co-Leader
+              </button>
             </div>
           ) : (
-            <div className="space-y-4">
-              {coLeaders.map((coLeader) => (
-                <div
-                  key={coLeader.rollNo}
-                  className="border border-gray-200 rounded-2xl overflow-hidden"
-                >
-                  {/* Co-Leader Header */}
-                  <button
-                    onClick={() => setExpandedCoLeader(
-                      expandedCoLeader === coLeader.rollNo ? null : coLeader.rollNo
-                    )}
-                    className="w-full flex items-center justify-between p-4 bg-purple-50 hover:bg-purple-100 transition-all"
+            <div className="space-y-3">
+              {coLeaders.map((coLeader) => {
+                const permissions = coLeader.permissions || DEFAULT_PERMISSIONS;
+                const activePermissionsCount = Object.values(permissions).filter(Boolean).length;
+                
+                return (
+                  <div
+                    key={coLeader.rollNo}
+                    className="border border-purple-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center">
-                        <Star className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-purple-900">{coLeader.name}</p>
-                        <p className="text-sm text-purple-700">{coLeader.rollNo}</p>
-                      </div>
+                    {/* Co-Leader Header */}
+                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50">
+                      <button
+                        onClick={() => setExpandedCoLeader(
+                          expandedCoLeader === coLeader.rollNo ? null : coLeader.rollNo
+                        )}
+                        className="flex-1 flex items-center justify-between hover:opacity-80 transition-all"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                            <Star className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-semibold text-gray-900 text-lg">{coLeader.name}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-sm text-purple-700 font-medium">{coLeader.rollNo}</span>
+                              <span className="text-xs text-gray-500">•</span>
+                              <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">
+                                {coLeader.branch}
+                              </span>
+                              <span className="text-xs text-gray-500">•</span>
+                              <span className="text-xs text-gray-600">
+                                {activePermissionsCount}/{Object.keys(DEFAULT_PERMISSIONS).length} permissions
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {expandedCoLeader === coLeader.rollNo ? (
+                          <ChevronUp className="w-5 h-5 text-purple-600" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-purple-600" />
+                        )}
+                      </button>
+                      
+                      <button
+                        onClick={() => handleRemoveCoLeader(coLeader)}
+                        disabled={isRemovingCoLeader === coLeader.rollNo}
+                        className="ml-3 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                        title="Remove Co-Leader"
+                      >
+                        {isRemovingCoLeader === coLeader.rollNo ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <UserX className="w-5 h-5" />
+                        )}
+                      </button>
                     </div>
-                    {expandedCoLeader === coLeader.rollNo ? (
-                      <ChevronUp className="w-5 h-5 text-purple-600" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-purple-600" />
-                    )}
-                  </button>
 
-                  {/* Permissions Panel */}
-                  {expandedCoLeader === coLeader.rollNo && (
-                    <div className="p-4 space-y-3 bg-white">
-                      {Object.keys(permissionLabels).map((permKey) =>
-                        renderPermissionToggle(coLeader, permKey)
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                    {/* Permissions Panel */}
+                    {expandedCoLeader === coLeader.rollNo && (
+                      <div className="p-5 space-y-3 bg-gradient-to-b from-white to-gray-50">
+                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
+                          <Shield className="w-4 h-4 text-purple-500" />
+                          <h4 className="font-semibold text-gray-900">Permission Settings</h4>
+                        </div>
+                        {Object.keys(permissionLabels).map((permKey) =>
+                          renderPermissionToggle(coLeader, permKey)
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -741,7 +891,7 @@ export function AdminPrivilegesTab({
                         {config.label}
                       </p>
                       <p className="text-xs text-gray-500">{config.desc}</p>
-
+                    </div>
                     <div className="ml-auto">
                       {isEnabled ? (
                         <Check className="w-5 h-5 text-green-600" />
@@ -751,8 +901,7 @@ export function AdminPrivilegesTab({
                     </div>
                   </div>
                 </div>
-              </div>
-            );
+              );
             })}
           </div>
         </div>
@@ -883,6 +1032,147 @@ export function AdminPrivilegesTab({
               </div>
            </div>
          </div>
+      )}
+
+      {/* Appoint Co-Leader Modal */}
+      {showAppointModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                    <UserPlus className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Appoint Co-Leader</h3>
+                    <p className="text-purple-100 text-sm">Select a student to promote to co-leader role</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAppointModal(false);
+                    setAppointSearchQuery("");
+                    setSelectedBranchFilter('All');
+                  }}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {/* Search and Filter */}
+              <div className="space-y-3 mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, roll number, or branch..."
+                    value={appointSearchQuery}
+                    onChange={(e) => setAppointSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Branch Filter */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                  <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <button
+                    onClick={() => setSelectedBranchFilter('All')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      selectedBranchFilter === 'All'
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    All Branches
+                  </button>
+                  {BRANCHES.map(branch => (
+                    <button
+                      key={branch}
+                      onClick={() => setSelectedBranchFilter(branch)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        selectedBranchFilter === branch
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {branch}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Student List */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {eligibleStudents.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p className="font-medium">No eligible students found</p>
+                    <p className="text-sm mt-1">Try adjusting your filters or search query</p>
+                  </div>
+                ) : (
+                  eligibleStudents.map((student) => (
+                    <div
+                      key={student.rollNo}
+                      className="flex items-center justify-between p-4 bg-gray-50 hover:bg-purple-50 rounded-xl transition-all border border-gray-200 hover:border-purple-300"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-600 rounded-xl flex items-center justify-center">
+                          <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{student.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-sm text-gray-600">{student.rollNo}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">
+                              {student.branch}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleAppointCoLeader(student)}
+                        disabled={isAppointingCoLeader === student.rollNo}
+                        className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all disabled:opacity-50 flex items-center gap-2 font-medium"
+                      >
+                        {isAppointingCoLeader === student.rollNo ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Appointing...
+                          </>
+                        ) : (
+                          <>
+                            <UserCheck className="w-4 h-4" />
+                            Appoint
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Info Footer */}
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-900">
+                  <p className="font-medium mb-1">What happens when you appoint a co-leader?</p>
+                  <ul className="text-xs text-blue-800 space-y-0.5 ml-4 list-disc">
+                    <li>Student will be promoted to co-leader role</li>
+                    <li>Default permissions will be assigned (can be customized later)</li>
+                    <li>They will have access to admin features based on permissions</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

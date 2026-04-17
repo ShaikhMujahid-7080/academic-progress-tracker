@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, Calendar, User, Clock, Settings, Edit3, Save, X, Check, Pin, PinOff } from "lucide-react";
+import { Trash2, Calendar, User, Clock, Settings, Edit3, Save, X, Check, Pin, PinOff, Users } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -182,6 +182,18 @@ export function TodoItem({ notice, currentUser, students, isAdmin, isCoLeader, c
               </div>
               <span className="hidden sm:inline">•</span>
               <span className="text-gray-400">{completedCount} completed</span>
+              {/* Branch Badges */}
+              <div className="flex items-center gap-1 flex-wrap ml-1">
+                {(notice.targetBranches || ['All']).map((branch, idx) => (
+                  <span key={idx} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${branch === 'All'
+                    ? 'bg-purple-100 text-purple-700 border-purple-200'
+                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    }`}>
+                    <Users className="w-2.5 h-2.5" />
+                    {branch === 'All' ? 'All' : branch}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

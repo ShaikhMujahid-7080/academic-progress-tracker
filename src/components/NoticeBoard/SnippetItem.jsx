@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Copy, Check, Terminal, User, Clock, Crown, Star, Edit3, Settings, Pin, PinOff, Trash2, Globe, Lock, ChevronDown, ChevronUp } from "lucide-react";
+import { Copy, Check, Terminal, User, Clock, Crown, Star, Edit3, Settings, Pin, PinOff, Trash2, Globe, Lock, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { toast } from 'react-toastify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -75,9 +75,21 @@ export function SnippetItem({
               {creatorRole === 'admin' && (
                 <Crown className="w-3 h-3 text-yellow-500 shrink-0" title="Admin" />
               )}
-              {creatorRole === 'co-leader' && notice.createdByRoll !== '2405225' && (
+                {creatorRole === 'co-leader' && notice.createdByRoll !== '2405225' && (
                 <Star className="w-3 h-3 text-purple-500 shrink-0" title="Co-Leader" />
               )}
+              {/* Branch Badges */}
+              <div className="flex items-center gap-1 flex-wrap ml-1">
+                {(notice.targetBranches || ['All']).map((branch, idx) => (
+                  <span key={idx} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${branch === 'All'
+                    ? 'bg-purple-100 text-purple-700 border-purple-200'
+                    : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                    }`}>
+                    <Users className="w-2.5 h-2.5" />
+                    {branch === 'All' ? 'All' : branch}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

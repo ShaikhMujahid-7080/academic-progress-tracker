@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check, ShieldAlert, Camera, Image as ImageIcon, Mail, Phone, Github, Linkedin, Globe, ChevronRight, Quote, Info, GraduationCap, Calendar, Code, ShieldCheck, Copy, ExternalLink, Brain, BarChart3, Cpu, Construction, Settings, BadgeCheck } from "lucide-react";
+import { Star, Users, Plus, Trash2, Crown, User, Loader2, Search, X, Lock, Shield, Key, EyeOff, Eye, UserCheck, UserX, Edit3, Check, ShieldAlert, Camera, Image as ImageIcon, Mail, Phone, Github, Linkedin, Globe, ChevronRight, Quote, Info, GraduationCap, Calendar, Code, ShieldCheck, Copy, ExternalLink, Brain, BarChart3, Cpu, Construction, Settings, BadgeCheck, Bookmark, RefreshCw, AlertTriangle, Sparkles, Zap } from "lucide-react";
 import { subjects, ADMIN_STUDENT, BRANCHES } from "../../data/subjects";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
@@ -131,6 +131,22 @@ export function StudentManagementTab({
     });
   };
 
+  // Color helpers for dynamic stat cards
+  const statColorMap = {
+    blue: { bg: '#eff6ff', border: '#dbeafe80', iconBg: '#ffffff', iconBorder: '#dbeafe', iconText: '#2563eb', label: '#2563eb', value: '#1e3a5f', hoverBg: '#eff6ff', hoverShadow: 'rgba(59,130,246,0.05)' },
+    indigo: { bg: '#eef2ff', border: '#e0e7ff80', iconBg: '#ffffff', iconBorder: '#e0e7ff', iconText: '#4f46e5', label: '#4f46e5', value: '#312e81', hoverBg: '#eef2ff', hoverShadow: 'rgba(79,70,229,0.05)' },
+    emerald: { bg: '#ecfdf5', border: '#d1fae580', iconBg: '#ffffff', iconBorder: '#d1fae5', iconText: '#059669', label: '#059669', value: '#064e3b', hoverBg: '#ecfdf5', hoverShadow: 'rgba(5,150,105,0.05)' },
+    orange: { bg: '#fff7ed', border: '#ffedd580', iconBg: '#ffffff', iconBorder: '#ffedd5', iconText: '#ea580c', label: '#ea580c', value: '#7c2d12', hoverBg: '#fff7ed', hoverShadow: 'rgba(234,88,12,0.05)' },
+    red: { bg: '#fef2f2', border: '#fecaca80', iconBg: '#ffffff', iconBorder: '#fecaca', iconText: '#dc2626', label: '#dc2626', value: '#7f1d1d', hoverBg: '#fef2f2', hoverShadow: 'rgba(220,38,38,0.05)' },
+  };
+
+  // Role-based gradient config
+  const getRoleTheme = (student) => {
+    if (student?.rollNo === ADMIN_STUDENT.rollNo) return { gradient: 'from-amber-500 via-orange-400 to-yellow-500', glow: 'amber', accent: '#f59e0b' };
+    if (student?.role === 'co-leader') return { gradient: 'from-purple-600 via-fuchsia-500 to-pink-500', glow: 'fuchsia', accent: '#d946ef' };
+    return { gradient: 'from-blue-600 via-indigo-500 to-sky-400', glow: 'blue', accent: '#3b82f6' };
+  };
+
   // Keep viewed student in sync when the session student changes (e.g. from header)
   React.useEffect(() => {
     if (selectedStudent && (!viewedStudent || (viewedStudent.rollNo === selectedStudent.rollNo))) {
@@ -256,16 +272,27 @@ export function StudentManagementTab({
   };
 
   const handleSaveProfile = async () => {
-    if (!editingField) return;
-
     try {
       setIsSavingProfile(true);
-      await updateStudentProfile(selectedStudent.rollNo, { [editingField]: tempValue.trim() });
-      toast.success(`✅ ${editingField.charAt(0).toUpperCase() + editingField.slice(1)} updated!`);
+      let finalValue = tempValue;
+      if (typeof tempValue === 'string') finalValue = tempValue.trim();
+      
+      if (editingField === 'admissionYear') {
+          await updateStudentAdmissionYear(selectedStudent.rollNo, Number(finalValue));
+          finalValue = Number(finalValue);
+      } else {
+          await updateStudentProfile(selectedStudent.rollNo, { [editingField]: finalValue });
+      }
+      
+      setViewedStudent(prev => ({
+        ...prev,
+        [editingField]: finalValue
+      }));
       setEditingField(null);
       setTempValue("");
+      toast.success(`✅ Profile updated!`);
     } catch (error) {
-      toast.error(`❌ Error updating ${editingField}: ${error.message}`);
+      toast.error(`❌ Error updating profile: ${error.message}`);
     } finally {
       setIsSavingProfile(false);
     }
@@ -891,78 +918,99 @@ export function StudentManagementTab({
         </div>
 
         {/* Full Premium Profile Board (Col-span 2) */}
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden relative group/profile">
-          {/* Cover Gradient Section */}
-          <div className={`h-32 sm:h-40 w-full relative overflow-hidden ${viewedStudent?.rollNo === ADMIN_STUDENT.rollNo
-            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500'
-            : viewedStudent?.role === 'co-leader'
-              ? 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500'
-              : 'bg-gradient-to-r from-blue-600 via-indigo-500 to-sky-500'
-            }`}>
-            {/* Abstract Pattern Overlay */}
-            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+        <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/80 overflow-hidden relative group/profile hover:shadow-[0_20px_50px_-8px_rgba(8,112,184,0.12)] transition-all duration-700 ease-out">
+          
+          {/* Cover Gradient Section — Upgraded with animated orbs */}
+          <div className={`h-40 sm:h-52 w-full relative overflow-hidden transition-colors duration-700 bg-gradient-to-br ${getRoleTheme(viewedStudent).gradient}`}>
+            {/* Layered pattern overlays */}
+            <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '28px 28px' }} />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/25" />
+            
+            {/* Floating decorative orbs */}
+            <div className="absolute top-6 right-10 w-20 h-20 rounded-full bg-white/10 blur-xl animate-pulse" style={{ animationDuration: '4s' }} />
+            <div className="absolute bottom-4 left-16 w-14 h-14 rounded-full bg-white/10 blur-lg animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+            <div className="absolute top-3 left-1/3 w-8 h-8 rounded-full bg-white/15 blur-md animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
+            
+            {/* Sparkle accent top-right */}
+            <div className="absolute top-5 right-6 text-white/30 opacity-0 group-hover/profile:opacity-100 transition-opacity duration-700">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            
+            {/* Subtle diagonal stripe accent */}
+            <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'repeating-linear-gradient(135deg, white 0px, white 1px, transparent 1px, transparent 12px)' }} />
           </div>
 
           {/* Card Content */}
-          <div className="relative z-10 p-6 sm:p-8 pt-0">
+          <div className="relative z-10 p-6 sm:p-10 pt-0">
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Left Column: Avatar and Quick Info */}
-              <div className="lg:w-1/3 flex flex-col items-center -mt-16 sm:-mt-20">
-                {/* Avatar Container */}
-                <div className={`
-                w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] p-1.5 shadow-2xl transition-all duration-500 hover:scale-[1.05] relative z-20 group/photo
-                ${viewedStudent?.rollNo === ADMIN_STUDENT.rollNo
-                    ? 'bg-gradient-to-br from-amber-400 via-yellow-200 to-orange-400'
-                    : viewedStudent?.role === 'co-leader'
-                      ? 'bg-gradient-to-br from-purple-400 via-fuchsia-200 to-pink-400'
-                      : 'bg-gradient-to-br from-blue-400 via-sky-200 to-indigo-400'
-                  }
-              `}>
-                  <div className="w-full h-full bg-white rounded-[2.2rem] overflow-hidden flex items-center justify-center relative bg-gray-50">
-                    {viewedStudent?.photoURL ? (
-                      <img src={viewedStudent.photoURL} alt={viewedStudent.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <User className="w-16 h-16 text-gray-200" />
-                      </div>
-                    )}
+              <div className="lg:w-1/3 flex flex-col items-center -mt-20 sm:-mt-28">
+                {/* Avatar Container — Enhanced with animated glow ring */}
+                <div className="relative group/photo mb-3">
+                  {/* Animated glow ring behind avatar */}
+                  <div 
+                    className="absolute -inset-2 rounded-[2.8rem] opacity-0 group-hover/photo:opacity-60 transition-all duration-700 z-0 blur-xl"
+                    style={{ background: `conic-gradient(from 0deg, ${getRoleTheme(viewedStudent).accent}, transparent, ${getRoleTheme(viewedStudent).accent})`, animationDuration: '3s' }}
+                  />
+                  
+                  {/* Outer ring with gradient border */}
+                  <div 
+                    className="w-36 h-36 sm:w-48 sm:h-48 rounded-[2.5rem] p-[3px] shadow-xl transition-all duration-700 group-hover/photo:scale-[1.03] group-hover/photo:shadow-2xl relative z-20"
+                    style={{ background: `linear-gradient(135deg, ${getRoleTheme(viewedStudent).accent}90, white 40%, white 60%, ${getRoleTheme(viewedStudent).accent}90)` }}
+                  >
+                    <div className="w-full h-full bg-white rounded-[2.2rem] overflow-hidden flex items-center justify-center relative shadow-inner">
+                      {viewedStudent?.photoURL ? (
+                        <img src={viewedStudent.photoURL} alt={viewedStudent.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                          <User className="w-16 h-16 sm:w-20 sm:h-20 text-gray-200" />
+                        </div>
+                      )}
 
-                    {/* Photo Action Overlay */}
-                    {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-all flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="p-2.5 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-xl text-white transition-all transform hover:scale-110 border border-white/30"
-                          title="Change Photo"
-                        >
-                          <Camera className="w-5 h-5" />
-                        </button>
-                        {viewedStudent?.photoURL && (
+                      {/* Photo Action Overlay */}
+                      {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-[2px]">
                           <button
-                            onClick={handleRemovePhoto}
-                            className="p-2.5 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-xl text-white transition-all transform hover:scale-110 border border-red-500/30"
-                            title="Remove Photo"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="p-3 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-2xl text-white transition-all transform hover:scale-110 border border-white/30 shadow-lg"
+                            title="Change Photo"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <Camera className="w-5 h-5" />
                           </button>
-                        )}
-                      </div>
-                    )}
+                          {viewedStudent?.photoURL && (
+                            <button
+                              onClick={handleRemovePhoto}
+                              className="p-3 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-2xl text-white transition-all transform hover:scale-110 border border-red-500/30 shadow-lg"
+                              title="Remove Photo"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          )}
+                        </div>
+                      )}
 
-                    {isUploadingPhoto && (
-                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-30">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                      </div>
-                    )}
+                      {isUploadingPhoto && (
+                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-30">
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Online status dot — positioned at bottom-right of avatar */}
+                  <div className="absolute bottom-2 right-2 z-30">
+                    <div className="relative">
+                      <div className="w-4 h-4 rounded-full bg-green-500 border-[3px] border-white shadow-sm" />
+                      <div className="absolute inset-0 w-4 h-4 rounded-full bg-green-400 animate-ping opacity-40" />
+                    </div>
                   </div>
                 </div>
 
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
 
-                {/* Name & Role Section */}
-                <div className="text-center w-full space-y-3 mt-6">
-                  <div className="space-y-1">
+                {/* Name & Role Section — Enhanced */}
+                <div className="text-center w-full space-y-3 mt-4">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-center gap-2 group/name">
                       {isEditingName && (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) ? (
                         <div className="flex items-center gap-2 max-w-xs mx-auto">
@@ -978,22 +1026,39 @@ export function StudentManagementTab({
                           </button>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 border border-gray-100 mb-1">
+                        <div className="flex flex-col items-center gap-2">
+                          {/* Role badge with glow */}
+                          <div 
+                            className="flex items-center gap-2 px-4 py-1.5 rounded-full border shadow-sm group-hover/name:shadow-md transition-all duration-300"
+                            style={{ 
+                              background: `linear-gradient(135deg, ${getRoleTheme(viewedStudent).accent}08, ${getRoleTheme(viewedStudent).accent}15)`,
+                              borderColor: `${getRoleTheme(viewedStudent).accent}25`
+                            }}
+                          >
                             {viewedStudent?.rollNo === ADMIN_STUDENT.rollNo ? (
                               <div className="flex items-center gap-1.5 text-amber-600">
-                                <BadgeCheck className="w-3.5 h-3.5 fill-amber-100" />
-                                <span className="text-[10px] font-black uppercase tracking-tighter">Verified Admin</span>
+                                <BadgeCheck className="w-4 h-4 fill-amber-100" />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Verified Admin</span>
                               </div>
                             ) : (
                               <div className={`flex items-center gap-1.5 ${viewedStudent?.role === 'co-leader' ? 'text-purple-600' : 'text-blue-600'}`}>
-                                <Shield size={12} />
-                                <span className="text-[10px] font-black uppercase tracking-tighter">{viewedStudent?.role || 'Student'}</span>
+                                <Shield className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-black uppercase tracking-wider">{viewedStudent?.role || 'Student'}</span>
                               </div>
                             )}
                           </div>
+                          
+                          {/* Name with enhanced gradient + edit */}
                           <div className="flex items-center gap-2">
-                            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
+                            <h2 
+                              className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-none text-center"
+                              style={{ 
+                                background: `linear-gradient(135deg, #111827, ${getRoleTheme(viewedStudent).accent}90, #374151)`,
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                              }}
+                            >
                               {viewedStudent?.name}
                             </h2>
                             {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
@@ -1005,25 +1070,34 @@ export function StudentManagementTab({
                         </div>
                       )}
                     </div>
+                    
+                    {/* ID badge with copy — refined */}
                     <div className="flex items-center justify-center gap-2">
-                      <p className="text-gray-400 font-mono text-xs uppercase tracking-widest font-bold">
-                        ID: {viewedStudent?.rollNo}
-                      </p>
-                      <button
-                        onClick={() => copyToClipboard(viewedStudent?.rollNo, 'ID')}
-                        className="p-1.5 text-gray-300 hover:text-blue-500 transition-colors opacity-0 group-hover/profile:opacity-100"
-                        title="Copy ID"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-50 border border-gray-100">
+                        <p className="text-gray-400 font-mono text-[11px] uppercase tracking-widest font-bold">
+                          ID: {viewedStudent?.rollNo}
+                        </p>
+                        <button
+                          onClick={() => copyToClipboard(viewedStudent?.rollNo, 'ID')}
+                          className="p-1 text-gray-300 hover:text-blue-500 transition-colors"
+                          title="Copy ID"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Profile Action Buttons */}
-                  <div className="flex flex-col gap-2.5 w-full pt-4">
+                  {/* Profile Action Buttons — Enhanced with gradient hover */}
+                  <div className="flex flex-col gap-2.5 w-full pt-5">
                     {selectedStudent?.rollNo === viewedStudent?.rollNo ? (
-                      <div className="flex items-center justify-center gap-2.5 py-3 px-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-black text-[10px] uppercase tracking-widest shadow-sm">
-                        <Check className="w-4 h-4" />
+                      <div className="flex items-center justify-center gap-2.5 py-3.5 px-5 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 rounded-2xl border border-emerald-100/80 font-black text-[10px] uppercase tracking-widest shadow-sm">
+                        <div className="relative">
+                          <Check className="w-4 h-4" />
+                          <div className="absolute inset-0 w-4 h-4 animate-ping opacity-20">
+                            <Check className="w-4 h-4 text-emerald-500" />
+                          </div>
+                        </div>
                         Your Active Profile
                       </div>
                     ) : (
@@ -1032,16 +1106,17 @@ export function StudentManagementTab({
                           onClick={() => handleSwitchAccount(viewedStudent)}
                           className="group/btn relative flex items-center justify-center gap-3 w-full py-4 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all shadow-xl shadow-gray-200 font-black text-xs uppercase tracking-widest overflow-hidden"
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                          <Lock className="w-4 h-4 relative z-10" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                          <Lock className="w-4 h-4 relative z-10 group-hover/btn:rotate-12 transition-transform" />
                           <span className="relative z-10">Access Control Panel</span>
+                          <Zap className="w-3.5 h-3.5 relative z-10 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
                         </button>
 
                         <button
                           onClick={() => setViewedStudent(selectedStudent)}
-                          className="flex items-center justify-center gap-2 w-full py-3 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest leading-none"
+                          className="flex items-center justify-center gap-2 w-full py-3 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest leading-none group/back"
                         >
-                          <ChevronRight className="w-4 h-4 rotate-180" />
+                          <ChevronRight className="w-4 h-4 rotate-180 group-hover/back:-translate-x-1 transition-transform" />
                           <span className="truncate">Return to Dashboard</span>
                         </button>
                       </>
@@ -1049,39 +1124,92 @@ export function StudentManagementTab({
                   </div>
                 </div>
 
-                {/* Verified Badge / Online Status */}
-                <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-100 w-full justify-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Live Sync Always Enabled</span>
+                {/* Sync status indicator — refined */}
+                <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100/60 w-full justify-center">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Real-time Sync</span>
                   </div>
                 </div>
               </div>
 
               {/* Right Column: Information & Connections */}
-              <div className="flex-1 space-y-8 lg:pt-8">
-                {/* Academic Identity Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {[
-                    { label: 'Academic Year', value: getStudentYear(viewedStudent), icon: GraduationCap, color: 'blue' },
-                    { label: 'Admission', value: viewedStudent?.admissionYear, icon: Calendar, color: 'indigo' },
-                    { label: 'Specialization', value: viewedStudent?.branch || 'General', icon: getBranchIcon(viewedStudent?.branch), color: 'emerald' }
-                  ].map((stat, idx) => (
-                    <div key={idx} className={`bg-${stat.color}-50/50 p-4 rounded-3xl border border-${stat.color}-100/50 group/stat transition-all hover:bg-${stat.color}-50 hover:shadow-lg hover:shadow-${stat.color}-500/5`}>
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`w-8 h-8 rounded-xl bg-white border border-${stat.color}-100 flex items-center justify-center text-${stat.color}-600 shadow-sm transition-transform group-hover/stat:scale-110`}>
-                          <stat.icon size={16} />
+              <div className="flex-1 space-y-8 lg:pt-6">
+                {/* Academic Identity Grid — Fixed with inline styles */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <GraduationCap className="w-4 h-4 text-blue-500" />
+                    <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Academic Identity</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {[
+                      { id: 'academicYear', label: 'Academic Year', value: getStudentYear(viewedStudent), icon: GraduationCap, color: 'blue' },
+                      { id: 'admissionYear', label: 'Admission', value: viewedStudent?.admissionYear, icon: Calendar, color: 'indigo' },
+                      { id: 'branch', label: 'Specialization', value: viewedStudent?.branch || 'General', icon: getBranchIcon(viewedStudent?.branch), color: 'emerald' },
+                      { id: 'isDSY', label: 'Entry Type', value: viewedStudent?.isDSY ? 'Direct Second Year' : 'First Year Start', icon: Bookmark, color: 'orange' },
+                      { id: 'isYD', label: 'Academic Status', value: viewedStudent?.isYD ? 'Year Drop Active' : 'Regular Progression', icon: AlertTriangle, color: 'red' }
+                    ].map((stat, idx) => {
+                      const colors = statColorMap[stat.color] || statColorMap.blue;
+                      return (
+                        <div 
+                          key={idx} 
+                          className="p-4 rounded-2xl group/stat transition-all duration-300 relative cursor-default hover:-translate-y-0.5"
+                          style={{ 
+                            backgroundColor: `${colors.bg}80`,
+                            border: `1px solid ${colors.border}`,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = colors.hoverBg;
+                            e.currentTarget.style.boxShadow = `0 10px 25px -5px ${colors.hoverShadow}`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = `${colors.bg}80`;
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <div 
+                              className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover/stat:scale-110"
+                              style={{ backgroundColor: colors.iconBg, border: `1px solid ${colors.iconBorder}`, color: colors.iconText }}
+                            >
+                              <stat.icon size={16} />
+                            </div>
+                            <span className="text-[10px] pr-5 font-bold uppercase tracking-wider" style={{ color: colors.label }}>{stat.label}</span>
+                            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && stat.id === 'admissionYear' && (
+                               <button onClick={() => handleStartEditProfile('admissionYear', viewedStudent?.admissionYear)} className="p-1.5 text-gray-400 hover:text-indigo-600 opacity-0 group-hover/stat:opacity-100 transition-all absolute top-3 right-3" title="Edit Admission Year">
+                                 <Edit3 size={14} />
+                               </button>
+                            )}
+                            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && stat.id === 'isDSY' && (
+                               <button onClick={async (e) => { 
+                                 await handleToggleDSY(viewedStudent, e);
+                                 setViewedStudent(prev => ({ ...prev, isDSY: !prev.isDSY }));
+                               }} className="p-1.5 text-gray-400 hover:text-orange-600 opacity-0 group-hover/stat:opacity-100 transition-all absolute top-3 right-3" title="Toggle DSY Status">
+                                 <RefreshCw size={14} />
+                               </button>
+                            )}
+                            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && stat.id === 'isYD' && (
+                               <button onClick={async (e) => { 
+                                 await handleToggleYD(viewedStudent, e);
+                                 setViewedStudent(prev => ({ ...prev, isYD: !prev.isYD }));
+                               }} className="p-1.5 text-gray-400 hover:text-red-600 opacity-0 group-hover/stat:opacity-100 transition-all absolute top-3 right-3" title="Toggle Year Drop Status">
+                                 <RefreshCw size={14} />
+                               </button>
+                            )}
+                          </div>
+                          <p className="text-sm sm:text-base font-black ml-1 truncate" style={{ color: colors.value }}>{stat.value}</p>
                         </div>
-                        <span className={`text-[10px] font-bold text-${stat.color}-600 uppercase tracking-wider`}>{stat.label}</span>
-                      </div>
-                      <p className={`text-base font-black text-${stat.color}-900 ml-1`}>{stat.value}</p>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {/* Bio Section */}
-                <div className="relative group/bio bg-gray-50/50 rounded-[2rem] p-6 border border-gray-100">
-                  <div className="flex items-center justify-between mb-4">
+                {/* Bio Section — Enhanced with quote styling */}
+                <div className="relative group/bio rounded-[2rem] p-6 sm:p-8 border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-500" style={{ background: 'linear-gradient(135deg, #f9fafb, #ffffff, #f9fafb)' }}>
+                  <Quote className="absolute -bottom-4 -right-2 w-36 h-36 text-gray-900/[0.02] -rotate-12 pointer-events-none transition-transform duration-700 group-hover/bio:scale-110 group-hover/bio:-rotate-6" />
+                  <Quote className="absolute top-4 left-6 w-8 h-8 text-gray-900/[0.04] rotate-180 pointer-events-none" />
+                  
+                  <div className="relative z-10 flex items-center justify-between mb-5 border-b border-gray-100/60 pb-4">
                     <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
                       <Quote className="w-4 h-4 text-primary-500" />
                       Student Biography
@@ -1089,7 +1217,7 @@ export function StudentManagementTab({
                     {!editingField && (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
                       <button
                         onClick={() => handleStartEditProfile('bio', viewedStudent?.bio)}
-                        className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary-600 hover:bg-white rounded-full transition-all border border-primary-100"
+                        className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary-600 hover:bg-white rounded-full transition-all border border-primary-100 hover:shadow-sm"
                       >
                         <Edit3 className="w-3 h-3 inline mr-1" /> Edit
                       </button>
@@ -1106,11 +1234,11 @@ export function StudentManagementTab({
                         autoFocus
                       />
                       <div className="flex justify-end gap-2">
-                        <button onClick={handleCancelEditProfile} className="px-5 py-2 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-xl transition-all">Discard</button>
+                        <button onClick={handleCancelEditProfile} className="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-xl transition-all">Discard</button>
                         <button
                           onClick={handleSaveProfile}
                           disabled={isSavingProfile}
-                          className="px-6 py-2 text-xs font-black uppercase tracking-widest bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-xl shadow-primary-200 flex items-center gap-2"
+                          className="px-6 py-2.5 text-xs font-black uppercase tracking-widest bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-xl shadow-primary-200 flex items-center gap-2"
                         >
                           {isSavingProfile && <Loader2 className="w-3 h-3 animate-spin" />}
                           Commit Changes
@@ -1118,7 +1246,7 @@ export function StudentManagementTab({
                       </div>
                     </div>
                   ) : (
-                    <div className={`leading-relaxed text-sm font-medium ${viewedStudent?.bio ? 'text-gray-700' : 'text-gray-400 italic'}`}>
+                    <div className={`leading-relaxed text-sm font-medium relative z-10 ${viewedStudent?.bio ? 'text-gray-700' : 'text-gray-400 italic'}`} style={{ fontStyle: viewedStudent?.bio ? 'normal' : 'italic', lineHeight: '1.8' }}>
                       {viewedStudent?.bio || (selectedStudent?.rollNo === viewedStudent?.rollNo ? "Your story haven't been shared yet. Use the edit button above to add a bio!" : "No information shared yet.")}
                     </div>
                   )}
@@ -1126,24 +1254,33 @@ export function StudentManagementTab({
 
                 {/* Connections Grid */}
                 <div className="grid grid-cols-1 gap-8">
-                  {/* Contact Coordinates */}
-                  <div className="space-y-5">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-rose-500" />
-                        Contact Data
-                      </h3>
+                  {/* Contact Coordinates — Enhanced */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-rose-500" />
+                      <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Contact Data</h3>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       {[
-                        { id: 'email', icon: Mail, label: 'Institution Email', value: viewedStudent?.email, color: 'rose' },
-                        { id: 'phone', icon: Phone, label: 'Primary Contact', value: viewedStudent?.phone, color: 'emerald' }
+                        { id: 'email', icon: Mail, label: 'Institution Email', value: viewedStudent?.email, color: '#e11d48', bg: '#fff1f2' },
+                        { id: 'phone', icon: Phone, label: 'Primary Contact', value: viewedStudent?.phone, color: '#059669', bg: '#ecfdf5' }
                       ].map(field => (
                         <div key={field.id} className="group/field relative">
-                          <div className={`flex items-center gap-4 p-4 rounded-3xl border transition-all ${field.value ? 'bg-white border-gray-100 hover:border-gray-200 shadow-sm' : 'bg-gray-50 border-dashed border-gray-200'
-                            }`}>
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${field.value ? `bg-${field.color}-50 text-${field.color}-600` : 'bg-gray-100 text-gray-300'}`}>
+                          <div 
+                            className="flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5"
+                            style={{ 
+                              backgroundColor: field.value ? '#ffffff' : '#f9fafb',
+                              borderColor: field.value ? '#f3f4f6' : '#e5e7eb',
+                              borderStyle: field.value ? 'solid' : 'dashed',
+                            }}
+                            onMouseEnter={(e) => { if (field.value) e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(0,0,0,0.06)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
+                          >
+                            <div 
+                              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover/field:scale-105"
+                              style={{ backgroundColor: field.value ? field.bg : '#f3f4f6', color: field.value ? field.color : '#d1d5db' }}
+                            >
                               <field.icon className="w-5 h-5" />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -1176,24 +1313,38 @@ export function StudentManagementTab({
                     </div>
                   </div>
 
-                  {/* Professional Vectors */}
-                  <div className="space-y-5">
-                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                  {/* Professional Vectors — Enhanced */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-indigo-500" />
-                      Digital Footprint
-                    </h3>
+                      <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Digital Footprint</h3>
+                    </div>
 
-                    <div className="grid gap-3">
+                    <div className="grid gap-2.5">
                       {[
-                        { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', value: viewedStudent?.linkedin, color: 'blue' },
-                        { id: 'github', icon: Github, label: 'GitHub', value: viewedStudent?.github, color: 'gray' },
-                        { id: 'website', icon: Globe, label: 'Portfolio', value: viewedStudent?.website, color: 'indigo' }
+                        { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', value: viewedStudent?.linkedin, color: '#0077B5', bg: '#eff6ff' },
+                        { id: 'github', icon: Github, label: 'GitHub', value: viewedStudent?.github, color: '#24292f', bg: '#f3f4f6' },
+                        { id: 'website', icon: Globe, label: 'Portfolio', value: viewedStudent?.website, color: '#4f46e5', bg: '#eef2ff' }
                       ].map(field => (
                         <div key={field.id} className="group/vector">
                           {field.value ? (
-                            <div className="flex items-center gap-3 p-3.5 bg-white border border-gray-100 rounded-2xl hover:border-primary-200 transition-all hover:shadow-md">
-                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50 text-gray-600 group-hover/vector:bg-primary-50 group-hover/vector:text-primary-600 transition-colors`}>
-                                <field.icon size={18} />
+                            <div 
+                              className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl transition-all duration-300 hover:-translate-y-0.5"
+                              onMouseEnter={(e) => { 
+                                e.currentTarget.style.borderColor = `${field.color}30`; 
+                                e.currentTarget.style.boxShadow = `0 10px 25px -5px ${field.color}10`; 
+                              }}
+                              onMouseLeave={(e) => { 
+                                e.currentTarget.style.borderColor = '#f3f4f6'; 
+                                e.currentTarget.style.boxShadow = 'none'; 
+                              }}
+                            >
+                              <div 
+                                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover/vector:scale-110"
+                                style={{ backgroundColor: '#f9fafb', color: '#6b7280' }}
+                                onMouseEnter={null}
+                              >
+                                <field.icon size={18} style={{ transition: 'color 0.3s' }} className="group-hover/vector:text-blue-600" />
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{field.label}</p>
@@ -1201,16 +1352,16 @@ export function StudentManagementTab({
                                   href={field.value.startsWith('http') ? field.value : `https://${field.value}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs font-bold text-gray-900 hover:text-primary-600 truncate flex items-center gap-1.5"
+                                  className="text-xs font-bold text-gray-900 hover:text-primary-600 truncate flex items-center gap-1.5 transition-colors"
                                 >
                                   {field.value.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                                  <ExternalLink size={10} className="shrink-0" />
+                                  <ExternalLink size={10} className="shrink-0 opacity-50 group-hover/vector:opacity-100 transition-opacity" />
                                 </a>
                               </div>
                               {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
                                 <button
                                   onClick={() => handleStartEditProfile(field.id, field.value)}
-                                  className="p-2 text-gray-300 hover:text-primary-600 opacity-0 group-hover/vector:opacity-100"
+                                  className="p-2 text-gray-300 hover:text-primary-600 opacity-0 group-hover/vector:opacity-100 transition-all"
                                 >
                                   <Edit3 size={14} />
                                 </button>
@@ -1220,12 +1371,12 @@ export function StudentManagementTab({
                             (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
                               <button
                                 onClick={() => handleStartEditProfile(field.id, field.value)}
-                                className="w-full flex items-center gap-3 p-3 border-2 border-dashed border-gray-100 rounded-2xl hover:border-gray-200 hover:bg-gray-50 transition-all text-left"
+                                className="w-full flex items-center gap-3 p-3.5 border-2 border-dashed border-gray-100 rounded-2xl hover:border-gray-200 hover:bg-gray-50 transition-all text-left group/add"
                               >
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50 text-gray-300">
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50 text-gray-300 group-hover/add:bg-blue-50 group-hover/add:text-blue-400 transition-colors">
                                   <Plus size={18} />
                                 </div>
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Link Your {field.label}</span>
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover/add:text-gray-500 transition-colors">Link Your {field.label}</span>
                               </button>
                             )
                           )}
@@ -1237,6 +1388,23 @@ export function StudentManagementTab({
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Data Retention Notice */}
+      <div className="bg-amber-50 rounded-3xl p-6 md:p-8 border border-amber-200/60 shadow-lg flex flex-col md:flex-row md:items-center gap-5 my-6 relative group overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+        <div className="p-3 bg-amber-100 rounded-2xl flex-shrink-0 w-fit relative z-10">
+          <ShieldAlert className="w-6 h-6 text-amber-600" />
+        </div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <h4 className="text-sm font-black text-amber-900 uppercase tracking-widest">Data Retention Policy</h4>
+            <Info className="w-4 h-4 text-amber-600/60"/>
+          </div>
+          <p className="text-sm text-amber-800 leading-relaxed font-medium max-w-4xl">
+            To maintain data privacy and system performance, your student profile and all associated data (Academic Records, Personal Notes, and Settings) are automatically deleted <span className="text-amber-900 font-bold underline decoration-amber-400 underline-offset-4">1 year after graduation</span>. Please ensure you export any necessary records before this period.
+          </p>
         </div>
       </div>
 
@@ -1257,7 +1425,7 @@ export function StudentManagementTab({
                   {editingField === 'website' && <Globe className="w-5 h-5 text-blue-500" />}
                 </div>
                 <input
-                  type={editingField === 'email' ? 'email' : editingField === 'phone' ? 'tel' : 'text'}
+                  type={editingField === 'email' ? 'email' : editingField === 'phone' ? 'tel' : editingField === 'admissionYear' ? 'number' : 'text'}
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
                   placeholder={`Enter ${editingField}...`}

@@ -83,7 +83,8 @@ export function useNoticeBoard(currentUser, currentSemester) {
           // Filter by target branch (legacy notices default to 'All')
           const targetBranches = noticeData.targetBranches || ['All'];
           const userBranch = currentUser.branch || 'IT';
-          const isBranchMatch = targetBranches.includes('All') || targetBranches.includes(userBranch);
+          const isGeneralBranch = userBranch === 'General';
+          const isBranchMatch = targetBranches.includes('All') || targetBranches.includes(userBranch) || isGeneralBranch;
 
           // Admin can see all notices
           if (isAdmin) {

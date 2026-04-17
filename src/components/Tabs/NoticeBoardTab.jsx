@@ -38,6 +38,8 @@ import { ReorderNoticesModal } from "../NoticeBoard/ReorderNoticesModal";
 import { PinnedNoticesSidebar } from "../NoticeBoard/PinnedNoticesSidebar";
 import { CustomConfirm } from "../CustomConfirm";
 import { toast } from 'react-toastify';
+import { BRANCHES } from "../../data/subjects";
+
 
 export function NoticeBoardTab({ selectedStudent, semester }) {
   const { students } = useStudentManagement();
@@ -69,6 +71,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('new');
+  const [selectedBranch, setSelectedBranch] = useState('All');
 
   // Custom confirmation states
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -88,7 +91,14 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
     const matchesSearch = !searchQuery ||
       notice.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
       notice.createdBy.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesType && matchesSearch;
+    
+    // Branch filter logic
+    const noticeBranches = notice.targetBranches || ['All'];
+    const matchesBranch = selectedBranch === 'All' || 
+                         noticeBranches.includes('All') || 
+                         noticeBranches.includes(selectedBranch);
+                         
+    return matchesType && matchesSearch && matchesBranch;
   });
 
   // Sort: pinned first, then uncompleted, then completed (per student)
@@ -584,6 +594,44 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
             </button>
           )}
         </div>
+
+        {/* Branch Filters - Only for General Branch or Admin */}
+        {(selectedStudent.branch === 'General' || isAdmin) && (
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Filter by Branch</span>
+            </div>
+            <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+              <button
+                onClick={() => setSelectedBranch('All')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap text-xs sm:text-sm font-medium ${selectedBranch === 'All'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-100'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+              >
+                All Branches
+              </button>
+              {BRANCHES.filter(b => b !== 'General').map((branch) => (
+                <button
+                  key={branch}
+                  onClick={() => setSelectedBranch(branch)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap text-xs sm:text-sm font-medium ${selectedBranch === branch
+                    ? 'bg-purple-600 text-white shadow-md shadow-purple-100'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                  {branch}
+                </button>
+              ))}
+            </div>
+            {selectedBranch !== 'All' && (
+              <p className="mt-2 text-[10px] text-gray-500 italic">
+                Showing notices targeted to <strong>{selectedBranch}</strong> (including general notices)
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Create / Edit Notice Form Modal */}

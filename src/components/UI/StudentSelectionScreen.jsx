@@ -5,6 +5,7 @@ import { getStudentYear } from "../../utils/studentUtils";
 
 export function StudentSelectionScreen({ students, onStudentSelect, isLoading, studentManagement, theme, onThemeToggle }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBranch, setSelectedBranch] = useState("All");
   const [showPasswordAuth, setShowPasswordAuth] = useState(false);
   const [selectedStudentForAuth, setSelectedStudentForAuth] = useState(null);
   const [password, setPassword] = useState("");
@@ -13,16 +14,30 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
 
   const isDark = theme === 'dark';
 
-  // Filter students based on search query
+  // Filter students based on branch and search query
   const filteredStudents = useMemo(() => {
-    if (!searchQuery.trim()) return students;
+    let result = students;
 
-    const query = searchQuery.toLowerCase();
-    return students.filter(student =>
-      student.name.toLowerCase().includes(query) ||
-      student.rollNo.toLowerCase().includes(query)
-    );
-  }, [students, searchQuery]);
+    if (selectedBranch !== "All") {
+      result = result.filter(student => (student.branch || 'General') === selectedBranch);
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(student =>
+        student.name.toLowerCase().includes(query) ||
+        student.rollNo.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [students, searchQuery, selectedBranch]);
+
+  // Extract available branches dynamically
+  const availableBranches = useMemo(() => {
+    const branches = new Set(students.map(s => s.branch || 'General'));
+    return ["All", ...Array.from(branches).sort()];
+  }, [students]);
 
   const handleStudentClick = async (student) => {
     if (student.isProtected) {
@@ -74,6 +89,7 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
 
   const clearSearch = () => {
     setSearchQuery("");
+    setSelectedBranch("All");
   };
 
   if (isLoading) {
@@ -313,6 +329,27 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
           </div>
         </div>
 
+        {/* Branch Filters */}
+        {availableBranches.length > 2 && (
+          <div className="flex overflow-x-auto gap-2 px-4 mb-6 pb-2 scrollbar-hide">
+            {availableBranches.map(branch => (
+              <button
+                key={branch}
+                onClick={() => setSelectedBranch(branch)}
+                className={`
+                  whitespace-nowrap px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all
+                  ${selectedBranch === branch 
+                    ? (isDark ? 'bg-blue-500/20 text-blue-300 border border-blue-500/50' : 'bg-blue-100 text-blue-700 border border-blue-200')
+                    : (isDark ? 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10 hover:text-slate-300' : 'bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100 hover:text-gray-700')
+                  }
+                `}
+              >
+                {branch}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Responsive Grid List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-hide p-2">
           {filteredStudents.length > 0 ? (
@@ -368,6 +405,9 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <span className={`text-[10px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-lg border ${isDark ? 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20' : 'text-indigo-600 bg-indigo-50 border-indigo-100'}`}>
+                        {student.branch || 'General'}
+                      </span>
                       {student.admissionYear && (
                         <span className={`text-[10px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-lg border ${isDark ? 'text-blue-300 bg-blue-500/20 border-blue-500/20' : 'text-blue-600 bg-blue-50 border-blue-100'}`}>
                           {getStudentYear(student)}

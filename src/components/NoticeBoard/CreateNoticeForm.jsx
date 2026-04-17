@@ -23,6 +23,8 @@ import {
   Upload,
   File,
   CheckCircle2,
+  BookOpen,
+  FileBadge,
   Sparkles
 } from "lucide-react";
 import { ADMIN_STUDENT, subjects, caOptions, BRANCHES } from "../../data/subjects";
@@ -768,23 +770,31 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, curr
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
+                    <div className="relative">
+                      <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
+                        list={`subject-options-${index}`}
                         value={assessment.subject}
                         onChange={(e) => updateAssessmentRow(index, 'subject', e.target.value)}
-                        className="w-full p-2 border border-gray-200 rounded-lg text-sm"
+                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         placeholder="Subject (e.g. Mathematics)"
                       />
+                      <datalist id={`subject-options-${index}`}>
+                        {[...(subjects[semester]?.theory || []), ...(subjects[semester]?.practical || [])].map((subj) => (
+                          <option key={subj} value={subj} />
+                        ))}
+                      </datalist>
                     </div>
-                    <div>
+                    <div className="relative">
+                      <FileBadge className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
                         list="ca-options-list"
                         value={assessment.assessmentName}
                         onChange={(e) => updateAssessmentRow(index, 'assessmentName', e.target.value)}
-                        className="w-full p-2 border border-gray-200 rounded-lg text-sm"
-                        placeholder="Exam Name (e.g. Unit Test)"
+                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        placeholder="Assessment (e.g. Assignment, Quiz)"
                       />
                       <datalist id="ca-options-list">
                         {caOptions.map((opt) => (
@@ -795,26 +805,38 @@ export function CreateNoticeForm({ onSubmit, onCancel, isLoading, students, curr
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                    <div className="relative">
+                      <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <select
                         value={assessment.assessmentType}
                         onChange={(e) => updateAssessmentRow(index, 'assessmentType', e.target.value)}
-                        className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                       >
                         <option value="CA-1">CA-1</option>
                         <option value="CA-2">CA-2</option>
                         <option value="CA-3">CA-3</option>
                         <option value="CA-4">CA-4</option>
+                        <option value="CA-5">CA-5</option>
+                        <option value="CA-6">CA-6</option>
+                        <option value="CA-7">CA-7</option>
+                        <option value="CA-8">CA-8</option>
                         <option value="Mid-Sem">Mid-Sem</option>
                         <option value="End-Sem">End-Sem</option>
+                        <option value="Oral">Oral</option>
+                        <option value="Practical">Practical</option>
+                        <option value="Submission">Submission</option>
+                        <option value="Assignment">Assignment</option>
+                        <option value="Quiz">Quiz / Test</option>
+                        <option value="Project">Project / Seminar</option>
                       </select>
                     </div>
-                    <div>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="datetime-local"
                         value={assessment.date}
                         onChange={(e) => updateAssessmentRow(index, 'date', e.target.value)}
-                        className="w-full p-2 border border-gray-200 rounded-lg text-sm"
+                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       />
                     </div>
                   </div>

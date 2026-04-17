@@ -2,7 +2,7 @@
 git add .
 
 **Save the changes with a descriptive message**
-git commit -m "Updated the navbar"
+git commit -m ""
 
 **Push your saved changes to GitHub**
 git push
@@ -22,10 +22,85 @@ npm run deploy
 9)  add: [StudMaterialNotice] add option to edit the details of uploaded files
 10) fix: [Supabase] the some notices or files are not being deleted from the supabase even after its being deleted or expired from the site
 
-11) enhance: [ProfilePage] enhance the UI/UX and features of the profile card
-12) enhance: [ProfilePage] add the Data Retention Notice below the profile card
-13) enhance: [loginPage] enhance the UI/UX and working according to the new branch/class update
-14) enhance: [ProfilePage] instead of viewing the profile of other students in a card make it viewable in a popup window
+11) fix: [firebase] find and fix the problem where sometimes "admissionYear: 2023, isDSY: true" this data form firebase admin database is automatically gets converted to "admissionYear: 2024, isDSY: false"
+12) enhance: [AdminPrivileges] enhance the UI/UX and working/features of the Quick Actions Card
+13) 
+
+16) 
+17) enhance: [ProfilePage] instead of viewing the profile of other students in a card make it viewable in a popup window
+18) enhance: [ProfilePage] enhance the UI/UX of the profile card
+19) 
+
+
+
+> 18/4/26
+18) enhance: [ProfilePage] enhanced the UI/UX of the profile card
+   - **Cover Section**: Taller gradient cover (h-40/h-52) with animated floating orbs, diagonal stripe overlay, and sparkle accent on hover
+   - **Avatar**: Larger avatar (w-36/w-48), conic-gradient glow ring on hover, gradient border matching role theme, online status dot with ping animation
+   - **Name & Role Badge**: Role badge uses dynamic role-colored gradient background, name rendered with role-tinted gradient text via inline styles
+   - **Action Buttons**: "Active Profile" badge has animated ping checkmark, "Access Control Panel" gains Zap icon + lock rotation on hover, "Return" button gets animated arrow shift
+   - **Academic Stat Cards**: Converted from broken Tailwind dynamic classes (bg-${color}-50) to inline styles via statColorMap for guaranteed rendering, added hover lift (-translate-y-0.5) and dynamic box-shadow
+   - **Bio Section**: Added secondary rotated Quote watermark, refined background gradient, increased line-height (1.8) for readability
+   - **Contact & Digital Footprint**: Inline-styled icon colors/backgrounds, hover lift + shadow effects via onMouseEnter/onMouseLeave, "Link Your" buttons gain blue tint on hover
+   - **ID Badge**: Wrapped in subtle pill container (bg-gray-50 border) for better visual grouping
+   - **Sync Indicator**: Compacted into rounded pill with smaller dot
+
+
+1) enhance: [AssessmentsNotice] enhance the Subject and the CA/MidSem/EndSem fields
+2) fix: [AssessmentsNotice] there is no option for CA5 (CA6 etc) for the particular subject (which has more or less CAs) in the CA/MidSem/EndSem field
+3) enhance: [AdminPrivileges] add the Co-Leader Management card to students who have the Appoint Co-Leaders privilege
+4) enhance: [Branch] make the notices of all the branch visible to the students of General branch and enhance their (NoticeBoard UI) interface to categorise/view the notes based on the branch
+5) enhance: [ProfilePage] enhance the UI/UX and features of the profile card and give all the students ability to edit all their own details (e.g. name, dsy, yd, addmission year, etc. except branch & role)
+6) enhance: [ProfilePage] add the Data Retention Notice below the profile card
+7) enhance: [loginPage] enhance the UI/UX and working according to the new branch/class update
+
+
+
+>14/4/26
+1) enhance: [AdminPrivileges] ✅ enhanced the UI/UX and working/features of the Co-Leader Permissions Card and also included the feature to add/appoint or remove co-leaders
+   - **Enhanced Co-Leader Permissions Card UI/UX:**
+     - Modern gradient design with purple-indigo theme
+     - Improved visual hierarchy with better spacing and shadows
+     - Added active permissions count display
+     - Enhanced header with co-leader count and management subtitle
+     - Branch badge display for each co-leader
+     - Collapsible permission panels with smooth transitions
+     - Better empty state with call-to-action button
+   
+   - **Enhanced Permission Toggles:**
+     - Redesigned toggle switches with visual checkmark/cross indicators
+     - Improved color coding (green for enabled, gray for disabled)
+     - Better icon styling with gradient backgrounds
+     - Enhanced hover states and transitions
+     - Border highlights for better visibility
+     - Clearer permission descriptions
+   
+   - **Appoint Co-Leader Feature:**
+     - Added "Appoint Co-Leader" button in card header
+     - Beautiful modal with search functionality
+     - Branch filter for easy student selection
+     - Real-time search by name, roll number, or branch
+     - Visual feedback with loading states
+     - Information tooltip explaining appointment process
+     - Automatic default permissions assignment
+     - Success/error toast notifications
+   
+   - **Remove Co-Leader Feature:**
+     - Remove button in each co-leader card header
+     - Confirmation dialog before removal
+     - Loading state during removal process
+     - Automatic permission cleanup
+     - Success notification
+     - Proper error handling
+   
+   - **Additional Improvements:**
+     - Better responsive design
+     - Improved accessibility
+     - Consistent styling with app theme
+     - Added Sparkles icon for premium feel
+     - Enhanced card shadows and borders
+     - Better visual feedback for all interactions
+
 
 > 10/4/26
 1)  fix: [NoticeBoard - Firestore] the NoticeBoard data in the firebase is being stored in a very unorganized way, make it organized, so that it can be easy to find the data if searched in the firebase

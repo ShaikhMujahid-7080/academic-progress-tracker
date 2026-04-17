@@ -1,4 +1,4 @@
-import { Trash2, Edit2, Calendar, Clock, GraduationCap, BookOpen, FileBadge, CheckCircle2, Circle, Pin, PinOff } from "lucide-react";
+import { Trash2, Edit2, Calendar, Clock, GraduationCap, BookOpen, FileBadge, CheckCircle2, Circle, Pin, PinOff, Users } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -39,8 +39,11 @@ export function AssessmentItem({
         const t = type?.toLowerCase() || '';
         if (t.includes('ca')) return 'bg-orange-100 text-orange-700 border-orange-200';
         if (t.includes('sem')) return 'bg-red-100 text-red-700 border-red-200';
-        if (t.includes('quiz')) return 'bg-blue-100 text-blue-700 border-blue-200';
-        if (t.includes('assign')) return 'bg-green-100 text-green-700 border-green-200';
+        if (t.includes('quiz') || t.includes('test')) return 'bg-blue-100 text-blue-700 border-blue-200';
+        if (t.includes('assign') || t.includes('submission')) return 'bg-green-100 text-green-700 border-green-200';
+        if (t.includes('oral') || t.includes('viva')) return 'bg-cyan-100 text-cyan-700 border-cyan-200';
+        if (t.includes('practical') || t.includes('lab')) return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+        if (t.includes('project') || t.includes('seminar')) return 'bg-rose-100 text-rose-700 border-rose-200';
         return 'bg-purple-100 text-purple-700 border-purple-200';
     };
 
@@ -57,6 +60,18 @@ export function AssessmentItem({
                     <span className="text-xs text-gray-500 font-medium">
                         Posted by {notice.createdBy}
                     </span>
+                    {/* Branch Badges */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                        {(notice.targetBranches || ['All']).map((branch, idx) => (
+                            <span key={idx} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${branch === 'All'
+                                ? 'bg-purple-100 text-purple-700 border-purple-200'
+                                : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                }`}>
+                                <Users className="w-2.5 h-2.5" />
+                                {branch === 'All' ? 'All' : branch}
+                            </span>
+                        ))}
+                    </div>
                     {isDone && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
                             ✓ Completed

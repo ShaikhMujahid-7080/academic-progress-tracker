@@ -145,6 +145,20 @@ export function NoticeItem({ notice, currentUser, isAdmin, isCoLeader, canManage
             )}
           </div>
 
+          {/* Branch Badges */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {(notice.targetBranches || ['All']).map((branch, idx) => (
+              <div key={idx} className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border ${
+                branch === 'All' 
+                ? 'bg-purple-100 text-purple-700 border-purple-200' 
+                : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+              }`}>
+                <Users className="w-2.5 h-2.5" />
+                <span className="font-medium">{branch === 'All' ? 'All Branches' : branch}</span>
+              </div>
+            ))}
+          </div>
+
           {/* Pinned Indicator - Visible to everyone */}
           {notice.isPinned && (
             <div className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">

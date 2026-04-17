@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, Bell, User, Clock, Settings, Edit3, Save, X, CheckCircle2, Circle, Pin, PinOff } from "lucide-react";
+import { Trash2, Bell, User, Clock, Settings, Edit3, Save, X, CheckCircle2, Circle, Pin, PinOff, Users } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -171,6 +171,18 @@ export function ReminderItem({ notice, currentUser, isAdmin, isCoLeader, canMana
               <div className="flex items-center gap-1">
                 <User className="w-3 h-3" />
                 <span className="truncate max-w-[120px] sm:max-w-none">By {notice.createdBy}</span>
+              </div>
+              {/* Branch Badges */}
+              <div className="flex items-center gap-1 flex-wrap">
+                {(notice.targetBranches || ['All']).map((branch, idx) => (
+                  <span key={idx} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${branch === 'All'
+                    ? 'bg-purple-100 text-purple-700 border-purple-200'
+                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    }`}>
+                    <Users className="w-2.5 h-2.5" />
+                    {branch === 'All' ? 'All' : branch}
+                  </span>
+                ))}
               </div>
             </div>
           </div>

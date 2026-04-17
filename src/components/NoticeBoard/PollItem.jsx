@@ -307,6 +307,18 @@ export function PollItem({ notice, currentUser, students, isAdmin, isCoLeader, c
               <span className="truncate">By {notice.createdBy}</span>
               <span>•</span>
               <span>{totalVotes} votes</span>
+              {/* Branch Badges */}
+              <div className="flex items-center gap-1 flex-wrap ml-1">
+                {(notice.targetBranches || ['All']).map((branch, idx) => (
+                  <span key={idx} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${branch === 'All'
+                    ? 'bg-purple-100 text-purple-700 border-purple-200'
+                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    }`}>
+                    <Users className="w-2.5 h-2.5" />
+                    {branch === 'All' ? 'All' : branch}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
