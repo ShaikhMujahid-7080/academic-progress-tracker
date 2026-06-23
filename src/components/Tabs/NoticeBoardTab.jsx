@@ -20,7 +20,8 @@ import {
   Terminal,
   Paperclip,
   Sparkles,
-  History
+  History,
+  Info
 } from "lucide-react";
 import { useNoticeBoard } from "../hooks/useNoticeBoard";
 import { useStudentManagement } from "../hooks/useStudentManagement";
@@ -67,6 +68,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [showReorderModal, setShowReorderModal] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [selectedNoticeForPermissions, setSelectedNoticeForPermissions] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -244,7 +246,14 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
       confirmColor: 'red',
       icon: 'danger',
       onConfirm: async () => {
-        const success = await deleteNotice(noticeId, notice?.meta?.filePath);
+        let filePaths = [];
+        if (notice?.meta?.filePath) filePaths.push(notice.meta.filePath);
+        if (notice?.meta?.files) {
+          notice.meta.files.forEach(f => {
+            if (f.filePath) filePaths.push(f.filePath);
+          });
+        }
+        const success = await deleteNotice(noticeId, filePaths);
         if (success) {
           toast.success('✅ Notice deleted successfully!');
         } else {
@@ -447,26 +456,36 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
             </p>
           </div>
 
-          {canManageNotices && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowReorderModal(true)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
-                title="Reorder Notices"
-              >
-                <ArrowUpDown className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setShowCreateForm(true)}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-200 active:scale-95 disabled:opacity-50 text-xs sm:text-sm"
-              >
-                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Create Notice</span>
-                <span className="sm:hidden">Create</span>
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className={`p-2 sm:px-3 sm:py-2 rounded-xl transition-all flex items-center gap-1.5 ${showInfo ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              title="Tips & Info"
+            >
+              <Info className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Tips</span>
+            </button>
+            {canManageNotices && (
+              <>
+                <button
+                  onClick={() => setShowReorderModal(true)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                  title="Reorder Notices"
+                >
+                  <ArrowUpDown className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-200 active:scale-95 disabled:opacity-50 text-xs sm:text-sm"
+                >
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Create Notice</span>
+                  <span className="sm:hidden">Create</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Category Tabs (Moved to Header) */}
@@ -500,7 +519,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
 
       {/* Privileges Info Banner */}
       {
-        canManageNotices && (
+        showInfo && canManageNotices && (
           <div className={`rounded-2xl p-4 border ${isAdmin
             ? 'bg-yellow-50 border-yellow-200'
             : 'bg-purple-50 border-purple-200'
@@ -534,7 +553,7 @@ export function NoticeBoardTab({ selectedStudent, semester }) {
 
       {/* User Info Banner */}
       {
-        !canManageNotices && (
+        showInfo && !canManageNotices && (
           <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
             <div className="flex items-center gap-3">
               <Megaphone className="w-5 h-5 text-blue-600" />

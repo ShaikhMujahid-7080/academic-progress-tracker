@@ -24,17 +24,27 @@ npm run deploy
 
 11) fix: [firebase] find and fix the problem where sometimes "admissionYear: 2023, isDSY: true" this data form firebase admin database is automatically gets converted to "admissionYear: 2024, isDSY: false"
 12) enhance: [AdminPrivileges] enhance the UI/UX and working/features of the Quick Actions Card
-13) 
+13) add: [StudentDirectory] add a feature or function that displays all the now active/online students
+14) add: [PrivateMessaging] add a feature or function that allows students to send private messages to each other (dissapering msgs after 10 mins)
+15) enhance: [ProfilePage] instead of viewing the profile of other students in a card make it viewable in a popup window
+16) fix: [MigrationCode] Remove all the old migration codes that are no longer needed (e.g NoticeBoard Data Migration, Academic Data Migration, etc.)
+17) fix: [firestore] enhance the way the "academic-data" of students (from different branch and year) is stored in the firestore make it more efficient
 
-16) 
-17) enhance: [ProfilePage] instead of viewing the profile of other students in a card make it viewable in a popup window
-18) enhance: [ProfilePage] enhance the UI/UX of the profile card
-19) 
+
+> 23/6/26
+- Fixed:
+  1.  [AcademicProgression] new term/semester has already started yet the Academic Progression hasn't been updated/changed to next semester
+  2.  [GlobalNoticeBoard] hide the "Admin Privileges", "Co-Leader Privileges" & "Other Info" note/info under a tips button or something
+  3.  [Auto-DeleteNotice] the Auto-delete Notice function isn't working properly, the notices are being deleted/hidden from the UI but they are still there in the firebase database and supabase storage
+  4.  [Supabase] the files from the StudyMaterial Notice are being stored with a random name on the supabase, make it to store with an efficient name & time 
+- Changed:
+  1.  [ProfilePage] change the UI/UX of the profile card make it more organized, simple, efficient and attractive
+  2.  [Header] display the current semester & branch in place of "Academic Year" in the top bar. and display the Academic Year in Academic Progression card
 
 
 
 > 18/4/26
-18) enhance: [ProfilePage] enhanced the UI/UX of the profile card
+1)  enhance: [ProfilePage] enhanced the UI/UX of the profile card
    - **Cover Section**: Taller gradient cover (h-40/h-52) with animated floating orbs, diagonal stripe overlay, and sparkle accent on hover
    - **Avatar**: Larger avatar (w-36/w-48), conic-gradient glow ring on hover, gradient border matching role theme, online status dot with ping animation
    - **Name & Role Badge**: Role badge uses dynamic role-colored gradient background, name rendered with role-tinted gradient text via inline styles

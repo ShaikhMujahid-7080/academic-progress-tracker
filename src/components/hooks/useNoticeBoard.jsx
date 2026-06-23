@@ -56,8 +56,12 @@ export function useNoticeBoard(currentUser, currentSemester) {
     const unsubscribe = onSnapshot(q,
       (querySnapshot) => {
         const noticesList = [];
-        querySnapshot.forEach((doc) => {
-          const noticeData = { id: doc.id, ...doc.data() };
+        const expiredIds = [];
+        const expiredFilePaths = [];
+        const now = new Date();
+
+        querySnapshot.forEach((docSnap) => {
+          const noticeData = { id: docSnap.id, ...docSnap.data() };
 
           // Filter by semester: 
           // 1. If notice has a semester field, it must match currentSemester
@@ -70,7 +74,15 @@ export function useNoticeBoard(currentUser, currentSemester) {
           // If the notice has an expiration date and it's in the past, hide it
           if (noticeData.deleteAt) {
             const deleteAtDate = noticeData.deleteAt.toDate ? noticeData.deleteAt.toDate() : new Date(noticeData.deleteAt);
-            if (deleteAtDate < new Date()) {
+            if (deleteAtDate < now) {
+              expiredIds.push(noticeData.id);
+              if (noticeData.type === 'material' && noticeData.meta?.files) {
+                noticeData.meta.files.forEach(f => {
+                  if (f.filePath) expiredFilePaths.push(f.filePath);
+                });
+              } else if (noticeData.meta?.filePath) {
+                expiredFilePaths.push(noticeData.meta.filePath);
+              }
               return;
             }
           }
@@ -120,6 +132,20 @@ export function useNoticeBoard(currentUser, currentSemester) {
 
         setNotices(noticesList);
         setIsLoading(false);
+
+        // Perform auto-cleanup if user has permissions
+        if (canManageNotices && expiredIds.length > 0) {
+          const batch = writeBatch(db);
+          expiredIds.forEach(id => {
+            batch.delete(doc(db, 'noticeBoard', id));
+          });
+          batch.commit().then(() => {
+            if (expiredFilePaths.length > 0) {
+              supabase.storage.from('notices').remove(expiredFilePaths)
+                .catch(err => console.error('Error cleaning up notice files:', err));
+            }
+          }).catch(err => console.error('Error during auto-cleanup:', err));
+        }
       },
       (error) => {
         console.error('Error loading notices:', error);
@@ -130,84 +156,6 @@ export function useNoticeBoard(currentUser, currentSemester) {
     return () => unsubscribe();
   }, [currentUser, canManageNotices, currentSemester, isAdmin]); // Added currentSemester and isAdmin to dependencies
 
-  // Auto-cleanup expired notices (admin and co-leaders only)
-  useEffect(() => {
-    if (!canManageNotices || notices.length === 0) return;
-
-    const cleanupExpiredNotices = async () => {
-      const expiredIds = [];
-      const now = new Date();
-
-      // We use the full notice list from state which is already filtered by semester
-      // but we need to check if any notice (even hidden ones) should be wiped from DB
-      // However, we only have access to notices in the current listener state.
-      // To keep it simple and safe, we'll only clean up notices that are currently in the state (filtered by semester).
-
-      const q = query(
-        collection(db, 'noticeBoard'),
-        orderBy('deleteAt', 'asc')
-      );
-
-      // We'll do a fresh query to find all expired notices regardless of semester
-      // but only if user is admin. This ensures the DB stays clean globally.
-      const snapshot = await onSnapshot(q, (snapshot) => {
-        const batch = writeBatch(db);
-        let hasExpired = false;
-
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.deleteAt) {
-            const deleteAtDate = data.deleteAt.toDate ? data.deleteAt.toDate() : new Date(data.deleteAt);
-            if (deleteAtDate < now) {
-              batch.delete(doc.ref);
-              hasExpired = true;
-            }
-          }
-        });
-
-        if (hasExpired) {
-          batch.commit().catch(err => console.error('Error during notice cleanup:', err));
-        }
-      });
-
-      return snapshot; // Return unsubscribe
-    };
-
-    let unsubscribeCleanup;
-    if (canManageNotices) {
-      // Just check once per mount/update
-      const now = new Date();
-      const batch = writeBatch(db);
-      let hasExpired = false;
-      const expiredFilePaths = [];
-
-      notices.forEach(notice => {
-        if (notice.deleteAt) {
-          const deleteAtDate = notice.deleteAt.toDate ? notice.deleteAt.toDate() : new Date(notice.deleteAt);
-          if (deleteAtDate < now) {
-            batch.delete(doc(db, 'noticeBoard', notice.id));
-            if (notice.type === 'material' && notice.meta?.filePath) {
-              expiredFilePaths.push(notice.meta.filePath);
-            }
-            hasExpired = true;
-          }
-        }
-      });
-
-      if (hasExpired) {
-        batch.commit()
-          .then(() => {
-            if (expiredFilePaths.length > 0) {
-              supabase.storage.from('notices').remove(expiredFilePaths)
-                .catch(err => console.error('Error cleaning up notice files:', err));
-            }
-          })
-          .catch(err => console.error('Cleanup error:', err));
-      }
-    }
-
-    return () => unsubscribeCleanup && unsubscribeCleanup();
-  }, [canManageNotices, notices.length]); // Track notices.length to trigger cleanup 
 
   // Create new notice (admin and co-leaders only)
   const createNotice = async (type, content, meta = {}, allowedUsers = [], isPublic = false, deleteAt = null, targetBranches = ['All']) => {
@@ -294,14 +242,18 @@ export function useNoticeBoard(currentUser, currentSemester) {
     }
   };
 
-  const deleteNotice = async (noticeId, filePath = null) => {
+  const deleteNotice = async (noticeId, filePaths = null) => {
     if (!canManageNotices) {
       throw new Error('Only admin and co-leaders can delete notices');
     }
 
     try {
-      if (filePath) {
-        await deleteNoticeFile(filePath);
+      if (filePaths) {
+        const pathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
+        if (pathsArray.length > 0) {
+          const { error } = await supabase.storage.from('notices').remove(pathsArray);
+          if (error) console.error('Error deleting notice files:', error);
+        }
       }
       await deleteDoc(doc(db, 'noticeBoard', noticeId));
       return true;
@@ -557,11 +509,18 @@ export function useNoticeBoard(currentUser, currentSemester) {
     }
   };
 
-  // Upload notice file to Supabase Storage
   const uploadNoticeFile = async (file) => {
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
+      // Sanitize the original name: replace spaces with hyphens, remove non-alphanumeric chars
+      const sanitizedName = originalName.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'file';
+      
+      const date = new Date();
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const timeStr = `${String(date.getHours()).padStart(2, '0')}-${String(date.getMinutes()).padStart(2, '0')}-${String(date.getSeconds()).padStart(2, '0')}`;
+      
+      const fileName = `${sanitizedName}_${dateStr}_${timeStr}.${fileExt}`;
       const filePath = `notices/${fileName}`;
 
       const { data, error } = await supabase.storage

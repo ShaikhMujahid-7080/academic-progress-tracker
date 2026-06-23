@@ -1,7 +1,7 @@
 /**
  * Computes the default semester for a student based on their admission year and the current date.
  * Uses academic-year boundaries: each academic year (e.g., 2024-25) has two semesters.
- * Academic year is considered to start in July.
+ * Academic year is considered to start in June.
  */
 export const computeDefaultSemester = (student) => {
     if (!student || !student.admissionYear) return null;
@@ -9,7 +9,7 @@ export const computeDefaultSemester = (student) => {
     const month = now.getMonth() + 1; // 1-12
 
     // Determine the start year of the current academic year
-    const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+    const currentAcademicYearStart = month >= 6 ? now.getFullYear() : now.getFullYear() - 1;
     const admissionAcademicYearStart = Number(student.admissionYear);
 
     // Number of full academic years passed since admission
@@ -23,8 +23,8 @@ export const computeDefaultSemester = (student) => {
     if (yearsPassed < 0) yearsPassed = 0;
 
     const startSem = student.isDSY ? 3 : 1;
-    // semesterIndex: 0 for first semester of academic year (July-Dec), 1 for second (Jan-Jun)
-    const semesterIndex = month >= 7 ? 0 : 1;
+    // semesterIndex: 0 for first semester of academic year (Jun-Dec), 1 for second (Jan-May)
+    const semesterIndex = month >= 6 ? 0 : 1;
 
     let sem = startSem + yearsPassed * 2 + semesterIndex;
     if (sem < startSem) sem = startSem;
@@ -40,7 +40,7 @@ export const getStudentYear = (student) => {
     const sem = computeDefaultSemester(student);
     const now = new Date();
     const month = now.getMonth() + 1;
-    const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+    const currentAcademicYearStart = month >= 6 ? now.getFullYear() : now.getFullYear() - 1;
     let yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
     if (student.isYD) {
         yearsPassed -= 1;
@@ -54,7 +54,7 @@ export const getStudentYear = (student) => {
     const baseMaxYears = student.isDSY ? 3 : 4;
 
     if (yearsPassed >= baseMaxYears) {
-        if (month >= 7 || yearsPassed > baseMaxYears) return "Passout";
+        if (month >= 6 || yearsPassed > baseMaxYears) return "Passout";
     }
 
     if (sem <= 2) return "1st Year";
@@ -71,7 +71,7 @@ export const hasCompletedFourYears = (student) => {
     if (!student || !student.admissionYear) return false;
     const now = new Date();
     const month = now.getMonth() + 1;
-    const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+    const currentAcademicYearStart = month >= 6 ? now.getFullYear() : now.getFullYear() - 1;
     let yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
     if (student.isYD) yearsPassed -= 1;
     return yearsPassed >= 4;
@@ -84,7 +84,7 @@ export const shouldDeleteStudent = (student) => {
     if (!student || !student.admissionYear) return false;
     const now = new Date();
     const month = now.getMonth() + 1;
-    const currentAcademicYearStart = month >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+    const currentAcademicYearStart = month >= 6 ? now.getFullYear() : now.getFullYear() - 1;
     let yearsPassed = currentAcademicYearStart - Number(student.admissionYear);
     if (student.isYD) yearsPassed -= 1;
 

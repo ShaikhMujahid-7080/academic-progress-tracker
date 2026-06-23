@@ -81,13 +81,8 @@ export function Header({ semester, syncStatus, selectedStudent, onStudentSwitch,
 
               <div className="w-px h-3 bg-gray-300"></div>
 
-              <div className="text-gray-500">
-                {(() => {
-                  const now = new Date();
-                  const year = now.getFullYear();
-                  const startYear = now.getMonth() >= 5 ? year : year - 1;
-                  return `${startYear}-${(startYear + 1).toString().slice(-2)}`;
-                })()}
+              <div className="text-gray-500 font-medium">
+                Sem {semester} • {selectedStudent?.branch || 'General'}
               </div>
             </div>
 
@@ -112,17 +107,12 @@ export function Header({ semester, syncStatus, selectedStudent, onStudentSwitch,
 
           {/* Right Section */}
           <div className="flex items-center gap-4 md:gap-8">
-            {/* Academic Year */}
+            {/* Semester & Branch */}
             <div className="hidden md:flex flex-col items-end text-right">
-              <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Academic Year</span>
+              <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Semester & Branch</span>
               <span className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-blue-500" />
-                {(() => {
-                  const now = new Date();
-                  const year = now.getFullYear();
-                  const startYear = now.getMonth() >= 5 ? year : year - 1;
-                  return `${startYear}-${(startYear + 1).toString().slice(-2)}`;
-                })()}
+                <GraduationCap className="w-4 h-4 text-blue-500" />
+                Sem {semester} • {selectedStudent?.branch || 'General'}
               </span>
             </div>
 

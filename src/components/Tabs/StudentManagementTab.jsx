@@ -843,593 +843,274 @@ export function StudentManagementTab({
         <p className="text-sm sm:text-base text-gray-600">Personal Academic Portfolio & Institutional Identity</p>
       </div>
 
-      {/* Full Premium Profile Board Grid Wrapper */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
-        {/* Left Column: Session and Status Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 flex flex-col gap-6">
-            {/* Session User Info */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">Active Session</h3>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Identity Management</p>
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedStudent?.rollNo === ADMIN_STUDENT.rollNo ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
-                    <User size={16} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">Logged In As</p>
-                    <p className="text-xs font-bold text-gray-900 truncate">{selectedStudent?.name}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 pt-2 border-t border-gray-200">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedStudent?.isProtected ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-500'}`}>
-                    <Lock size={16} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">Account Security</p>
-                    <p className={`text-xs font-bold ${selectedStudent?.isProtected ? 'text-emerald-600' : 'text-orange-500'}`}>
-                      {selectedStudent?.isProtected ? 'Password Protected' : 'No Password Set'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Branch Identity */}
-            <div className="p-4 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl text-white shadow-lg shadow-blue-200 overflow-hidden relative group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8" />
-              <div className="relative z-10">
-                <div className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center mb-3">
-                  <Shield size={16} className="text-white" />
-                </div>
-                <p className="text-[9px] font-black uppercase tracking-wider text-blue-100 mb-1">Branch / Collective</p>
-                <h4 className="text-sm font-bold truncate leading-tight">{selectedStudent?.branch || 'General Branch'}</h4>
-              </div>
-            </div>
-
-            {/* Quick Stats Helper */}
-            <div className="p-4 bg-gray-900 rounded-2xl text-white">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">Security Audit</span>
-                <span className="text-[8px] font-bold px-1.5 py-0.5 bg-green-500 rounded uppercase">Live</span>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400">Identity Mode</span>
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">{selectedStudent?.role || 'Student'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400">Privacy Status</span>
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Encrypted</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Full Premium Profile Board (Col-span 2) */}
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/80 overflow-hidden relative group/profile hover:shadow-[0_20px_50px_-8px_rgba(8,112,184,0.12)] transition-all duration-700 ease-out">
+      {/* Profile Card Container */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6 mt-4 relative group/profile">
+        {/* Top Color Accent */}
+        <div className={`h-1.5 w-full bg-gradient-to-r ${getRoleTheme(viewedStudent).gradient}`} />
+        
+        {/* Profile Card Header (Horizontal) */}
+        <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6 border-b border-gray-100">
           
-          {/* Cover Gradient Section — Upgraded with animated orbs */}
-          <div className={`h-40 sm:h-52 w-full relative overflow-hidden transition-colors duration-700 bg-gradient-to-br ${getRoleTheme(viewedStudent).gradient}`}>
-            {/* Layered pattern overlays */}
-            <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '28px 28px' }} />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/25" />
-            
-            {/* Floating decorative orbs */}
-            <div className="absolute top-6 right-10 w-20 h-20 rounded-full bg-white/10 blur-xl animate-pulse" style={{ animationDuration: '4s' }} />
-            <div className="absolute bottom-4 left-16 w-14 h-14 rounded-full bg-white/10 blur-lg animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
-            <div className="absolute top-3 left-1/3 w-8 h-8 rounded-full bg-white/15 blur-md animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
-            
-            {/* Sparkle accent top-right */}
-            <div className="absolute top-5 right-6 text-white/30 opacity-0 group-hover/profile:opacity-100 transition-opacity duration-700">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            
-            {/* Subtle diagonal stripe accent */}
-            <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'repeating-linear-gradient(135deg, white 0px, white 1px, transparent 1px, transparent 12px)' }} />
-          </div>
-
-          {/* Card Content */}
-          <div className="relative z-10 p-6 sm:p-10 pt-0">
-            <div className="flex flex-col lg:flex-row gap-8">
-              {/* Left Column: Avatar and Quick Info */}
-              <div className="lg:w-1/3 flex flex-col items-center -mt-20 sm:-mt-28">
-                {/* Avatar Container — Enhanced with animated glow ring */}
-                <div className="relative group/photo mb-3">
-                  {/* Animated glow ring behind avatar */}
-                  <div 
-                    className="absolute -inset-2 rounded-[2.8rem] opacity-0 group-hover/photo:opacity-60 transition-all duration-700 z-0 blur-xl"
-                    style={{ background: `conic-gradient(from 0deg, ${getRoleTheme(viewedStudent).accent}, transparent, ${getRoleTheme(viewedStudent).accent})`, animationDuration: '3s' }}
-                  />
-                  
-                  {/* Outer ring with gradient border */}
-                  <div 
-                    className="w-36 h-36 sm:w-48 sm:h-48 rounded-[2.5rem] p-[3px] shadow-xl transition-all duration-700 group-hover/photo:scale-[1.03] group-hover/photo:shadow-2xl relative z-20"
-                    style={{ background: `linear-gradient(135deg, ${getRoleTheme(viewedStudent).accent}90, white 40%, white 60%, ${getRoleTheme(viewedStudent).accent}90)` }}
-                  >
-                    <div className="w-full h-full bg-white rounded-[2.2rem] overflow-hidden flex items-center justify-center relative shadow-inner">
-                      {viewedStudent?.photoURL ? (
-                        <img src={viewedStudent.photoURL} alt={viewedStudent.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                          <User className="w-16 h-16 sm:w-20 sm:h-20 text-gray-200" />
-                        </div>
-                      )}
-
-                      {/* Photo Action Overlay */}
-                      {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-[2px]">
-                          <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="p-3 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-2xl text-white transition-all transform hover:scale-110 border border-white/30 shadow-lg"
-                            title="Change Photo"
-                          >
-                            <Camera className="w-5 h-5" />
-                          </button>
-                          {viewedStudent?.photoURL && (
-                            <button
-                              onClick={handleRemovePhoto}
-                              className="p-3 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-2xl text-white transition-all transform hover:scale-110 border border-red-500/30 shadow-lg"
-                              title="Remove Photo"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {isUploadingPhoto && (
-                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-30">
-                          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                        </div>
-                      )}
-                    </div>
+          {/* Avatar */}
+          <div className="relative group/photo shrink-0">
+            <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full p-1 bg-gradient-to-br ${getRoleTheme(viewedStudent).gradient}`}>
+              <div className="w-full h-full bg-white rounded-full overflow-hidden relative">
+                {viewedStudent?.photoURL ? (
+                  <img src={viewedStudent.photoURL} alt={viewedStudent.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                    <User className="w-12 h-12 text-gray-300" />
                   </div>
-                  
-                  {/* Online status dot — positioned at bottom-right of avatar */}
-                  <div className="absolute bottom-2 right-2 z-30">
-                    <div className="relative">
-                      <div className="w-4 h-4 rounded-full bg-green-500 border-[3px] border-white shadow-sm" />
-                      <div className="absolute inset-0 w-4 h-4 rounded-full bg-green-400 animate-ping opacity-40" />
-                    </div>
-                  </div>
-                </div>
-
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-
-                {/* Name & Role Section — Enhanced */}
-                <div className="text-center w-full space-y-3 mt-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-center gap-2 group/name">
-                      {isEditingName && (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) ? (
-                        <div className="flex items-center gap-2 max-w-xs mx-auto">
-                          <input
-                            type="text"
-                            value={tempName}
-                            onChange={(e) => setTempName(e.target.value)}
-                            className="px-3 py-1.5 text-xl font-black border-2 border-primary-100 rounded-xl focus:ring-4 focus:ring-primary-50 focus:border-primary-500 text-center w-full transition-all"
-                            autoFocus
-                          />
-                          <button onClick={handleSaveName} className="p-2 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200 hover:bg-green-600 transition-all">
-                            <Check className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          {/* Role badge with glow */}
-                          <div 
-                            className="flex items-center gap-2 px-4 py-1.5 rounded-full border shadow-sm group-hover/name:shadow-md transition-all duration-300"
-                            style={{ 
-                              background: `linear-gradient(135deg, ${getRoleTheme(viewedStudent).accent}08, ${getRoleTheme(viewedStudent).accent}15)`,
-                              borderColor: `${getRoleTheme(viewedStudent).accent}25`
-                            }}
-                          >
-                            {viewedStudent?.rollNo === ADMIN_STUDENT.rollNo ? (
-                              <div className="flex items-center gap-1.5 text-amber-600">
-                                <BadgeCheck className="w-4 h-4 fill-amber-100" />
-                                <span className="text-[10px] font-black uppercase tracking-wider">Verified Admin</span>
-                              </div>
-                            ) : (
-                              <div className={`flex items-center gap-1.5 ${viewedStudent?.role === 'co-leader' ? 'text-purple-600' : 'text-blue-600'}`}>
-                                <Shield className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-black uppercase tracking-wider">{viewedStudent?.role || 'Student'}</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Name with enhanced gradient + edit */}
-                          <div className="flex items-center gap-2">
-                            <h2 
-                              className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-none text-center"
-                              style={{ 
-                                background: `linear-gradient(135deg, #111827, ${getRoleTheme(viewedStudent).accent}90, #374151)`,
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
-                              }}
-                            >
-                              {viewedStudent?.name}
-                            </h2>
-                            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
-                              <button onClick={handleStartEditName} className="p-1.5 text-gray-400 hover:text-blue-600 opacity-0 group-hover/name:opacity-100 transition-all hover:bg-blue-50 rounded-lg">
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* ID badge with copy — refined */}
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-50 border border-gray-100">
-                        <p className="text-gray-400 font-mono text-[11px] uppercase tracking-widest font-bold">
-                          ID: {viewedStudent?.rollNo}
-                        </p>
-                        <button
-                          onClick={() => copyToClipboard(viewedStudent?.rollNo, 'ID')}
-                          className="p-1 text-gray-300 hover:text-blue-500 transition-colors"
-                          title="Copy ID"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Profile Action Buttons — Enhanced with gradient hover */}
-                  <div className="flex flex-col gap-2.5 w-full pt-5">
-                    {selectedStudent?.rollNo === viewedStudent?.rollNo ? (
-                      <div className="flex items-center justify-center gap-2.5 py-3.5 px-5 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 rounded-2xl border border-emerald-100/80 font-black text-[10px] uppercase tracking-widest shadow-sm">
-                        <div className="relative">
-                          <Check className="w-4 h-4" />
-                          <div className="absolute inset-0 w-4 h-4 animate-ping opacity-20">
-                            <Check className="w-4 h-4 text-emerald-500" />
-                          </div>
-                        </div>
-                        Your Active Profile
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleSwitchAccount(viewedStudent)}
-                          className="group/btn relative flex items-center justify-center gap-3 w-full py-4 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all shadow-xl shadow-gray-200 font-black text-xs uppercase tracking-widest overflow-hidden"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
-                          <Lock className="w-4 h-4 relative z-10 group-hover/btn:rotate-12 transition-transform" />
-                          <span className="relative z-10">Access Control Panel</span>
-                          <Zap className="w-3.5 h-3.5 relative z-10 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                        </button>
-
-                        <button
-                          onClick={() => setViewedStudent(selectedStudent)}
-                          className="flex items-center justify-center gap-2 w-full py-3 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest leading-none group/back"
-                        >
-                          <ChevronRight className="w-4 h-4 rotate-180 group-hover/back:-translate-x-1 transition-transform" />
-                          <span className="truncate">Return to Dashboard</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Sync status indicator — refined */}
-                <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100/60 w-full justify-center">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Real-time Sync</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Information & Connections */}
-              <div className="flex-1 space-y-8 lg:pt-6">
-                {/* Academic Identity Grid — Fixed with inline styles */}
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <GraduationCap className="w-4 h-4 text-blue-500" />
-                    <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Academic Identity</h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {[
-                      { id: 'academicYear', label: 'Academic Year', value: getStudentYear(viewedStudent), icon: GraduationCap, color: 'blue' },
-                      { id: 'admissionYear', label: 'Admission', value: viewedStudent?.admissionYear, icon: Calendar, color: 'indigo' },
-                      { id: 'branch', label: 'Specialization', value: viewedStudent?.branch || 'General', icon: getBranchIcon(viewedStudent?.branch), color: 'emerald' },
-                      { id: 'isDSY', label: 'Entry Type', value: viewedStudent?.isDSY ? 'Direct Second Year' : 'First Year Start', icon: Bookmark, color: 'orange' },
-                      { id: 'isYD', label: 'Academic Status', value: viewedStudent?.isYD ? 'Year Drop Active' : 'Regular Progression', icon: AlertTriangle, color: 'red' }
-                    ].map((stat, idx) => {
-                      const colors = statColorMap[stat.color] || statColorMap.blue;
-                      return (
-                        <div 
-                          key={idx} 
-                          className="p-4 rounded-2xl group/stat transition-all duration-300 relative cursor-default hover:-translate-y-0.5"
-                          style={{ 
-                            backgroundColor: `${colors.bg}80`,
-                            border: `1px solid ${colors.border}`,
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = colors.hoverBg;
-                            e.currentTarget.style.boxShadow = `0 10px 25px -5px ${colors.hoverShadow}`;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = `${colors.bg}80`;
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div 
-                              className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover/stat:scale-110"
-                              style={{ backgroundColor: colors.iconBg, border: `1px solid ${colors.iconBorder}`, color: colors.iconText }}
-                            >
-                              <stat.icon size={16} />
-                            </div>
-                            <span className="text-[10px] pr-5 font-bold uppercase tracking-wider" style={{ color: colors.label }}>{stat.label}</span>
-                            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && stat.id === 'admissionYear' && (
-                               <button onClick={() => handleStartEditProfile('admissionYear', viewedStudent?.admissionYear)} className="p-1.5 text-gray-400 hover:text-indigo-600 opacity-0 group-hover/stat:opacity-100 transition-all absolute top-3 right-3" title="Edit Admission Year">
-                                 <Edit3 size={14} />
-                               </button>
-                            )}
-                            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && stat.id === 'isDSY' && (
-                               <button onClick={async (e) => { 
-                                 await handleToggleDSY(viewedStudent, e);
-                                 setViewedStudent(prev => ({ ...prev, isDSY: !prev.isDSY }));
-                               }} className="p-1.5 text-gray-400 hover:text-orange-600 opacity-0 group-hover/stat:opacity-100 transition-all absolute top-3 right-3" title="Toggle DSY Status">
-                                 <RefreshCw size={14} />
-                               </button>
-                            )}
-                            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && stat.id === 'isYD' && (
-                               <button onClick={async (e) => { 
-                                 await handleToggleYD(viewedStudent, e);
-                                 setViewedStudent(prev => ({ ...prev, isYD: !prev.isYD }));
-                               }} className="p-1.5 text-gray-400 hover:text-red-600 opacity-0 group-hover/stat:opacity-100 transition-all absolute top-3 right-3" title="Toggle Year Drop Status">
-                                 <RefreshCw size={14} />
-                               </button>
-                            )}
-                          </div>
-                          <p className="text-sm sm:text-base font-black ml-1 truncate" style={{ color: colors.value }}>{stat.value}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Bio Section — Enhanced with quote styling */}
-                <div className="relative group/bio rounded-[2rem] p-6 sm:p-8 border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-500" style={{ background: 'linear-gradient(135deg, #f9fafb, #ffffff, #f9fafb)' }}>
-                  <Quote className="absolute -bottom-4 -right-2 w-36 h-36 text-gray-900/[0.02] -rotate-12 pointer-events-none transition-transform duration-700 group-hover/bio:scale-110 group-hover/bio:-rotate-6" />
-                  <Quote className="absolute top-4 left-6 w-8 h-8 text-gray-900/[0.04] rotate-180 pointer-events-none" />
-                  
-                  <div className="relative z-10 flex items-center justify-between mb-5 border-b border-gray-100/60 pb-4">
-                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                      <Quote className="w-4 h-4 text-primary-500" />
-                      Student Biography
-                    </h3>
-                    {!editingField && (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
-                      <button
-                        onClick={() => handleStartEditProfile('bio', viewedStudent?.bio)}
-                        className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary-600 hover:bg-white rounded-full transition-all border border-primary-100 hover:shadow-sm"
-                      >
-                        <Edit3 className="w-3 h-3 inline mr-1" /> Edit
+                )}
+                
+                {/* Photo Action Overlay */}
+                {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                    <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-white/20 hover:bg-white/40 rounded-full text-white transition-colors" title="Change Photo">
+                      <Camera className="w-4 h-4" />
+                    </button>
+                    {viewedStudent?.photoURL && (
+                      <button onClick={handleRemovePhoto} className="p-2 bg-red-500/80 hover:bg-red-500 rounded-full text-white transition-colors" title="Remove Photo">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                   </div>
-
-                  {editingField === 'bio' ? (
-                    <div className="space-y-4">
-                      <textarea
-                        value={tempValue}
-                        onChange={(e) => setTempValue(e.target.value)}
-                        placeholder="Share your academic mission or interests..."
-                        className="w-full p-5 bg-white border-2 border-primary-100 rounded-2xl focus:ring-4 focus:ring-primary-50 focus:border-primary-500 transition-all text-sm font-medium min-h-[120px]"
-                        autoFocus
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button onClick={handleCancelEditProfile} className="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-xl transition-all">Discard</button>
-                        <button
-                          onClick={handleSaveProfile}
-                          disabled={isSavingProfile}
-                          className="px-6 py-2.5 text-xs font-black uppercase tracking-widest bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-xl shadow-primary-200 flex items-center gap-2"
-                        >
-                          {isSavingProfile && <Loader2 className="w-3 h-3 animate-spin" />}
-                          Commit Changes
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`leading-relaxed text-sm font-medium relative z-10 ${viewedStudent?.bio ? 'text-gray-700' : 'text-gray-400 italic'}`} style={{ fontStyle: viewedStudent?.bio ? 'normal' : 'italic', lineHeight: '1.8' }}>
-                      {viewedStudent?.bio || (selectedStudent?.rollNo === viewedStudent?.rollNo ? "Your story haven't been shared yet. Use the edit button above to add a bio!" : "No information shared yet.")}
-                    </div>
-                  )}
-                </div>
-
-                {/* Connections Grid */}
-                <div className="grid grid-cols-1 gap-8">
-                  {/* Contact Coordinates — Enhanced */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-rose-500" />
-                      <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Contact Data</h3>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      {[
-                        { id: 'email', icon: Mail, label: 'Institution Email', value: viewedStudent?.email, color: '#e11d48', bg: '#fff1f2' },
-                        { id: 'phone', icon: Phone, label: 'Primary Contact', value: viewedStudent?.phone, color: '#059669', bg: '#ecfdf5' }
-                      ].map(field => (
-                        <div key={field.id} className="group/field relative">
-                          <div 
-                            className="flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5"
-                            style={{ 
-                              backgroundColor: field.value ? '#ffffff' : '#f9fafb',
-                              borderColor: field.value ? '#f3f4f6' : '#e5e7eb',
-                              borderStyle: field.value ? 'solid' : 'dashed',
-                            }}
-                            onMouseEnter={(e) => { if (field.value) e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(0,0,0,0.06)'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
-                          >
-                            <div 
-                              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover/field:scale-105"
-                              style={{ backgroundColor: field.value ? field.bg : '#f3f4f6', color: field.value ? field.color : '#d1d5db' }}
-                            >
-                              <field.icon className="w-5 h-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-0.5 truncate">{field.label}</p>
-                              <p className={`text-sm font-bold truncate ${field.value ? 'text-gray-900' : 'text-gray-400'}`}>
-                                {field.value || 'Data not provided'}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {field.value && (
-                                <button
-                                  onClick={() => copyToClipboard(field.value, field.id)}
-                                  className="p-2 text-gray-300 hover:text-blue-500 transition-colors opacity-0 group-hover/field:opacity-100"
-                                >
-                                  <Copy size={14} />
-                                </button>
-                              )}
-                              {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
-                                <button
-                                  onClick={() => handleStartEditProfile(field.id, field.value)}
-                                  className="p-2 text-gray-300 hover:text-emerald-600 transition-colors opacity-0 group-hover/field:opacity-100"
-                                >
-                                  <Edit3 size={14} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                )}
+                {isUploadingPhoto && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                   </div>
-
-                  {/* Professional Vectors — Enhanced */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-indigo-500" />
-                      <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Digital Footprint</h3>
-                    </div>
-
-                    <div className="grid gap-2.5">
-                      {[
-                        { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', value: viewedStudent?.linkedin, color: '#0077B5', bg: '#eff6ff' },
-                        { id: 'github', icon: Github, label: 'GitHub', value: viewedStudent?.github, color: '#24292f', bg: '#f3f4f6' },
-                        { id: 'website', icon: Globe, label: 'Portfolio', value: viewedStudent?.website, color: '#4f46e5', bg: '#eef2ff' }
-                      ].map(field => (
-                        <div key={field.id} className="group/vector">
-                          {field.value ? (
-                            <div 
-                              className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl transition-all duration-300 hover:-translate-y-0.5"
-                              onMouseEnter={(e) => { 
-                                e.currentTarget.style.borderColor = `${field.color}30`; 
-                                e.currentTarget.style.boxShadow = `0 10px 25px -5px ${field.color}10`; 
-                              }}
-                              onMouseLeave={(e) => { 
-                                e.currentTarget.style.borderColor = '#f3f4f6'; 
-                                e.currentTarget.style.boxShadow = 'none'; 
-                              }}
-                            >
-                              <div 
-                                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover/vector:scale-110"
-                                style={{ backgroundColor: '#f9fafb', color: '#6b7280' }}
-                                onMouseEnter={null}
-                              >
-                                <field.icon size={18} style={{ transition: 'color 0.3s' }} className="group-hover/vector:text-blue-600" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{field.label}</p>
-                                <a
-                                  href={field.value.startsWith('http') ? field.value : `https://${field.value}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs font-bold text-gray-900 hover:text-primary-600 truncate flex items-center gap-1.5 transition-colors"
-                                >
-                                  {field.value.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                                  <ExternalLink size={10} className="shrink-0 opacity-50 group-hover/vector:opacity-100 transition-opacity" />
-                                </a>
-                              </div>
-                              {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
-                                <button
-                                  onClick={() => handleStartEditProfile(field.id, field.value)}
-                                  className="p-2 text-gray-300 hover:text-primary-600 opacity-0 group-hover/vector:opacity-100 transition-all"
-                                >
-                                  <Edit3 size={14} />
-                                </button>
-                              )}
-                            </div>
-                          ) : (
-                            (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
-                              <button
-                                onClick={() => handleStartEditProfile(field.id, field.value)}
-                                className="w-full flex items-center gap-3 p-3.5 border-2 border-dashed border-gray-100 rounded-2xl hover:border-gray-200 hover:bg-gray-50 transition-all text-left group/add"
-                              >
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50 text-gray-300 group-hover/add:bg-blue-50 group-hover/add:text-blue-400 transition-colors">
-                                  <Plus size={18} />
-                                </div>
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover/add:text-gray-500 transition-colors">Link Your {field.label}</span>
-                              </button>
-                            )
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
+            </div>
+            {/* Online Status */}
+            <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+              <div className="flex items-center gap-3">
+                {isEditingName && (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
+                      className="px-3 py-1.5 text-xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-full max-w-[200px]"
+                      autoFocus
+                    />
+                    <button onClick={handleSaveName} className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 shrink-0">
+                      <Check className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 group/name">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{viewedStudent?.name}</h2>
+                    {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                      <button onClick={handleStartEditName} className="p-1.5 text-gray-400 hover:text-blue-600 opacity-0 group-hover/name:opacity-100 transition-opacity rounded-lg">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                {selectedStudent?.rollNo === viewedStudent?.rollNo ? (
+                  <div className="px-3 py-1.5 bg-green-50 text-green-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 border border-green-100">
+                    <Check className="w-3.5 h-3.5" /> Active Profile
+                  </div>
+                ) : (
+                  <>
+                    <button onClick={() => handleSwitchAccount(viewedStudent)} className="px-4 py-2 bg-gray-900 hover:bg-black text-white text-sm font-medium rounded-lg flex items-center gap-2 transition-colors">
+                      <Lock className="w-3.5 h-3.5" /> Login As
+                    </button>
+                    <button onClick={() => setViewedStudent(selectedStudent)} className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Return to My Profile">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`px-2.5 py-1 text-xs font-medium rounded-md border flex items-center gap-1.5 ${viewedStudent?.rollNo === ADMIN_STUDENT.rollNo ? 'bg-amber-50 text-amber-700 border-amber-200' : viewedStudent?.role === 'co-leader' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                {viewedStudent?.rollNo === ADMIN_STUDENT.rollNo ? <Crown className="w-3.5 h-3.5" /> : <Shield className="w-3.5 h-3.5" />}
+                {viewedStudent?.rollNo === ADMIN_STUDENT.rollNo ? 'Admin' : viewedStudent?.role === 'co-leader' ? 'Co-Leader' : 'Student'}
+              </span>
+              <span className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded-md font-mono flex items-center gap-1.5">
+                ID: {viewedStudent?.rollNo}
+                <button onClick={() => copyToClipboard(viewedStudent?.rollNo, 'ID')} className="text-gray-400 hover:text-gray-600">
+                  <Copy className="w-3 h-3" />
+                </button>
+              </span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Data Retention Notice */}
-      <div className="bg-amber-50 rounded-3xl p-6 md:p-8 border border-amber-200/60 shadow-lg flex flex-col md:flex-row md:items-center gap-5 my-6 relative group overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
-        <div className="p-3 bg-amber-100 rounded-2xl flex-shrink-0 w-fit relative z-10">
-          <ShieldAlert className="w-6 h-6 text-amber-600" />
-        </div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-2">
-            <h4 className="text-sm font-black text-amber-900 uppercase tracking-widest">Data Retention Policy</h4>
-            <Info className="w-4 h-4 text-amber-600/60"/>
+        {/* Profile Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x border-gray-100">
+          
+          {/* Main Column: About & Academic */}
+          <div className="lg:col-span-2 p-6 sm:p-8">
+            {/* About Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                  <User className="w-4 h-4" /> About
+                </h3>
+                {!editingField && (isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                  <button onClick={() => handleStartEditProfile('bio', viewedStudent?.bio)} className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md">
+                    <Edit3 className="w-3 h-3" /> Edit
+                  </button>
+                )}
+              </div>
+              
+              {editingField === 'bio' ? (
+                <div className="space-y-3">
+                  <textarea
+                    value={tempValue}
+                    onChange={(e) => setTempValue(e.target.value)}
+                    placeholder="Add your bio..."
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm min-h-[100px]"
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button onClick={handleCancelEditProfile} className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-md">Cancel</button>
+                    <button onClick={handleSaveProfile} disabled={isSavingProfile} className="px-4 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2">
+                      {isSavingProfile && <Loader2 className="w-3 h-3 animate-spin" />} Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className={`text-sm leading-relaxed ${viewedStudent?.bio ? 'text-gray-700' : 'text-gray-400 italic'}`}>
+                  {viewedStudent?.bio || "No bio added yet."}
+                </p>
+              )}
+            </div>
+
+            {/* Academic Info */}
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2 mb-4">
+                <GraduationCap className="w-4 h-4" /> Academic Details
+              </h3>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {[
+                  { id: 'academicYear', label: 'Year', value: getStudentYear(viewedStudent), icon: GraduationCap },
+                  { id: 'admissionYear', label: 'Admitted', value: viewedStudent?.admissionYear, icon: Calendar, editable: true },
+                  { id: 'branch', label: 'Branch', value: viewedStudent?.branch || 'General', icon: getBranchIcon(viewedStudent?.branch) },
+                  { id: 'isDSY', label: 'Entry', value: viewedStudent?.isDSY ? 'DSY' : 'Regular', icon: Bookmark, toggle: handleToggleDSY },
+                  { id: 'isYD', label: 'Status', value: viewedStudent?.isYD ? 'Year Drop' : 'Active', icon: AlertTriangle, toggle: handleToggleYD }
+                ].map((stat, idx) => (
+                  <div key={idx} className="p-3 bg-gray-50 border border-gray-100 rounded-xl relative group/stat">
+                    <div className="flex items-center gap-2 mb-1 text-gray-500">
+                      <stat.icon className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">{stat.label}</span>
+                    </div>
+                    <p className="font-semibold text-gray-900 text-sm truncate">{stat.value}</p>
+                    
+                    {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && stat.editable && (
+                      <button onClick={() => handleStartEditProfile(stat.id, viewedStudent?.[stat.id])} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover/stat:opacity-100 transition-opacity bg-white rounded shadow-sm border border-gray-200">
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                    )}
+                    {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && stat.toggle && (
+                      <button onClick={(e) => {
+                        stat.toggle(viewedStudent, e);
+                        setViewedStudent(prev => ({ ...prev, [stat.id]: !prev[stat.id] }));
+                      }} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover/stat:opacity-100 transition-opacity bg-white rounded shadow-sm border border-gray-200">
+                        <RefreshCw className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-amber-800 leading-relaxed font-medium max-w-4xl">
-            To maintain data privacy and system performance, your student profile and all associated data (Academic Records, Personal Notes, and Settings) are automatically deleted <span className="text-amber-900 font-bold underline decoration-amber-400 underline-offset-4">1 year after graduation</span>. Please ensure you export any necessary records before this period.
-          </p>
+
+          {/* Side Column: Contact & Links */}
+          <div className="p-6 sm:p-8 bg-gray-50/50">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2 mb-4">
+              <Globe className="w-4 h-4" /> Contact & Links
+            </h3>
+            
+            <div className="space-y-3">
+              {[
+                { id: 'email', icon: Mail, label: 'Email', value: viewedStudent?.email },
+                { id: 'phone', icon: Phone, label: 'Phone', value: viewedStudent?.phone },
+                { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', value: viewedStudent?.linkedin },
+                { id: 'github', icon: Github, label: 'GitHub', value: viewedStudent?.github },
+                { id: 'website', icon: Globe, label: 'Website', value: viewedStudent?.website }
+              ].map(field => (
+                <div key={field.id} className="group/field flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-md bg-gray-100 text-gray-500 flex items-center justify-center shrink-0">
+                      <field.icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-gray-500 font-medium uppercase">{field.label}</p>
+                      {field.value ? (
+                        field.id === 'email' || field.id === 'phone' ? (
+                          <p className="text-sm font-medium text-gray-900 truncate">{field.value}</p>
+                        ) : (
+                          <a href={field.value.startsWith('http') ? field.value : `https://${field.value}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate flex items-center gap-1">
+                            {field.value.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                          </a>
+                        )
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">Not provided</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/field:opacity-100 transition-opacity">
+                    {field.value && (
+                      <button onClick={() => copyToClipboard(field.value, field.label)} className="p-1.5 text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded">
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    )}
+                    {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+                      <button onClick={() => handleStartEditProfile(field.id, field.value)} className="p-1.5 text-gray-400 hover:text-blue-600 bg-gray-100 hover:bg-blue-50 rounded">
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Editing Overlay Modal for Small Fields */}
       {editingField && editingField !== 'bio' && (
-        <div className="absolute inset-0 z-50 bg-white/40 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl border border-blue-50 p-6 sm:p-8 transform transition-all scale-100">
-            <h4 className="text-xl font-black text-gray-900 mb-2 capitalize">Edit {editingField}</h4>
-            <p className="text-sm text-gray-500 mb-6">Enter your {editingField === 'website' ? 'URL' : editingField} details below.</p>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6">
+            <h4 className="text-lg font-bold text-gray-900 mb-1 capitalize">Edit {editingField}</h4>
+            <p className="text-sm text-gray-500 mb-4">Update your {editingField === 'website' ? 'URL' : editingField} information.</p>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  {editingField === 'email' && <Mail className="w-5 h-5 text-blue-500" />}
-                  {editingField === 'phone' && <Phone className="w-5 h-5 text-blue-500" />}
-                  {editingField === 'github' && <Github className="w-5 h-5 text-blue-500" />}
-                  {editingField === 'linkedin' && <Linkedin className="w-5 h-5 text-blue-500" />}
-                  {editingField === 'website' && <Globe className="w-5 h-5 text-blue-500" />}
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  {editingField === 'email' && <Mail className="w-5 h-5 text-gray-400" />}
+                  {editingField === 'phone' && <Phone className="w-5 h-5 text-gray-400" />}
+                  {editingField === 'github' && <Github className="w-5 h-5 text-gray-400" />}
+                  {editingField === 'linkedin' && <Linkedin className="w-5 h-5 text-gray-400" />}
+                  {editingField === 'website' && <Globe className="w-5 h-5 text-gray-400" />}
+                  {editingField === 'admissionYear' && <Calendar className="w-5 h-5 text-gray-400" />}
                 </div>
                 <input
                   type={editingField === 'email' ? 'email' : editingField === 'phone' ? 'tel' : editingField === 'admissionYear' ? 'number' : 'text'}
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
                   placeholder={`Enter ${editingField}...`}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl focus:outline-none focus:bg-white transition-all font-bold text-gray-900"
+                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveProfile();
@@ -1438,17 +1119,17 @@ export function StudentManagementTab({
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex justify-end gap-2">
                 <button
                   onClick={handleCancelEditProfile}
-                  className="flex-1 py-4 text-sm font-black text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveProfile}
                   disabled={isSavingProfile}
-                  className="flex-1 py-4 text-sm font-black bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2"
+                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                 >
                   {isSavingProfile && <Loader2 className="w-4 h-4 animate-spin" />}
                   Update
@@ -1460,13 +1141,27 @@ export function StudentManagementTab({
       )}
       {/* Semester Management Section */}
       <div className="bg-white rounded-[2rem] shadow-xl p-8 border border-gray-100">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-blue-600" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
+              <GraduationCap className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-gray-900">Academic Progression</h3>
+              <p className="text-sm text-gray-500 font-medium">Select your current semester to view specific subjects.</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xl font-black text-gray-900">Academic Progression</h3>
-            <p className="text-sm text-gray-500 font-medium">Select your current semester to view specific subjects.</p>
+          <div className="hidden sm:block text-right">
+            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Academic Year</div>
+            <div className="text-sm font-bold text-gray-900 flex items-center gap-1.5 justify-end mt-0.5">
+              <Calendar className="w-4 h-4 text-blue-500" />
+              {(() => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const startYear = now.getMonth() >= 5 ? year : year - 1;
+                return `${startYear}-${(startYear + 1).toString().slice(-2)}`;
+              })()}
+            </div>
           </div>
         </div>
 
