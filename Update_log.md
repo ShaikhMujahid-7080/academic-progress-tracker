@@ -28,7 +28,15 @@ npm run deploy
 14) add: [PrivateMessaging] add a feature or function that allows students to send private messages to each other (dissapering msgs after 10 mins)
 15) enhance: [ProfilePage] instead of viewing the profile of other students in a card make it viewable in a popup window
 16) fix: [MigrationCode] Remove all the old migration codes that are no longer needed (e.g NoticeBoard Data Migration, Academic Data Migration, etc.)
-17) fix: [firestore] enhance the way the "academic-data" of students (from different branch and year) is stored in the firestore make it more efficient
+17) add: [Message] add following enhancement, make the chats flow bottom up approach, add a filter option in the chat to show the students from same year & branch as default, add new group chat feature, add more useful features
+
+
+> 1/7/26
+- Fixed:
+  1. [firestore] enhance the way the "academic-data" of students (from different branch and year) is stored in the firestore make it more efficient
+  2. [Messages] the admin (Shaikh Mujahid) user isn't visible to other students, but other students are visible to him in the Messages tab.
+- Added:
+  1. [LoginPage] add an option for new users/students to create student Profile (standard) also add an option to create new users/student using google sign in (only) & option to link your profile with google sign in if your profile has been already created before (Authentication on firebase)
 
 
 > 23/6/26

@@ -9,7 +9,8 @@ import {
   where,
   writeBatch
 } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { signInWithPopup } from 'firebase/auth';
+import { db, auth, googleProvider } from '../../firebase';
 import { ADMIN_STUDENT } from '../../data/subjects';
 import bcrypt from 'bcryptjs';
 import { shouldDeleteStudent } from '../../utils/studentUtils';
@@ -39,10 +40,9 @@ export function useStudentManagement() {
       // Add admin student if not exists
       const adminExists = studentsList.some(s => s.rollNo === ADMIN_STUDENT.rollNo);
       if (!adminExists) {
-        // Create admin with default password hash and admission info
         const adminWithPassword = {
           ...ADMIN_STUDENT,
-          password: bcrypt.hashSync('admin123', 10), // Default admin password
+          password: bcrypt.hashSync('admin123', 10),
           isProtected: true,
           role: 'admin',
           admissionYear: ADMIN_STUDENT.admissionYear || new Date().getFullYear(),
@@ -50,7 +50,6 @@ export function useStudentManagement() {
           branch: ADMIN_STUDENT.branch || 'IT'
         };
         studentsList.push(adminWithPassword);
-        // Save admin to Firestore
         await setDoc(doc(db, 'students', ADMIN_STUDENT.rollNo), adminWithPassword);
       }
 
@@ -70,7 +69,6 @@ export function useStudentManagement() {
         await batch.commit();
         const remainingStudents = studentsList.filter(s => !expiredStudents.some(es => es.rollNo === s.rollNo));
         setStudents(remainingStudents);
-        // Update the list for subsequent restoration logic
         studentsList.splice(0, studentsList.length, ...remainingStudents);
       } else {
         setStudents(studentsList);
@@ -85,12 +83,10 @@ export function useStudentManagement() {
           if (found) {
             setSelectedStudent(found);
           } else {
-            // Stored student no longer exists; clear it
             localStorage.removeItem('selected-student');
           }
         }
       } catch (e) {
-        // ignore malformed storage
         localStorage.removeItem('selected-student');
       }
 
@@ -98,7 +94,6 @@ export function useStudentManagement() {
 
     } catch (error) {
       console.error('Error loading students:', error);
-      // Fallback to admin
       const adminWithPassword = {
         ...ADMIN_STUDENT,
         password: bcrypt.hashSync('admin123', 10),
@@ -117,7 +112,7 @@ export function useStudentManagement() {
   };
 
   // Create new student with optional password and role + admission data
-  const createStudent = async (rollNo, name, password = '', role = 'student', admissionYear = (new Date()).getFullYear(), isDSY = false, isYD = false, branch = 'IT') => {
+  const createStudent = async (rollNo, name, password = '', role = 'student', admissionYear = (new Date()).getFullYear(), isDSY = false, isYD = false, branch = 'IT', linkedUid = null, email = '', photoURL = '') => {
     try {
       const yearNum = Number(admissionYear);
       if (!Number.isInteger(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
@@ -138,23 +133,21 @@ export function useStudentManagement() {
         password: password ? bcrypt.hashSync(password, 10) : null,
         role: role,
         bio: '',
-        email: '',
+        email: email || '',
         phone: '',
         github: '',
         linkedin: '',
-        website: ''
+        website: '',
+        photoURL: photoURL || '',
+        linkedUid: linkedUid || null
       };
 
-      // Check if student already exists
       const exists = students.some(s => s.rollNo === rollNo);
       if (exists) {
         throw new Error('Student with this roll number already exists');
       }
 
-      // Save to Firestore
       await setDoc(doc(db, 'students', rollNo), newStudent);
-
-      // Update local state
       setStudents([...students, newStudent]);
 
       return true;
@@ -176,10 +169,8 @@ export function useStudentManagement() {
         throw new Error('Student not found');
       }
 
-      // Build the updated student object
       let updatedStudent = { ...student, role: newRole };
 
-      // If promoting to co-leader, add default permissions (canCreateUsers is true by default)
       if (newRole === 'co-leader' && !student.permissions) {
         updatedStudent.permissions = {
           canCreateUsers: true,
@@ -189,19 +180,16 @@ export function useStudentManagement() {
         };
       }
 
-      // If demoting from co-leader to student, remove permissions
       if (newRole === 'student' && student.role === 'co-leader') {
         delete updatedStudent.permissions;
       }
 
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -229,12 +217,10 @@ export function useStudentManagement() {
       const updatedStudent = { ...student, name: newName.trim() };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -262,12 +248,10 @@ export function useStudentManagement() {
       const updatedStudent = { ...student, isDSY: newIsDSY };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -295,12 +279,10 @@ export function useStudentManagement() {
       const updatedStudent = { ...student, branch: newBranch.trim() };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -329,12 +311,10 @@ export function useStudentManagement() {
       const updatedStudent = { ...student, admissionYear: yearNum };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -362,12 +342,10 @@ export function useStudentManagement() {
       const updatedStudent = { ...student, isYD: newIsYD };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -383,15 +361,12 @@ export function useStudentManagement() {
   // Delete student
   const deleteStudent = async (rollNo) => {
     try {
-      // Prevent deleting admin
       if (rollNo === ADMIN_STUDENT.rollNo) {
         throw new Error('Cannot delete admin student');
       }
 
-      // Delete student document
       await deleteDoc(doc(db, 'students', rollNo));
 
-      // Delete all academic data for this student
       const batch = writeBatch(db);
       const academicQuery = query(
         collection(db, 'academic-data'),
@@ -403,16 +378,13 @@ export function useStudentManagement() {
         batch.delete(doc.ref);
       });
 
-      // Delete user notes
       const notesDoc = doc(db, 'userNotes', rollNo);
       batch.delete(notesDoc);
 
       await batch.commit();
 
-      // Update local state
       setStudents(students.filter(s => s.rollNo !== rollNo));
 
-      // If deleted student was selected, clear selection
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(null);
         localStorage.removeItem('selected-student');
@@ -429,14 +401,21 @@ export function useStudentManagement() {
   const authenticateStudent = async (student, password) => {
     try {
       if (!student.isProtected) {
-        return true; // No password required
+        return true;
       }
 
       if (!password) {
-        return false; // Password required but not provided
+        return false;
       }
 
-      const isValid = await bcrypt.compare(password, student.password);
+      // Find the full student record if only rollNo is passed
+      const fullStudent = student.password
+        ? student
+        : students.find(s => s.rollNo === student.rollNo);
+
+      if (!fullStudent || !fullStudent.password) return false;
+
+      const isValid = await bcrypt.compare(password, fullStudent.password);
       return isValid;
     } catch (error) {
       console.error('Error authenticating student:', error);
@@ -460,12 +439,10 @@ export function useStudentManagement() {
 
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -487,12 +464,10 @@ export function useStudentManagement() {
       const updatedStudent = { ...student, ...updates };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -520,12 +495,10 @@ export function useStudentManagement() {
       const updatedStudent = { ...student, permissions };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
 
-      // Update local state
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
 
-      // Update selected student if it's the current one
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
@@ -537,13 +510,66 @@ export function useStudentManagement() {
       throw error;
     }
   };
- 
+
+  // Google Sign-In
+  const authenticateWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      const linkedStudent = students.find(s => s.linkedUid === user.uid);
+
+      if (linkedStudent) {
+        return { success: true, student: linkedStudent };
+      } else {
+        return { success: true, isNewGoogleUser: true, user };
+      }
+    } catch (error) {
+      console.error('Error with Google Auth:', error);
+      throw error;
+    }
+  };
+
+  // Link an existing student profile to a Google account
+  const linkStudentWithGoogle = async (rollNo, password, user) => {
+    try {
+      const isValid = await authenticateStudent({ rollNo }, password);
+      if (!isValid) {
+        throw new Error('Incorrect password');
+      }
+
+      const student = students.find(s => s.rollNo === rollNo);
+      if (!student) throw new Error('Student not found');
+
+      const updatedStudent = {
+        ...student,
+        linkedUid: user.uid,
+        email: user.email || student.email,
+        photoURL: user.photoURL || student.photoURL
+      };
+
+      await setDoc(doc(db, 'students', rollNo), updatedStudent);
+
+      setStudents(students.map(s => s.rollNo === rollNo ? updatedStudent : s));
+
+      if (selectedStudent && selectedStudent.rollNo === rollNo) {
+        setSelectedStudent(updatedStudent);
+        localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
+      }
+
+      return updatedStudent;
+    } catch (error) {
+      console.error('Error linking Google account:', error);
+      throw error;
+    }
+  };
+
   // Update student profile photo using Supabase Storage
   const updateStudentPhoto = async (rollNo, file) => {
     try {
       if (!file) throw new Error('No file provided');
- 
-      // 1. Cleanup old files first to prevent duplicates (e.g., if extension changes)
+
+      // 1. Cleanup old files first
       const { data: existingFiles } = await supabase.storage
         .from('profile-photos')
         .list(rollNo.toString());
@@ -556,55 +582,51 @@ export function useStudentManagement() {
       // 2. Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const filePath = `${rollNo}/avatar_${Date.now()}.${fileExt}`;
- 
-      // Upload/Overwrite the file
-      const { data: uploadData, error: uploadError } = await supabase.storage
+
+      const { error: uploadError } = await supabase.storage
         .from('profile-photos')
         .upload(filePath, file, {
           upsert: true,
           contentType: file.type
         });
- 
+
       if (uploadError) throw uploadError;
- 
-      // 2. Get Public URL
+
+      // 3. Get Public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profile-photos')
         .getPublicUrl(filePath);
- 
-      // 3. Update Firestore
+
+      // 4. Update Firestore
       const student = students.find(s => s.rollNo === rollNo);
       if (!student) throw new Error('Student not found');
- 
+
       const updatedStudent = { ...student, photoURL: publicUrl };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
- 
-      // 4. Update local state
+
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
- 
-      // Update selected student if it's the current one
+
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
       }
- 
+
       return publicUrl;
     } catch (error) {
       console.error('Error updating photo:', error);
       throw error;
     }
   };
- 
+
   // Remove student profile photo
   const removeStudentPhoto = async (rollNo) => {
     try {
       const student = students.find(s => s.rollNo === rollNo);
       if (!student) throw new Error('Student not found');
       if (!student.photoURL) return true;
- 
-      // 1. Delete all files in the student's folder in Supabase
+
       const { data: existingFiles } = await supabase.storage
         .from('profile-photos')
         .list(rollNo.toString());
@@ -613,21 +635,19 @@ export function useStudentManagement() {
         const filesToDelete = existingFiles.map(f => `${rollNo}/${f.name}`);
         await supabase.storage.from('profile-photos').remove(filesToDelete);
       }
-      // 2. Update Firestore
+
       const updatedStudent = { ...student, photoURL: null };
       await setDoc(doc(db, 'students', rollNo), updatedStudent);
- 
-      // 3. Update local state
+
       setStudents(students.map(s =>
         s.rollNo === rollNo ? updatedStudent : s
       ));
- 
-      // Update selected student if it's the current one
+
       if (selectedStudent && selectedStudent.rollNo === rollNo) {
         setSelectedStudent(updatedStudent);
         localStorage.setItem('selected-student', JSON.stringify(updatedStudent));
       }
- 
+
       return true;
     } catch (error) {
       console.error('Error removing photo:', error);
@@ -635,12 +655,10 @@ export function useStudentManagement() {
     }
   };
 
-  // Select student - now clears previous student's local data
+  // Select student - clears previous student's local data
   const selectStudent = (student) => {
-    // Clear any existing local data when switching students
     const previousStudent = selectedStudent;
     if (previousStudent && previousStudent.rollNo !== student?.rollNo) {
-      // Clear the previous student's local storage
       const previousKey = `academic-data-${previousStudent.rollNo}`;
       localStorage.removeItem(previousKey);
     }
@@ -679,6 +697,8 @@ export function useStudentManagement() {
     updateStudentPhoto,
     removeStudentPhoto,
     updateStudentProfile,
+    authenticateWithGoogle,
+    linkStudentWithGoogle,
     loadStudents
   };
 }

@@ -51,17 +51,20 @@ export function useFirestore(studentId) {
     try {
       setIsSyncing(true);
 
-      const docRef = doc(db, 'academic-data', `${studentId}-${semester}-${subject}`);
+      const docRef = doc(db, 'academic-data', studentId);
+      const key = `${semester}-${subject}`;
 
       await setDoc(docRef, {
+        [key]: {
+          semester,
+          subject,
+          type,
+          data: sanitizeForFirestore(data),
+          lastModified: new Date().toISOString()
+        },
         studentId,
-        semester,
-        subject,
-        type,
-        data: sanitizeForFirestore(data),
-        timestamp: serverTimestamp(),
-        lastModified: new Date().toISOString()
-      });
+        lastModified: serverTimestamp()
+      }, { merge: true });
 
       setLastSynced(new Date());
       return true;
@@ -79,33 +82,24 @@ export function useFirestore(studentId) {
 
     try {
       setIsSyncing(true);
-      const q = query(
-        collection(db, 'academic-data'),
-        where('studentId', '==', studentId)
-      );
-
-      return new Promise((resolve, reject) => {
-        const unsubscribe = onSnapshot(q,
-          (querySnapshot) => {
-            const data = {};
-            querySnapshot.forEach((doc) => {
-              const docData = doc.data();
-              const key = `${docData.semester}-${docData.subject}`;
-              data[key] = docData;
-            });
-            setLastSynced(new Date());
-            resolve(data);
-          },
-          (error) => {
-            console.error('Error loading all data:', error);
-            reject(error);
+      const docRef = doc(db, 'academic-data', studentId);
+      
+      const docSnap = await getDoc(docRef);
+      const data = {};
+      
+      if (docSnap.exists()) {
+        const docData = docSnap.data();
+        Object.keys(docData).forEach(key => {
+          if (key !== 'lastModified' && key !== 'studentId') {
+            data[key] = docData[key];
           }
-        );
-
-        return unsubscribe;
-      });
+        });
+      }
+      
+      setLastSynced(new Date());
+      return data;
     } catch (error) {
-      console.error('Error setting up real-time listener:', error);
+      console.error('Error loading all data:', error);
       return {};
     } finally {
       setIsSyncing(false);

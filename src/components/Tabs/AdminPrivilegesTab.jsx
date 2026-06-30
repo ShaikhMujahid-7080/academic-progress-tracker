@@ -75,6 +75,7 @@ export function AdminPrivilegesTab({
   const [isUpdatingPermission, setIsUpdatingPermission] = useState(null);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isMigratingNotices, setIsMigratingNotices] = useState(false);
+  const [isMigratingAcademicData, setIsMigratingAcademicData] = useState(false);
   const [showAppointModal, setShowAppointModal] = useState(false);
   const [appointSearchQuery, setAppointSearchQuery] = useState("");
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');
@@ -136,6 +137,78 @@ export function AdminPrivilegesTab({
       toast.error(`Migration failed: ${error.message}`);
     } finally {
       setIsMigratingNotices(false);
+    }
+  };
+
+  const handleMigrateAcademicData = async () => {
+    if (!isAdmin) return;
+    
+    setIsMigratingAcademicData(true);
+    try {
+      const q = collection(db, 'academic-data');
+      const snapshot = await getDocs(q);
+      
+      const batch = writeBatch(db);
+      let migrationCount = 0;
+      let deleteCount = 0;
+      
+      const newDocs = {};
+
+      // 1. Collect all old documents
+      snapshot.docs.forEach(document => {
+        const docId = document.id;
+        const data = document.data();
+        
+        // Skip new schema documents (they don't have root subject/semester fields)
+        if (!data.subject || !data.semester || !data.studentId) return;
+
+        const studentId = data.studentId;
+        const semester = data.semester;
+        const subject = data.subject;
+        const key = `${semester}-${subject}`;
+
+        if (!newDocs[studentId]) {
+          newDocs[studentId] = {};
+        }
+
+        newDocs[studentId][key] = {
+          semester,
+          subject,
+          type: data.type || 'theory',
+          data: data.data || {},
+          lastModified: data.lastModified || new Date().toISOString()
+        };
+
+        // Queue old document for deletion
+        batch.delete(doc(db, 'academic-data', docId));
+        deleteCount++;
+      });
+
+      // 2. Queue new documents for setting with merge
+      Object.keys(newDocs).forEach(studentId => {
+        const studentData = newDocs[studentId];
+        const newRef = doc(db, 'academic-data', studentId);
+        
+        batch.set(newRef, {
+          ...studentData,
+          studentId,
+          lastModified: new Date().toISOString()
+        }, { merge: true });
+        
+        migrationCount++;
+      });
+
+      if (deleteCount > 0) {
+        await batch.commit();
+        toast.success(`Migration complete! Merged ${deleteCount} subject docs into ${migrationCount} student docs.`);
+      } else {
+        toast.info("No legacy academic data found to migrate!");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(`Migration failed: ${error.message}`);
+    } finally {
+      setIsMigratingAcademicData(false);
     }
   };
 
@@ -659,6 +732,28 @@ export function AdminPrivilegesTab({
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Migrate Academic Data Button */}
+          {isAdmin && (
+            <button
+              onClick={handleMigrateAcademicData}
+              disabled={isMigratingAcademicData}
+              className="relative overflow-hidden flex items-center gap-4 p-5 bg-gradient-to-br from-white to-amber-50 hover:from-amber-50 hover:to-amber-100 rounded-2xl border border-amber-100 hover:border-amber-300 transition-all group shadow-md hover:shadow-lg hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                {isMigratingAcademicData ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Settings className="w-6 h-6 text-white" />
+                )}
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-amber-900 text-lg group-hover:text-amber-800">Optimize DB</p>
+                <p className="text-xs text-amber-600 font-medium">Migrate academic data v2</p>
+              </div>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-200/20 rounded-full blur-2xl transform translate-x-8 -translate-y-8 group-hover:bg-amber-300/30 transition-all" />
+            </button>
+          )}
+
           {/* Create User Button */}
           {(isAdmin || currentUserPermissions?.canCreateUsers) && (
             <button

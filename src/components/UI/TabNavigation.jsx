@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect } from "react";
-import { BookOpen, FlaskConical, Settings, ChevronRight, Megaphone, StickyNote, CheckCircle, Shield, Calendar } from "lucide-react";
+import { BookOpen, FlaskConical, ChevronRight, Megaphone, StickyNote, CheckCircle, Shield, Calendar, MessageCircle } from "lucide-react";
 
 const baseTabs = [
   { id: 0, label: "Theory Subjects", icon: BookOpen },
   { id: 1, label: "Practicals", icon: FlaskConical },
   { id: 2, label: "Notice Board", icon: Megaphone },
+  { id: 8, label: "Messages", icon: MessageCircle },
   { id: 7, label: "Calendar", icon: Calendar },
   { id: 3, label: "Personal Notes", icon: StickyNote }
 ];

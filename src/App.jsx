@@ -11,6 +11,7 @@ import { StudentManagementTab } from "./components/Tabs/StudentManagementTab";
 import { DegreeCompletionTab } from "./components/Tabs/DegreeCompletionTab";
 import { AdminPrivilegesTab } from "./components/Tabs/AdminPrivilegesTab";
 import { CalendarTab } from "./components/Tabs/CalendarTab";
+import { PrivateMessagesTab } from "./components/Tabs/PrivateMessagesTab";
 import { useLocalStorage } from "./components/hooks/useLocalStorage";
 import { ADMIN_STUDENT } from "./data/subjects";
 import { useFirestore } from "./components/hooks/useFirestore";
@@ -279,6 +280,13 @@ export default function App() {
           <CalendarTab
             selectedStudent={selectedStudent}
             semester={semester}
+          />
+        </TabPanel>
+
+        <TabPanel value={tab} index={8}>
+          <PrivateMessagesTab
+            selectedStudent={selectedStudent}
+            students={students}
           />
         </TabPanel>
       </div>

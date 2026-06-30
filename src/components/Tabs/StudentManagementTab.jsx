@@ -1084,6 +1084,71 @@ export function StudentManagementTab({
                 </div>
               ))}
             </div>
+
+            {/* Account Security Section */}
+            {(isAdmin || selectedStudent?.rollNo === viewedStudent?.rollNo) && (
+              <div className="mt-8">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2 mb-4">
+                  <ShieldCheck className="w-4 h-4" /> Account Security
+                </h3>
+                
+                <div className="space-y-3">
+                  <button 
+                    onClick={() => { setPasswordChangeStudent(viewedStudent); setShowPasswordChange(true); }}
+                    className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors group/security"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <Key className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs text-gray-500 font-medium uppercase">Password</p>
+                        <p className="text-sm font-bold text-gray-900">{viewedStudent?.isProtected ? 'Update Password' : 'Set Password'}</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover/security:text-gray-600 transition-colors" />
+                  </button>
+
+                  <button 
+                    onClick={async () => {
+                      if (!viewedStudent.linkedUid) {
+                        try {
+                          const result = await studentManagement.authenticateWithGoogle();
+                          if (result.user) {
+                            // Link bypassing password check for logged in user
+                            const updatedStudent = { 
+                              ...viewedStudent, 
+                              linkedUid: result.user.uid,
+                              email: result.user.email || viewedStudent.email,
+                              photoURL: result.user.photoURL || viewedStudent.photoURL 
+                            };
+                            await studentManagement.updateStudentProfile(viewedStudent.rollNo, updatedStudent);
+                            toast.success("Google account linked successfully!");
+                          }
+                        } catch (e) {
+                          toast.error(e.message || "Failed to link Google account");
+                        }
+                      }
+                    }}
+                    disabled={!!viewedStudent?.linkedUid}
+                    className={`w-full flex items-center justify-between p-3 bg-white border rounded-lg transition-colors group/security ${viewedStudent?.linkedUid ? 'border-green-200 opacity-80 cursor-default' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${viewedStudent?.linkedUid ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                        {viewedStudent?.linkedUid ? <Check className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs text-gray-500 font-medium uppercase">Google Auth</p>
+                        <p className={`text-sm font-bold ${viewedStudent?.linkedUid ? 'text-green-700' : 'text-gray-900'}`}>
+                          {viewedStudent?.linkedUid ? 'Linked' : 'Link Google Account'}
+                        </p>
+                      </div>
+                    </div>
+                    {!viewedStudent?.linkedUid && <ChevronRight className="w-4 h-4 text-gray-400 group-hover/security:text-gray-600 transition-colors" />}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

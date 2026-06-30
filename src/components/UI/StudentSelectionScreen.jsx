@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { GraduationCap, Users, Crown, User, Loader2, Search, X, Lock, Shield, Sun, Moon } from "lucide-react";
-import { ADMIN_STUDENT } from "../../data/subjects";
+import { GraduationCap, Users, Crown, User, Loader2, Search, X, Lock, Shield, Sun, Moon, Link as LinkIcon, Plus, Mail } from "lucide-react";
+import { ADMIN_STUDENT, BRANCHES } from "../../data/subjects";
 import { getStudentYear } from "../../utils/studentUtils";
 
 export function StudentSelectionScreen({ students, onStudentSelect, isLoading, studentManagement, theme, onThemeToggle }) {
@@ -11,6 +11,13 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
   const [password, setPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState("");
+
+  const [showGoogleLinkPrompt, setShowGoogleLinkPrompt] = useState(false);
+  const [googleUser, setGoogleUser] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showLinkSelect, setShowLinkSelect] = useState(false);
+  const [createData, setCreateData] = useState({ rollNo: '', name: '', branch: 'IT', admissionYear: new Date().getFullYear(), password: '' });
+  const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
 
   const isDark = theme === 'dark';
 
@@ -85,11 +92,103 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
     setSelectedStudentForAuth(null);
     setPassword("");
     setAuthError("");
+    if (showLinkSelect) {
+      setShowLinkSelect(false);
+      setShowGoogleLinkPrompt(true);
+    }
   };
 
   const clearSearch = () => {
     setSearchQuery("");
     setSelectedBranch("All");
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsProcessingGoogle(true);
+      const result = await studentManagement.authenticateWithGoogle();
+      
+      if (result.isNewGoogleUser) {
+        setGoogleUser(result.user);
+        setShowGoogleLinkPrompt(true);
+        // Pre-fill name from Google
+        setCreateData(prev => ({ ...prev, name: result.user.displayName || '' }));
+      } else {
+        onStudentSelect(result.student);
+      }
+    } catch (error) {
+      console.error(error);
+      // Optional: show a toast or error
+    } finally {
+      setIsProcessingGoogle(false);
+    }
+  };
+
+  const handleCreateGoogleStudent = async (e) => {
+    e.preventDefault();
+    if (!createData.rollNo || !createData.name || !createData.password) return;
+    
+    try {
+      setIsProcessingGoogle(true);
+      await studentManagement.createStudent(
+        createData.rollNo,
+        createData.name,
+        createData.password,
+        'student',
+        createData.admissionYear,
+        false,
+        false,
+        createData.branch,
+        googleUser.uid,
+        googleUser.email,
+        googleUser.photoURL
+      );
+      
+      const newStudent = {
+        rollNo: createData.rollNo,
+        name: createData.name,
+        isProtected: true,
+        role: 'student',
+        linkedUid: googleUser.uid,
+        photoURL: googleUser.photoURL,
+        email: googleUser.email
+      };
+      
+      onStudentSelect(newStudent);
+      
+    } catch (error) {
+      console.error(error);
+      setAuthError(error.message);
+    } finally {
+      setIsProcessingGoogle(false);
+    }
+  };
+
+  const handleGoogleLinkAuth = async (e) => {
+    e.preventDefault();
+    if (!password.trim()) {
+      setAuthError('Please enter password');
+      return;
+    }
+
+    setIsAuthenticating(true);
+    setAuthError("");
+
+    try {
+      const linkedStudent = await studentManagement.linkStudentWithGoogle(
+        selectedStudentForAuth.rollNo, 
+        password, 
+        googleUser
+      );
+      onStudentSelect(linkedStudent);
+      setShowPasswordAuth(false);
+      setShowLinkSelect(false);
+    } catch (error) {
+      setAuthError('Incorrect password. Link failed.');
+      setPassword("");
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
 
   if (isLoading) {
@@ -168,7 +267,7 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
           </div>
 
           {/* Password Form */}
-          <form onSubmit={handlePasswordAuth} className="space-y-6">
+          <form onSubmit={showLinkSelect ? handleGoogleLinkAuth : handlePasswordAuth} className="space-y-6">
             <div className="relative group/input">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center transition-colors">
                 <Shield className={`w-5 h-5 transition-colors ${isDark ? 'text-white/40' : 'text-gray-400'}`} />
@@ -218,7 +317,7 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
                 ) : (
                   <>
                     <Lock className="w-5 h-5" />
-                    <span>Unlock Account</span>
+                    <span>{showLinkSelect ? 'Link Account' : 'Unlock Account'}</span>
                   </>
                 )}
               </button>
@@ -290,14 +389,35 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
         <div className={`absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-blue-500/30 to-transparent rounded-full ${isDark ? 'opacity-50' : 'opacity-30'}`} />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 px-4 pt-4">
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ring-1 ${isDark ? 'bg-blue-500/20 ring-white/10' : 'bg-blue-100 ring-blue-200'}`}>
-              <Users className={`w-6 h-6 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+          <div className="flex items-center justify-between md:justify-start gap-4 flex-1">
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ring-1 ${isDark ? 'bg-blue-500/20 ring-white/10' : 'bg-blue-100 ring-blue-200'}`}>
+                <Users className={`w-6 h-6 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+              </div>
+              <div>
+                <h2 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Student Profiles</h2>
+                <span className={`text-sm font-bold tracking-widest uppercase ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>{students.length} Registered</span>
+              </div>
             </div>
-            <div>
-              <h2 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Student Profiles</h2>
-              <span className={`text-sm font-bold tracking-widest uppercase ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>{students.length} Registered</span>
-            </div>
+            
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={isProcessingGoogle}
+              className={`
+                hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50
+                ${isDark ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800'}
+              `}
+            >
+              {isProcessingGoogle ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+              )}
+              <span>Sign in with Google</span>
+            </button>
           </div>
 
           {/* Modern Search Bar */}
@@ -438,6 +558,28 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
             </div>
           )}
         </div>
+        
+        {/* Mobile Google Sign In */}
+        <div className="mt-6 md:hidden px-4">
+          <button
+            onClick={handleGoogleSignIn}
+            disabled={isProcessingGoogle}
+            className={`
+              w-full flex justify-center items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all shadow-md active:scale-95 disabled:opacity-50
+              ${isDark ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}
+            `}
+          >
+            {isProcessingGoogle ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+            )}
+            <span>Sign in with Google</span>
+          </button>
+        </div>
 
         {/* Footer Note */}
         <div className={`mt-8 p-6 backdrop-blur-md rounded-[2rem] border mx-2 ${isDark ? 'bg-slate-900/40 border-white/5 text-slate-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
@@ -450,6 +592,125 @@ export function StudentSelectionScreen({ students, onStudentSelect, isLoading, s
           </div>
         </div>
       </div>
+
+      {/* Google Modals */}
+      {showGoogleLinkPrompt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in">
+          <div className={`w-full max-w-md ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white'} rounded-[2.5rem] p-8 shadow-2xl`}>
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <LinkIcon className="w-8 h-8 text-blue-600" />
+              </div>
+              <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Account Not Linked</h2>
+              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
+                This Google account ({googleUser?.email}) is not linked to any student profile.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <button 
+                onClick={() => { setShowGoogleLinkPrompt(false); setShowLinkSelect(true); }}
+                className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center gap-4 hover:border-blue-500 hover:bg-blue-50/10 ${isDark ? 'border-slate-700 text-white' : 'border-gray-200 text-gray-900'}`}
+              >
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                  <User className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold">Link Existing Profile</p>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>I already have a profile in the list</p>
+                </div>
+              </button>
+
+              <button 
+                onClick={() => { setShowGoogleLinkPrompt(false); setShowCreateForm(true); }}
+                className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center gap-4 hover:border-green-500 hover:bg-green-50/10 ${isDark ? 'border-slate-700 text-white' : 'border-gray-200 text-gray-900'}`}
+              >
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center shrink-0">
+                  <Plus className="w-6 h-6 text-green-600" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold">Create New Profile</p>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Register as a new student</p>
+                </div>
+              </button>
+            </div>
+            
+            <button onClick={() => { setShowGoogleLinkPrompt(false); setGoogleUser(null); }} className={`mt-6 w-full py-3 font-bold ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in">
+          <div className={`w-full max-w-md ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white'} rounded-[2.5rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto`}>
+            <div className="text-center mb-6">
+              <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Profile</h2>
+              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Linked to {googleUser?.email}</p>
+            </div>
+            
+            <form onSubmit={handleCreateGoogleStudent} className="space-y-4">
+              {authError && (
+                <div className="p-3 bg-red-100 text-red-700 rounded-xl text-sm font-bold">
+                  {authError}
+                </div>
+              )}
+              
+              <div>
+                <label className={`block text-xs font-bold mb-1 ml-1 uppercase ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Full Name</label>
+                <input type="text" required value={createData.name} onChange={e => setCreateData({...createData, name: e.target.value})} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gray-50 border-gray-200'}`} />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-xs font-bold mb-1 ml-1 uppercase ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Roll Number</label>
+                  <input type="text" required value={createData.rollNo} onChange={e => setCreateData({...createData, rollNo: e.target.value})} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gray-50 border-gray-200'}`} />
+                </div>
+                <div>
+                  <label className={`block text-xs font-bold mb-1 ml-1 uppercase ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Admission Year</label>
+                  <input type="number" required value={createData.admissionYear} onChange={e => setCreateData({...createData, admissionYear: e.target.value})} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gray-50 border-gray-200'}`} />
+                </div>
+              </div>
+              
+              <div>
+                <label className={`block text-xs font-bold mb-1 ml-1 uppercase ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Branch</label>
+                <select value={createData.branch} onChange={e => setCreateData({...createData, branch: e.target.value})} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gray-50 border-gray-200'}`}>
+                  {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-xs font-bold mb-1 ml-1 uppercase ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Account Password (Required)</label>
+                <input type="password" required value={createData.password} onChange={e => setCreateData({...createData, password: e.target.value})} placeholder="Set a strong password" className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gray-50 border-gray-200'}`} />
+                <p className={`text-[10px] mt-1 ml-1 ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>You can use this password to log in without Google.</p>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => { setShowCreateForm(false); setShowGoogleLinkPrompt(true); setAuthError(""); }} className={`flex-1 py-3 font-bold rounded-xl transition-all ${isDark ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                  Back
+                </button>
+                <button type="submit" disabled={isProcessingGoogle} className="flex-1 py-3 font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                  {isProcessingGoogle ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showLinkSelect && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-20 p-4 z-[90] animate-in fade-in">
+          <div className="w-full max-w-md text-center">
+            <div className={`mb-4 px-6 py-4 rounded-3xl backdrop-blur-md border shadow-2xl ${isDark ? 'bg-slate-900/90 border-slate-700' : 'bg-white/90 border-gray-200'}`}>
+              <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Select your Profile</h2>
+              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Click on your profile in the list below to link it to {googleUser?.email}</p>
+              <button onClick={() => { setShowLinkSelect(false); setShowGoogleLinkPrompt(true); }} className="mt-3 text-blue-500 font-bold hover:underline text-sm">Cancel Linking</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
